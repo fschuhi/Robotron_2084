@@ -1,0 +1,9 @@
+bin/
+obj/
+tmp/
+
+.DS_Store
+
+*.cachefile
+*.suo
+*.user
