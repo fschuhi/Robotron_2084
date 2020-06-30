@@ -1,0 +1,57 @@
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ToolsVersion="4.0">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>f7aac553-dab5-4e63-a0bc-93893bb85d5b</ProjectGuid>
+    <ProjectHome>.</ProjectHome>
+    <StartupFile>Papple2.py</StartupFile>
+    <SearchPath>
+    </SearchPath>
+    <WorkingDirectory>.</WorkingDirectory>
+    <OutputPath>.</OutputPath>
+    <Name>Papple2</Name>
+    <RootNamespace>Papple2</RootNamespace>
+    <TestFramework>unittest</TestFramework>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+    <DebugSymbols>true</DebugSymbols>
+    <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+    <DebugSymbols>true</DebugSymbols>
+    <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Annotations.py" />
+    <Compile Include="Apple.py" />
+    <Compile Include="Assembler.py" />
+    <Compile Include="Checkpoints.py" />
+    <Compile Include="CPU.py" />
+    <Compile Include="Disassembler.py" />
+    <Compile Include="Emulator.py" />
+    <Compile Include="Excel.py" />
+    <Compile Include="Hooks.py" />
+    <Compile Include="Labels.py" />
+    <Compile Include="MemLogDlg.py" />
+    <Compile Include="Memory.py" />
+    <Compile Include="MemoryMap.py" />
+    <Compile Include="Papple2.py" />
+    <Compile Include="Robotron.py" />
+    <Compile Include="RobotronXl.py" />
+    <Compile Include="Statemachines.py" />
+    <Compile Include="SuperSimpleStatemachine.py" />
+    <Compile Include="tests.py" />
+    <Compile Include="Tiles.py" />
+    <Compile Include="util.py" />
+    <Compile Include="Workbench.py" />
+  </ItemGroup>
+  <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
+  <!-- Uncomment the CoreCompile target to enable the Build command in
+       Visual Studio and specify your pre- and post-build commands in
+       the BeforeBuild and AfterBuild targets below. -->
+  <!--<Target Name="CoreCompile" />-->
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+</Project>
