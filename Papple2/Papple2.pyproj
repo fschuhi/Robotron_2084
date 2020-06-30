@@ -38,8 +38,6 @@
     <Compile Include="Papple2.py" />
     <Compile Include="Robotron.py" />
     <Compile Include="RobotronXl.py" />
-    <Compile Include="Statemachines.py" />
-    <Compile Include="SuperSimpleStatemachine.py" />
     <Compile Include="tests.py" />
     <Compile Include="Tiles.py" />
     <Compile Include="util.py" />
