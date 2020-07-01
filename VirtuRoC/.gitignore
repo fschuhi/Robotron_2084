@@ -4,6 +4,8 @@ tmp/
 
 .DS_Store
 
+*.xlsb
+
 *.cachefile
 *.suo
 *.user

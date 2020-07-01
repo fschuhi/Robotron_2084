@@ -42,7 +42,7 @@ The replacement for Papple2 is Virtu is Sean Fausett's [Virtu](https://github.co
 Virtu has been abstracted to a software framework which can take advantage of the various implementations, namely WPF, Silverlight and XNA. It's a really nice piece of software, and it works like a charm. If you want to run the C# software in this repo you'll need to clone [my fork](https://github.com/fschuhi/Virtu/tree/hex-ray).
 
 ## Some links
-[Beginner's Guide to Reverse Engineering (Retro Games)]([https://www.retroreversing.com/tutorials/introduction](https://www.retroreversing.com/tutorials/introduction))
+[Beginner's Guide to Reverse Engineering (Retro Games)](https://www.retroreversing.com/tutorials/introduction)
 
 [The game on different platforms](https://www.youtube.com/watch?v=ejA0w-PmBZY)
 
@@ -51,3 +51,4 @@ Virtu has been abstracted to a software framework which can take advantage of th
 [Review from 1984](https://archive.org/stream/Computer_Games_Vol_3_No_1_1984-04_Carnegie_Publications_US#page/n55/mode/1up)
 
 [Robotron 2084 Arcade Guidebook](http://www.robotron2084guidebook.com/)
+	

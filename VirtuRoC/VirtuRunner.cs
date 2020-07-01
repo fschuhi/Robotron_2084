@@ -6,6 +6,7 @@ using System.Globalization;
 using Jellyfish.Virtu;
 using Jellyfish.Virtu.Services;
 using System.Windows.Threading;
+using VirtuRoC;
 
 namespace bla {
 
@@ -80,8 +81,7 @@ namespace bla {
             StorageService.LoadResource( "Disks/Default.dsk", stream => _machine.BootDiskII.BootDrive.InsertDisk( "Default.dsk", stream, false ) );
 
             // insert waiting for breakpoint pause here
-            int decValue = Convert.ToInt32( "0x512f", 16 );
-            _machine.Memory.SetBreakpoint( decValue );
+            _machine.Memory.SetBreakpoint( 0x4060 );
 
             // afterwards we *must* unpause manually
             WriteMessage( "before first unpause" );
@@ -92,7 +92,13 @@ namespace bla {
             _machine.WaitForPaused();
             WriteMessage( "after _machine.WaitForPaused(), now calling Unpause" );
 
-            _machine.Unpause();
+            Debug.Assert( _machine.Cpu.RPC == 0x4060 );
+
+            SpriteTable spriteTable = new SpriteTable( _machine.Memory, 0x7a00 );
+            spriteTable.SaveEntriesToFile( "tmp\\entries.csv" );
+            spriteTable.SaveStrobesToFile( "tmp\\strobes.csv" );
+
+            // _machine.Unpause();
 
             // leave it to the user to close the WPF MainWindow, which will exit ShowDialog() and and the thread
             WriteMessage( "waiting for join ShowDialog thread" );
