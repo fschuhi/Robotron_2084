@@ -1,5 +1,5 @@
 # Robotron_2084
-The goal of sotware in this repo is to reverse engineer Robotron 2084 for the Apple II. 
+The goal of the software in this repo is to reverse engineer Robotron 2084 for the Apple II. 
 
 As of now, everything in this repo is work in progress. The software (emulators and debuggers in Python and C#) is supposed to further my understanding of the Robotron executable. The repo tracks  my progress. It doesn't want to be more than that.
 
