@@ -9,6 +9,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
+// https://marketplace.visualstudio.com/items?itemName=fabiospampinato.vscode-todo-plus
+
 // https://stackoverflow.com/questions/37825662/how-to-save-the-whole-windows-form-as-image-vb-net
 
 namespace VirtuRoC {
@@ -41,8 +43,7 @@ namespace VirtuRoC {
             for (byte offset = 0; offset < Length; offset++) {
                 int addr = strobeAddr + offset;
                 byte decimalValue = ReadByte( addr );
-                // string line = string.Format( CultureInfo.InvariantCulture, "strobe;{0};{1};{2};{3}", addr, strobe, offset, b );
-                string line = string.Join( ";", new int[] { _index, _baseAddr, strobe, offset, addr, decimalValue } );
+                string line = string.Join( ";", new int[] { _index, _baseAddr, strobeAddr, strobe, offset, addr, decimalValue } );
                 strobeFile.WriteLine( line );
             }
         }
