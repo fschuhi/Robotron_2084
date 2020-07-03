@@ -10,11 +10,11 @@ I'm really a newbie when it comes to 6502 assembler (or any assembler, for that 
 
 ## Papple2
 
-I did the first run on disassembling Robotron using Python. The Papple2 workbench is derived from [ApplePy](https://github.com/jtauber/applepy), an Apple II emulator in Python, written by James Tauber. The emulator uses Pygame for screen output. You might want to check out [James' intro on YouTube]([https://www.youtube.com/watch?v=EhK5JNx0irA](https://www.youtube.com/watch?v=EhK5JNx0irA)).
+I did the first run on disassembling Robotron using Python. The Papple2 workbench is derived from [ApplePy](https://github.com/jtauber/applepy), an Apple II emulator in Python, written by James Tauber. The emulator uses Pygame for screen output. You might want to check out [James' intro on YouTube](https://www.youtube.com/watch?v=EhK5JNx0irA).
 
 Using Python as an emulator is of course an odd choice, because (I believe) all emulators in Python, including ApplePy, are slower than the original Apple II. At least in the beginning of the reengineering project that was not a problem at all. Compared to the more complete C# emulator Virtu (see below), ApplePy is very compact, easy to adapt and generally also easy to understand. The latter was important, because I did knew nothing about Python when I started with the project.
 
-I removed some code from ApplePy (like all the interfacing with the emulator from the outside via sockets) and added a number of features:
+I ported ApplePy to Python 3, removed some code (like all the interfacing with the emulator from the outside via sockets) and added a number of features:
 * an assembler
 * breakpoints, hooks
 * execution tracer
