@@ -12,6 +12,7 @@ using System.Threading.Tasks;
 #region links
 // https://marketplace.visualstudio.com/items?itemName=fabiospampinato.vscode-todo-plus
 // https://stackoverflow.com/questions/37825662/how-to-save-the-whole-windows-form-as-image-vb-net
+// https://blog.because-security.com/t/ghidra-wiki/431
 #endregion
 
 namespace VirtuRoC {
