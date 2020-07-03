@@ -12,33 +12,7 @@ namespace bla {
 
     public class VirtuRunner : IDisposable {
 
-        public MainWindow _showDialogWindow;
-        private Thread _thread;
         private Machine _machine;
-
-        #region Dispose
-        private bool disposedValue;
-
-        public void Dispose() {
-            // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
-            Dispose( disposing: true );
-            GC.SuppressFinalize( this );
-        }
-
-        protected virtual void Dispose( bool disposing ) {
-            if (!disposedValue) {
-                if (disposing) {
-                    // TODO: dispose managed state (managed objects)
-                }
-
-                // TODO: free unmanaged resources (unmanaged objects) and override finalizer
-                // TODO: set large fields to null
-                disposedValue = true;
-                WriteMessage( "inside" );
-            }
-            WriteMessage( "outside" );
-        }
-        #endregion
 
         #region debugging
         private static string FormatMessage( string format, params object[] args ) {
@@ -48,7 +22,7 @@ namespace bla {
                 try {
                     message.AppendFormat( CultureInfo.InvariantCulture, format, args );
                 } catch (FormatException ex) {
-                    Trace.WriteLine( FormatMessage("[VirtuRunner.FormatMessage] format: {0}; args: {1}; exception: {2}", format, string.Join( ", ", args ), ex.Message ));
+                    Trace.WriteLine( FormatMessage( "[VirtuRunner.FormatMessage] format: {0}; args: {1}; exception: {2}", format, string.Join( ", ", args ), ex.Message ) );
                 }
             } else {
                 message.Append( format );
@@ -62,22 +36,12 @@ namespace bla {
         }
         #endregion
 
+
         public void TestVirtu() {
             WriteMessage( "TestVirtu() enter" );
 
-            // start WPF thread
-            AutoResetEvent pageLoadedEvent = new AutoResetEvent( false );
-            _thread = new Thread( () => RunShowDialogThread( pageLoadedEvent ) ) { Name = "ShowDialog" };
-            _thread.SetApartmentState( ApartmentState.STA );
-            _thread.Start();
-            WriteMessage( "ShowDialog thread started" );
+            StartDialogThread();
 
-            // make sure we wait until MainPage and its Machine have been created
-            pageLoadedEvent.WaitOne();
-            WriteMessage( "MainPage loaded, waiting for paused" );
-
-            // Machine starts paused so that we can insert the boot disk
-            _machine.WaitForPaused();
             StorageService.LoadResource( "Disks/Default.dsk", stream => _machine.BootDiskII.BootDrive.InsertDisk( "Default.dsk", stream, false ) );
 
             // insert waiting for breakpoint pause here
@@ -90,27 +54,52 @@ namespace bla {
 
             // WriteMessage( "before _machine.WaitForPaused()" );
             _machine.WaitForPaused();
-            WriteMessage( "after _machine.WaitForPaused(), now calling Unpause" );
+            if (_machine.State == MachineState.Running) {
+                WriteMessage( "after _machine.WaitForPaused(), now calling Unpause" );
 
-            Debug.Assert( _machine.Cpu.RPC == 0x4060 );
+                Debug.Assert( _machine.Cpu.RPC == 0x4060 );
 
-            SpriteTable spriteTable = new SpriteTable( _machine.Memory, 0x7a00 );
-            spriteTable.SaveEntriesToFile( "tmp\\entries.csv" );
-            spriteTable.SaveStrobesToFile( "tmp\\strobes.csv" );
+                SpriteTable spriteTable = new SpriteTable( _machine.Memory, 0x7a00 );
+                spriteTable.SaveEntriesToFile( "tmp\\entries.csv" );
+                spriteTable.SaveStrobesToFile( "tmp\\strobes.csv" );
 
-            // _machine.Unpause();
+                // _machine.Unpause();
+            }
 
-            // leave it to the user to close the WPF MainWindow, which will exit ShowDialog() and and the thread
-            WriteMessage( "waiting for join ShowDialog thread" );
-            _thread.Join();
+            WaitForDialogThreadEnded();
 
             WriteMessage( "TestVirtu() exit" );
 
             // https://stackoverflow.com/questions/5923767/simple-state-machine-example-in-c
-            }
+        }
 
+        public MainWindow _showDialogWindow;
+        private Thread _showDialogThread;
+        private AutoResetEvent _pageLoadedEvent = new AutoResetEvent( false );
 
-            private void RunShowDialogThread( AutoResetEvent loadedEvent ) {
+        #region dialog thread mgmnt
+        private void StartDialogThread() {
+            // start WPF thread
+            _showDialogThread = new Thread( () => RunShowDialogThread( _pageLoadedEvent ) ) { Name = "ShowDialog" };
+            _showDialogThread.SetApartmentState( ApartmentState.STA );
+            _showDialogThread.Start();
+            WriteMessage( "ShowDialog thread started" );
+
+            // make sure we wait until MainPage and its Machine have been created
+            _pageLoadedEvent.WaitOne();
+            WriteMessage( "MainPage loaded, waiting for paused" );
+
+            // Machine starts paused so that we can insert the boot disk
+            _machine.WaitForPaused();
+        }
+
+        private void WaitForDialogThreadEnded() {
+            // leave it to the user to close the WPF MainWindow, which will exit ShowDialog() and and the thread
+            WriteMessage( "waiting for join ShowDialog thread" );
+            _showDialogThread.Join();
+        }
+
+        private void RunShowDialogThread( AutoResetEvent loadedEvent ) {
             WriteMessage( "RunShowDialogThread() enter" );
 
             // setup window (includes MainPage)
@@ -140,6 +129,31 @@ namespace bla {
             _showDialogWindow = null;
             WriteMessage( "RunShowDialogThread() exit" );
         }
+        #endregion
+
+        #region Dispose
+        private bool disposedValue;
+
+        public void Dispose() {
+            // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+            Dispose( disposing: true );
+            GC.SuppressFinalize( this );
+        }
+
+        protected virtual void Dispose( bool disposing ) {
+            if (!disposedValue) {
+                if (disposing) {
+                    // TODO: dispose managed state (managed objects)
+                }
+
+                // TODO: free unmanaged resources (unmanaged objects) and override finalizer
+                // TODO: set large fields to null
+                disposedValue = true;
+                WriteMessage( "inside" );
+            }
+            WriteMessage( "outside" );
+        }
+        #endregion
 
     }
 }

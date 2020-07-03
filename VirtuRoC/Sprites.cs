@@ -9,9 +9,10 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
+#region links
 // https://marketplace.visualstudio.com/items?itemName=fabiospampinato.vscode-todo-plus
-
 // https://stackoverflow.com/questions/37825662/how-to-save-the-whole-windows-form-as-image-vb-net
+#endregion
 
 namespace VirtuRoC {
     
@@ -31,6 +32,10 @@ namespace VirtuRoC {
         private byte ReadEntryByte( int offset ) {
             return ReadByte( _baseAddr + offset );
         }
+
+        byte Width { get { return ReadEntryByte( 0 ); } }
+        byte Height { get { return ReadEntryByte( 1 ); } }
+        int Length { get { return Width * Height; } }
 
         int GetStrobeAddr( int strobe ) {
             Debug.Assert( strobe >= 0 && strobe < 7 );
@@ -54,7 +59,7 @@ namespace VirtuRoC {
             }
         }
 
-        public void SaveToFile( StreamWriter entriesFile ) {
+        public void SaveEntriesToFile( StreamWriter entriesFile ) {
             int[] strobeAddr = new int[7];
             for ( int strobe=0; strobe < 7; strobe++ ) {
                 strobeAddr[strobe] = GetStrobeAddr( strobe );
@@ -62,10 +67,6 @@ namespace VirtuRoC {
             string line = string.Join( ";", new int[] { _index, _baseAddr, Width, Height, Length } ) + ";" + string.Join( ";", strobeAddr );
             entriesFile.WriteLine( line );
         }
-
-        byte Width { get { return ReadEntryByte( 0 ); } }
-        byte Height { get { return ReadEntryByte( 1 ); } }
-        int Length { get { return Width * Height; } }
 
     }
 
@@ -94,7 +95,7 @@ namespace VirtuRoC {
         public void SaveEntriesToFile( string filename ) {
             using (StreamWriter entriesFile = new StreamWriter( filename )) {
                 foreach ( SpriteTableEntry entry in Entries ) {
-                    entry.SaveToFile( entriesFile );
+                    entry.SaveEntriesToFile( entriesFile );
                 }
             }
         }
