@@ -5,9 +5,16 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Jellyfish.Virtu;
+using System.Threading;
+using System.Windows.Forms;
+using System.Windows.Input;
+using System.Runtime.CompilerServices;
 
 namespace VirtuRoC {
     class Program {
+
+        [STAThread]
         static void Main( string[] args ) {
             ConsoleTraceListener consoleTracer = new ConsoleTraceListener();
             Trace.Listeners.Add( consoleTracer );
@@ -19,6 +26,8 @@ namespace VirtuRoC {
 
             // Write a final trace message to all trace listeners.
             Trace.WriteLine( "Main() end" );
+
+            // TestVirtu();
 
             TestVirtu();
 
@@ -35,6 +44,11 @@ namespace VirtuRoC {
                 st.TestVirtu();
             }
             Console.WriteLine( "exit TestVirtu() from using" );
+        }
+
+        static void TestWindow1() {
+            Window1 win = new Window1();
+            win.ShowDialog();
         }
     }
 }

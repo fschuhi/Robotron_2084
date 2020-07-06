@@ -615,7 +615,7 @@
 "7749":"score lowbyte is also pretty random (also data range?)",
 "7752":"1 other random byte, saved in MON_RNDL",
 "7759":"NW: get random number in A? [TODO: ich glaube nicht]",
-"7768":"workspace byte",
+"7768":"workspace, starts w/ 0",
 "7772":"The loop structure consists of the three instructions LDX #8 ; […] ; DEX ; BNE .L8 (backwards branch) and encompasses the majority of the subroutine body. This is an idiom that you should learn to recognise instantly.",
 "7773":"This is a two-byte multiprecision left shift, effectively transferring the top bit of A into the bottom bit of $E2 via the Carry flag, and the former top bit of $E2 ends up in the Carry flag. This is further confirmation that they\u0027re being treated as a single wide value. But on the first iteration both are still zero, and remain so for the time being.",
 "7775":"The following ASL $E0 is where the real action begins. Recall that $E0 contains the former value of A on entry; we\u0027ve just popped out the top bit of it into the Carry. The very next instruction branches on the Carry, skipping all the rest of the loop body if it is cleared. Clearly the individual bits of the first operand, most-significant first, are crucial to the algorithm.",
@@ -676,19 +676,29 @@
 "9001":"load char pixel line byte",
 "9003":"SELF-MODIFIED! - - X is TextCol",
 "9007":"BPL goes from #$0-7, i.e. correct first offset",
-"9016":"NW: source = 7A00",
-"9020":"NW: dest = 9000",
-"9026":"NW: byte 0 = size 1 (0 ends)",
-"9033":"NW: byte 1 = size 2",
-"9035":"NW: multiply A by X - get shape data size (X)",
-"9046":"NW: byte 2 = shape data low",
-"9051":"NW: byte 3 = shape data high",
-"9056":"NW: (4)",
+"9016":"sprite table starts at $7A00",
+"9020":"strobes 1-6 are starting at $9000",
+"9026":"byte 0 = horizontal size in bytes (0 ends)",
+"9033":"byte 1 = vertical size in pixel lines",
+"9035":"get shape data size (X := width * size)",
+"9042":"index of first byte of strobe addresses := #2",
+"9046":"shape base addr, low",
+"9051":"shape base addr, high",
+"9056":"advance from shape (strobe0) to next strobe (strobe1 ff)",
 "9058":"NW: up to 0F, so $10 bytes per source shape",
+"9060":"yes, handle this strobe",
+"9062":"no = done with strobes, do next sprite",
+"9065":"move to first byte of next sprite entry",
+"9071":"page++ if ADC crossed page boundary",
+"9076":"mark: SEC/BCS = always branch",
+"9081":"all strobes have the same length",
+"9087":"strobes must not to extend across page boundaries (probably due to Y access)",
 "9093":"NW: byte 4 = shifted shape data low",
 "9098":"NW: byte 5 = shifted shape data high",
-"9108":"NW: shift",
-"9134":"NW: advance shape data dest pointer",
+"9108":"save color bit",
+"9130":"assumption: can be removed, status flags not used anywhere, so why restore them?",
+"9134":"we create _length bytes",
+"9136":"advance dest pointer (including boundary check, same as above)",
 "9145":"NW: always",
 "9148":"will be incremented while reading chars",
 "9153":"main loop, char in A, NW: get next parameter byte",
@@ -809,7 +819,7 @@
 "BackgroundColor":0},
 
 "9010":{
-"Text":"init01\r\n\r\nLooks like AsciiLineByteAddr has a different meaning here, maybe just a temp variable\r\n\r\n",
+"Text":"init01\r\n\r\nLooks like AsciiLineByteAddr has a different meaning here, maybe just a temp variable\r\n\r\npages $7A-$7D: sprite table\r\npages $7E-$89: shapes (strobe0)\r\npages $90-$bf: strobe[1-6]\r\n\r\nsprite table start w/ 2 bytes (width, height), then 6x strobe addr (strobe0 = shape, strobe[1-6] shifted)\r\n\r\nTODO: check if #0 end marker after last entry\r\n\r\n",
 "BoxMode":true,
 "MaxWidth":80,
 "BackgroundColor":0},
@@ -851,7 +861,7 @@
 "BackgroundColor":0},
 
 "7762":{
-"Text":"multiply\r\n\r\nThe two 8-bit operands are provided in A and X\r\nY untouched",
+"Text":"multiply\r\n\r\nThe two 8-bit operands are provided in A and X\r\nX result\r\nA workspace (?)\r\nY untouched",
 "BoxMode":true,
 "MaxWidth":80,
 "BackgroundColor":0},
@@ -1019,8 +1029,8 @@
 "BackgroundColor":0},
 
 "5925":{
-"Text":"NW: attract mode loop",
-"BoxMode":false,
+"Text":"\r\nNW: attract mode loop\r\n\r\n",
+"BoxMode":true,
 "MaxWidth":80,
 "BackgroundColor":0},
 
@@ -1037,134 +1047,134 @@
 "BackgroundColor":0},
 
 "6127":{
-"Text":"NW: loop to flash Robotron logo",
+"Text":"\r\nNW: loop to flash Robotron logo",
 "BoxMode":false,
 "MaxWidth":80,
 "BackgroundColor":0},
 
 "6189":{
 "Text":"NW: intro 1 - first text of Robotron story",
-"BoxMode":false,
+"BoxMode":true,
 "MaxWidth":80,
 "BackgroundColor":0},
 
 "6274":{
 "Text":"NW: intro 3 - GRUNTS",
-"BoxMode":false,
+"BoxMode":true,
 "MaxWidth":80,
 "BackgroundColor":0},
 
 "6443":{
 "Text":"NW: intro 2 - mutant protagonist",
-"BoxMode":false,
+"BoxMode":true,
 "MaxWidth":80,
 "BackgroundColor":0},
 
 "6591":{
 "Text":"NW: intro 4 - HULKS",
-"BoxMode":false,
+"BoxMode":true,
 "MaxWidth":80,
 "BackgroundColor":0},
 
 "6721":{
 "Text":"NW: intro 7 - controls",
-"BoxMode":false,
+"BoxMode":true,
 "MaxWidth":80,
 "BackgroundColor":0},
 
 "6795":{
 "Text":"NW: intro 5 - BRAINS, PROGS",
-"BoxMode":false,
+"BoxMode":true,
 "MaxWidth":80,
 "BackgroundColor":0},
 
 "6963":{
 "Text":"NW: print the controls screen",
-"BoxMode":false,
+"BoxMode":true,
 "MaxWidth":80,
 "BackgroundColor":0},
 
 "7253":{
 "Text":"NW: intro 6 - SPHEROIDS, QUARKS, ENFORCERS, TANKS",
-"BoxMode":false,
+"BoxMode":true,
 "MaxWidth":80,
 "BackgroundColor":0},
 
 "7530":{
 "Text":"NW: print select controls screen",
-"BoxMode":false,
+"BoxMode":true,
 "MaxWidth":80,
 "BackgroundColor":0},
 
 "7793":{
 "Text":"NW: click the speaker if needed",
-"BoxMode":false,
+"BoxMode":true,
 "MaxWidth":80,
 "BackgroundColor":0},
 
 "7855":{
 "Text":"NW: draw shape to screen (used for family)",
-"BoxMode":false,
+"BoxMode":true,
 "MaxWidth":80,
 "BackgroundColor":0},
 
 "7891":{
 "Text":"NW: erase shape from screen (used for family)",
-"BoxMode":false,
+"BoxMode":true,
 "MaxWidth":80,
 "BackgroundColor":0},
 
 "7929":{
 "Text":"NW: store 3-byte-wide shape to screen (used for hulks)",
-"BoxMode":false,
+"BoxMode":true,
 "MaxWidth":80,
 "BackgroundColor":0},
 
 "7972":{
 "Text":"NW: erase 3-byte-wide shape from screen (used for hulks)",
-"BoxMode":false,
+"BoxMode":true,
 "MaxWidth":80,
 "BackgroundColor":0},
 
 "8147":{
 "Text":"NW: collision detection? (disabled for attract mode)",
-"BoxMode":false,
+"BoxMode":true,
 "MaxWidth":80,
 "BackgroundColor":0},
 
 "8274":{
 "Text":"NW: draw shape to screen (used for men left at right)",
-"BoxMode":false,
+"BoxMode":true,
 "MaxWidth":80,
 "BackgroundColor":0},
 
 "8436":{
 "Text":"NW: xor whole screen 7 times (used for protagonist death)",
-"BoxMode":false,
+"BoxMode":true,
 "MaxWidth":80,
 "BackgroundColor":0},
 
 "8656":{
 "Text":"NW: and 3-byte-wide shape mask to screen (used to erase grunt)",
-"BoxMode":false,
+"BoxMode":true,
 "MaxWidth":80,
 "BackgroundColor":0},
 
 "8705":{
 "Text":"NW: store and or 3-byte-wide shape to screen (used to draw grunt)",
-"BoxMode":false,
+"BoxMode":true,
 "MaxWidth":80,
 "BackgroundColor":0},
 
 "8752":{
 "Text":"NW: xor 2-byte-wide shape mask to screen (used to erase protagonist)",
-"BoxMode":false,
+"BoxMode":true,
 "MaxWidth":80,
 "BackgroundColor":0},
 
 "8796":{
 "Text":"NW: or 2-byte-wide shape to screen (used to draw protagonist)",
-"BoxMode":false,
+"BoxMode":true,
 "MaxWidth":80,
 "BackgroundColor":0},
 
@@ -1250,6 +1260,120 @@
 "Text":"other stuff",
 "BoxMode":false,
 "MaxWidth":80,
+"BackgroundColor":0},
+
+"9024":{
+"Text":"\r\nthis is basically a WHILE pattern\r\n",
+"BoxMode":false,
+"MaxWidth":80,
+"BackgroundColor":0},
+
+"9031":{
+"Text":"(mark: \"only reached via branch\")",
+"BoxMode":false,
+"MaxWidth":80,
+"BackgroundColor":0},
+
+"9044":{
+"Text":"\r\n(mark: load ptr from mem)\r\n",
+"BoxMode":false,
+"MaxWidth":80,
+"BackgroundColor":0},
+
+"9062":{
+"Text":"\r\n(mark: advance to next list entry)\r\n",
+"BoxMode":false,
+"MaxWidth":80,
+"BackgroundColor":0},
+
+"9085":{
+"Text":"\r\n",
+"BoxMode":false,
+"MaxWidth":80,
+"BackgroundColor":0},
+
+"9130":{
+"Text":"\r\n",
+"BoxMode":false,
+"MaxWidth":80,
+"BackgroundColor":0},
+
+"9108":{
+"Text":"\r\n",
+"BoxMode":false,
+"MaxWidth":80,
+"BackgroundColor":0},
+
+"9091":{
+"Text":"\r\n",
+"BoxMode":false,
+"MaxWidth":80,
+"BackgroundColor":0},
+
+"7779":{
+"Text":"\r\n",
+"BoxMode":false,
+"MaxWidth":80,
+"BackgroundColor":0},
+
+"7784":{
+"Text":"\r\n",
+"BoxMode":false,
+"MaxWidth":80,
+"BackgroundColor":0},
+
+"7789":{
+"Text":"\r\n",
+"BoxMode":false,
+"MaxWidth":80,
+"BackgroundColor":0},
+
+"7772":{
+"Text":"\r\n",
+"BoxMode":false,
+"MaxWidth":80,
+"BackgroundColor":0},
+
+"8836":{
+"Text":"\r\nRobonoise\r\n\r\n",
+"BoxMode":true,
+"MaxWidth":80,
+"BackgroundColor":0},
+
+"9035":{
+"Text":"\r\n",
+"BoxMode":false,
+"MaxWidth":80,
+"BackgroundColor":0},
+
+"9038":{
+"Text":"\r\n",
+"BoxMode":false,
+"MaxWidth":80,
+"BackgroundColor":0},
+
+"9075":{
+"Text":"\r\n",
+"BoxMode":false,
+"MaxWidth":80,
+"BackgroundColor":0},
+
+"9055":{
+"Text":"\r\n",
+"BoxMode":false,
+"MaxWidth":80,
+"BackgroundColor":0},
+
+"9100":{
+"Text":"\r\n",
+"BoxMode":false,
+"MaxWidth":80,
+"BackgroundColor":0},
+
+"9114":{
+"Text":"\r\n",
+"BoxMode":false,
+"MaxWidth":80,
 "BackgroundColor":0}},
 
 "Notes":{
@@ -1281,7 +1405,13 @@
 "Text":"multiplyRndX multiplies and falls through into yet another multiply\r\nthis generates a lot of cycles\r\nhidden throttling of execution?",
 "BoxMode":false,
 "MaxWidth":80,
-"BackgroundColor":-23296}},
+"BackgroundColor":-23296},
+
+"9010":{
+"Text":"think about isolating PC changes (maybe including branches?)\r\n\r\nthink about Ptr, Offs, Addr\r\nuppercase variables or labels?\r\nhow to mark temp variables?",
+"BoxMode":false,
+"MaxWidth":80,
+"BackgroundColor":-7278960}},
 
 "UserLabels":{
 "5792":{
@@ -2988,6 +3118,34 @@
 "9044":{
 "Label":"loop2",
 "Value":20817,
+"Source":"User",
+"Type":"NonUniqueLocalAddr",
+"LabelAnno":"None"},
+
+"9031":{
+"Label":"notExit",
+"Value":20804,
+"Source":"User",
+"Type":"NonUniqueLocalAddr",
+"LabelAnno":"None"},
+
+"9078":{
+"Label":"advanceToNextStrobe",
+"Value":20851,
+"Source":"User",
+"Type":"NonUniqueLocalAddr",
+"LabelAnno":"None"},
+
+"9091":{
+"Label":"transferStrobePtr",
+"Value":20864,
+"Source":"User",
+"Type":"NonUniqueLocalAddr",
+"LabelAnno":"None"},
+
+"9108":{
+"Label":"shift",
+"Value":20881,
 "Source":"User",
 "Type":"NonUniqueLocalAddr",
 "LabelAnno":"None"}},
@@ -9064,6 +9222,59 @@
 "LabelAnno":"None"}],
 "ClearPrevious":false},
 
+"7762":{
+"Variables":[{
+"DataDescriptor":{
+"Length":1,
+"Format":"NumericLE",
+"SubFormat":"Hex",
+"SymbolRef":null},
+
+"Comment":"",
+"HasWidth":true,
+"Direction":"ReadWrite",
+"MultiMask":null,
+"Label":"_mult1",
+"Value":224,
+"Source":"Variable",
+"Type":"ExternalAddr",
+"LabelAnno":"None"},
+
+{
+"DataDescriptor":{
+"Length":1,
+"Format":"NumericLE",
+"SubFormat":"Hex",
+"SymbolRef":null},
+
+"Comment":"",
+"HasWidth":true,
+"Direction":"ReadWrite",
+"MultiMask":null,
+"Label":"_mult2",
+"Value":225,
+"Source":"Variable",
+"Type":"ExternalAddr",
+"LabelAnno":"None"},
+
+{
+"DataDescriptor":{
+"Length":1,
+"Format":"NumericLE",
+"SubFormat":"Hex",
+"SymbolRef":null},
+
+"Comment":"",
+"HasWidth":true,
+"Direction":"ReadWrite",
+"MultiMask":null,
+"Label":"_workspace",
+"Value":226,
+"Source":"Variable",
+"Type":"ExternalAddr",
+"LabelAnno":"None"}],
+"ClearPrevious":false},
+
 "8971":{
 "Variables":[{
 "DataDescriptor":{
@@ -9076,8 +9287,129 @@
 "HasWidth":true,
 "Direction":"ReadWrite",
 "MultiMask":null,
-"Label":"AsciiLineByteAddr",
+"Label":"_AsciiLineByteAddr",
 "Value":8,
+"Source":"Variable",
+"Type":"ExternalAddr",
+"LabelAnno":"None"}],
+"ClearPrevious":false},
+
+"9010":{
+"Variables":[{
+"DataDescriptor":{
+"Length":2,
+"Format":"NumericLE",
+"SubFormat":"Hex",
+"SymbolRef":null},
+
+"Comment":"read: width/height (first 2 bytes), ^shape(^strobe0); write: ^strobe1-^strobe6",
+"HasWidth":true,
+"Direction":"ReadWrite",
+"MultiMask":null,
+"Label":"_spriteEntryPtr",
+"Value":0,
+"Source":"Variable",
+"Type":"ExternalAddr",
+"LabelAnno":"None"},
+
+{
+"DataDescriptor":{
+"Length":1,
+"Format":"NumericLE",
+"SubFormat":"Hex",
+"SymbolRef":null},
+
+"Comment":"",
+"HasWidth":true,
+"Direction":"ReadWrite",
+"MultiMask":null,
+"Label":"_strobePtrOffs",
+"Value":2,
+"Source":"Variable",
+"Type":"ExternalAddr",
+"LabelAnno":"None"},
+
+{
+"DataDescriptor":{
+"Length":1,
+"Format":"NumericLE",
+"SubFormat":"Hex",
+"SymbolRef":null},
+
+"Comment":"",
+"HasWidth":true,
+"Direction":"ReadWrite",
+"MultiMask":null,
+"Label":"_length",
+"Value":4,
+"Source":"Variable",
+"Type":"ExternalAddr",
+"LabelAnno":"None"},
+
+{
+"DataDescriptor":{
+"Length":1,
+"Format":"NumericLE",
+"SubFormat":"Hex",
+"SymbolRef":null},
+
+"Comment":"",
+"HasWidth":true,
+"Direction":"ReadWrite",
+"MultiMask":null,
+"Label":"_ix",
+"Value":5,
+"Source":"Variable",
+"Type":"ExternalAddr",
+"LabelAnno":"None"},
+
+{
+"DataDescriptor":{
+"Length":2,
+"Format":"NumericLE",
+"SubFormat":"Hex",
+"SymbolRef":null},
+
+"Comment":"maybe better \"_shapePtr\"?",
+"HasWidth":true,
+"Direction":"ReadWrite",
+"MultiMask":null,
+"Label":"_strobePtr",
+"Value":6,
+"Source":"Variable",
+"Type":"ExternalAddr",
+"LabelAnno":"None"},
+
+{
+"DataDescriptor":{
+"Length":2,
+"Format":"NumericLE",
+"SubFormat":"Hex",
+"SymbolRef":null},
+
+"Comment":"",
+"HasWidth":true,
+"Direction":"ReadWrite",
+"MultiMask":null,
+"Label":"_destPtr",
+"Value":8,
+"Source":"Variable",
+"Type":"ExternalAddr",
+"LabelAnno":"None"},
+
+{
+"DataDescriptor":{
+"Length":1,
+"Format":"NumericLE",
+"SubFormat":"Hex",
+"SymbolRef":null},
+
+"Comment":"",
+"HasWidth":true,
+"Direction":"ReadWrite",
+"MultiMask":null,
+"Label":"_colorBit",
+"Value":10,
 "Source":"Variable",
 "Type":"ExternalAddr",
 "LabelAnno":"None"}],

@@ -7,6 +7,17 @@ using Jellyfish.Virtu;
 using Jellyfish.Virtu.Services;
 using System.Windows.Threading;
 using VirtuRoC;
+using System.Windows.Input;
+using System.Windows.Forms;
+using System.IO;
+
+// https://github.com/dotnet-state-machine/stateless
+// https://www.hanselman.com/blog/Stateless30AStateMachineLibraryForNETCore.aspx
+
+// http://www.albahari.com/threading/part2.aspx
+
+// https://stackoverflow.com/questions/28772886/how-to-call-a-method-on-a-running-thread
+// https://stackoverflow.com/questions/530211/creating-a-blocking-queuet-in-net/530228#530228
 
 namespace bla {
 
@@ -42,7 +53,10 @@ namespace bla {
 
             StartDialogThread();
 
-            StorageService.LoadResource( "Disks/Default.dsk", stream => _machine.BootDiskII.BootDrive.InsertDisk( "Default.dsk", stream, false ) );
+            // StorageService.LoadResource( "Disks/Default.dsk", stream => _machine.BootDiskII.BootDrive.InsertDisk( "Default.dsk", stream, false ) );
+
+            //_machine.SaveState( "bla.bin" );
+            // _machine.LoadState( "bla.bin" );
 
             // insert waiting for breakpoint pause here
             _machine.Memory.SetBreakpoint( 0x4060 );
@@ -54,17 +68,18 @@ namespace bla {
 
             // WriteMessage( "before _machine.WaitForPaused()" );
             _machine.WaitForPaused();
-            if (_machine.State == MachineState.Running) {
-                WriteMessage( "after _machine.WaitForPaused(), now calling Unpause" );
 
-                Debug.Assert( _machine.Cpu.RPC == 0x4060 );
+            WriteMessage( "after _machine.WaitForPaused(), now calling Unpause" );
 
-                SpriteTable spriteTable = new SpriteTable( _machine.Memory, 0x7a00 );
-                spriteTable.SaveEntriesToFile( "tmp\\entries.csv" );
-                spriteTable.SaveStrobesToFile( "tmp\\strobes.csv" );
+            Debug.Assert( _machine.Cpu.RPC == 0x4060 );
 
-                // _machine.Unpause();
-            }
+            SpriteTable spriteTable = new SpriteTable( _machine.Memory, 0x7a00 );
+            spriteTable.SaveEntriesToFile( "tmp\\entries.csv" );
+            spriteTable.SaveStrobesToFile( "tmp\\strobes.csv" );
+
+            // _machine.SaveState( "bla.bin " );
+
+            // _machine.Unpause();
 
             WaitForDialogThreadEnded();
 
@@ -104,6 +119,9 @@ namespace bla {
 
             // setup window (includes MainPage)
             _showDialogWindow = new MainWindow();
+
+            // InputLanguage.CurrentInputLanguage.LayoutName = "US";
+
 
             // MainPage has created a Machine, which will be started as soon as the MainPage is loaded
             // IMPORTANT: MachineThread has not been started yet => we could set up breakpoints here ...
