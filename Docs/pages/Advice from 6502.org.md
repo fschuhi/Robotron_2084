@@ -1,5 +1,3 @@
-[cont](http://forum.6502.org/viewtopic.php?f=3&t=5517&start=75)
-
 [Bid Ed](http://forum.6502.org/viewtopic.php?f=3&t=5517#p67235)
 
 * You've already met with the creative use of the stack: pushing and RTS is often used for a table-driven dispatch.
