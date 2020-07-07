@@ -5,7 +5,7 @@ Terminology:
 * _strobe_ is a shifted sprite, paying attention to the color-indicating high bit
 * _sprite table_ is a catalog containing the pointers to the strobes, one entry for each sprite
 
-For a summary of the sprites used see [Robotron sprites.xlsb](https://github.com/fschuhi/Robotron_2084/blob/master/Docs/Robotron%20sprites.xlsb). You need to activate the VBA object model to use the functions and macros which come with the xlsb.
+For a summary of the sprites used see [Robotron sprites.xlsb](https://github.com/fschuhi/Robotron_2084/blob/master/Docs/Robotron/Robotron%20sprites.xlsb). You need to activate the VBA object model to use the functions and macros which come with the xlsb.
 
 * _sprite table_ shows the memory layout of the catalog of the sprite entries, with each entry of #$10 bytes sizing the sprite (with in bytes, height in pixel lines) and pointing to 7 "strobes" of the sprite, which are the same pixels moved to the right.
 * _entries_ displays the same data in logical format. You can use Ctrl-S anywhere in the strobe[0-6] columns to show the pixel representations of the particular strobe.
