@@ -1,13 +1,13 @@
-﻿<Window x:Class="VirtuRoC.Window1"
+﻿<Window x:Class="Robotron.Window1"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:VirtuRoC"
+        xmlns:local="clr-namespace:Robotron"
         mc:Ignorable="d"
         Title="Window1" Height="450" Width="800">
     <Grid>
-        <ListBox x:Name="MyFirstListBox" HorizontalAlignment="Left" Height="246" Margin="64,84,0,0" VerticalAlignment="Top" Width="276">
+        <ListBox x:Name="MyFirstListBox" HorizontalAlignment="Left" Height="246" Margin="64,84,0,0" VerticalAlignment="Top" Width="276" SelectionChanged="MyFirstListBox_SelectionChanged">
             <ListBoxItem>ListBox Item #1</ListBoxItem>
             <ListBoxItem>ListBox Item #2</ListBoxItem>
             <ListBoxItem>ListBox Item #3</ListBoxItem>

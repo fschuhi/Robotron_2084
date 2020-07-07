@@ -6,10 +6,10 @@ using System.Globalization;
 using Jellyfish.Virtu;
 using Jellyfish.Virtu.Services;
 using System.Windows.Threading;
-using VirtuRoC;
 using System.Windows.Input;
 using System.Windows.Forms;
 using System.IO;
+using System.Threading.Tasks;
 
 // https://github.com/dotnet-state-machine/stateless
 // https://www.hanselman.com/blog/Stateless30AStateMachineLibraryForNETCore.aspx
@@ -19,7 +19,7 @@ using System.IO;
 // https://stackoverflow.com/questions/28772886/how-to-call-a-method-on-a-running-thread
 // https://stackoverflow.com/questions/530211/creating-a-blocking-queuet-in-net/530228#530228
 
-namespace bla {
+namespace Robotron {
 
     public class VirtuRunner : IDisposable {
 
@@ -55,8 +55,18 @@ namespace bla {
 
             // StorageService.LoadResource( "Disks/Default.dsk", stream => _machine.BootDiskII.BootDrive.InsertDisk( "Default.dsk", stream, false ) );
 
-            //_machine.SaveState( "bla.bin" );
-            // _machine.LoadState( "bla.bin" );
+            // TODO: move load/save state to helper method
+            if (true) {
+                Task taskA = new Task( () => {
+                    Thread.CurrentThread.SetApartmentState( ApartmentState.MTA );
+                    _machine.LoadStateFromFile( "tmp\\bla.bin" );
+                } );
+                taskA.Start();
+                taskA.Wait();
+            }
+
+            // TODO: test if breakpoint is set in loaded state
+            // TODO: clear all breakpoints here
 
             // insert waiting for breakpoint pause here
             _machine.Memory.SetBreakpoint( 0x4060 );
@@ -64,6 +74,7 @@ namespace bla {
             // afterwards we *must* unpause manually
             WriteMessage( "before first unpause" );
             _machine.Unpause();
+
             WriteMessage( "after first unpause, now WaitForPaused()" );
 
             // WriteMessage( "before _machine.WaitForPaused()" );
@@ -71,13 +82,21 @@ namespace bla {
 
             WriteMessage( "after _machine.WaitForPaused(), now calling Unpause" );
 
-            Debug.Assert( _machine.Cpu.RPC == 0x4060 );
+            // not necessarily a breakpoint (e.g. if immediately stop startup of machine / Robotron)
+            // Debug.Assert( _machine.Cpu.RPC == 0x4060 );
+
+            if (true) {
+                Task taskA = new Task( () => {
+                    Thread.CurrentThread.SetApartmentState( ApartmentState.MTA );
+                    _machine.SaveStateToFile( "tmp\\bla.bin" );
+                } );
+                taskA.Start();
+                taskA.Wait();
+            }
 
             SpriteTable spriteTable = new SpriteTable( _machine.Memory, 0x7a00 );
             spriteTable.SaveEntriesToFile( "tmp\\entries.csv" );
             spriteTable.SaveStrobesToFile( "tmp\\strobes.csv" );
-
-            // _machine.SaveState( "bla.bin " );
 
             // _machine.Unpause();
 

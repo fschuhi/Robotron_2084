@@ -565,6 +565,7 @@
 "5204":"return?",
 "5208":"NW: no, subtract #$30",
 "5211":"NW: C is clear if [TODO: ?]",
+"5214":"assumption: $1411 = #0",
 "5235":"CLC signals still in level",
 "5568":"speaker tail call",
 "5792":"$07, TODO: hat nichts mit \"PixelLine\" oder \"Sprite\" zu tun",
@@ -1379,6 +1380,12 @@
 "Notes":{
 "4783":{
 "Text":"ideas: \"box jsr stretch\"\r\n* here: the consecutive JSRs until (and not including) the bcc\r\n* assumption (from the disassembler tracing): the JSRs are executed consecutively\r\n=\u003e box should check this, probably by \r\n** tracking the SP (\"don\u0027t rts to outside the box\")\r\n** checking for reentry inside the box (\"don\u0027t jump into the box\")",
+"BoxMode":false,
+"MaxWidth":80,
+"BackgroundColor":-7278960},
+
+"5214":{
+"Text":"This is a nice test routine to check speaker action.\r\ninstall guard on $1411 (assumption: #0)\r\ncheck how the speaker changes pith if we change the #$40",
 "BoxMode":false,
 "MaxWidth":80,
 "BackgroundColor":-7278960},
@@ -2850,24 +2857,24 @@
 "LabelAnno":"None"},
 
 "5214":{
-"Label":"S425B",
+"Label":"speaker_1411",
 "Value":16987,
 "Source":"User",
 "Type":"GlobalAddr",
-"LabelAnno":"None"},
+"LabelAnno":"Uncertain"},
 
 "5218":{
-"Label":"B425F",
+"Label":"loopOuter",
 "Value":16991,
 "Source":"User",
-"Type":"GlobalAddr",
+"Type":"NonUniqueLocalAddr",
 "LabelAnno":"None"},
 
 "5220":{
-"Label":"B4261",
+"Label":"loopInner",
 "Value":16993,
 "Source":"User",
-"Type":"GlobalAddr",
+"Type":"NonUniqueLocalAddr",
 "LabelAnno":"None"},
 
 "5237":{
@@ -3146,6 +3153,62 @@
 "9108":{
 "Label":"shift",
 "Value":20881,
+"Source":"User",
+"Type":"NonUniqueLocalAddr",
+"LabelAnno":"None"},
+
+"3139":{
+"Label":"storyPart1_jmp",
+"Value":320,
+"Source":"User",
+"Type":"GlobalAddr",
+"LabelAnno":"None"},
+
+"3142":{
+"Label":"storyPart3_jmp",
+"Value":323,
+"Source":"User",
+"Type":"GlobalAddr",
+"LabelAnno":"None"},
+
+"3145":{
+"Label":"storyPart2_jmp",
+"Value":326,
+"Source":"User",
+"Type":"GlobalAddr",
+"LabelAnno":"None"},
+
+"3148":{
+"Label":"storyPart4_jmp",
+"Value":329,
+"Source":"User",
+"Type":"GlobalAddr",
+"LabelAnno":"None"},
+
+"3151":{
+"Label":"storyPart5_jmp",
+"Value":332,
+"Source":"User",
+"Type":"GlobalAddr",
+"LabelAnno":"None"},
+
+"3154":{
+"Label":"storyPart6_jmp",
+"Value":335,
+"Source":"User",
+"Type":"GlobalAddr",
+"LabelAnno":"None"},
+
+"3157":{
+"Label":"S0152",
+"Value":338,
+"Source":"User",
+"Type":"GlobalAddr",
+"LabelAnno":"None"},
+
+"6195":{
+"Label":"loop",
+"Value":17968,
 "Source":"User",
 "Type":"NonUniqueLocalAddr",
 "LabelAnno":"None"}},

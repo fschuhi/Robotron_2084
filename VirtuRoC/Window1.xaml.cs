@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Robotron;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -15,7 +16,7 @@ using System.Windows.Shapes;
 // https://blog.magnusmontin.net/2014/08/13/tabbing-between-items-in-wpf-listbox/
 // https://www.wpf-tutorial.com/list-controls/listbox-control/
 
-namespace VirtuRoC {
+namespace Robotron {
     /// <summary>
     /// Interaction logic for Window1.xaml
     /// </summary>
@@ -26,5 +27,8 @@ namespace VirtuRoC {
             MyFirstListBox.SelectedIndex = 0;
         }
 
+        private void MyFirstListBox_SelectionChanged( object sender, SelectionChangedEventArgs e ) {
+
+        }
     }
 }

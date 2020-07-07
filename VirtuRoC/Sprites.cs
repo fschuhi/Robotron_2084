@@ -15,7 +15,7 @@ using System.Threading.Tasks;
 // https://blog.because-security.com/t/ghidra-wiki/431
 #endregion
 
-namespace VirtuRoC {
+namespace Robotron {
     
     class SpriteTableEntry {
         int _index;

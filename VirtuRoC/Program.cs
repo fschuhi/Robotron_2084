@@ -1,5 +1,4 @@
-﻿using bla;
-using System;
+﻿using System;
 using System.Diagnostics;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,8 +9,10 @@ using System.Threading;
 using System.Windows.Forms;
 using System.Windows.Input;
 using System.Runtime.CompilerServices;
+using System.IO.IsolatedStorage;
+using System.IO;
 
-namespace VirtuRoC {
+namespace Robotron {
     class Program {
 
         [STAThread]
@@ -26,8 +27,6 @@ namespace VirtuRoC {
 
             // Write a final trace message to all trace listeners.
             Trace.WriteLine( "Main() end" );
-
-            // TestVirtu();
 
             TestVirtu();
 
@@ -51,4 +50,5 @@ namespace VirtuRoC {
             win.ShowDialog();
         }
     }
+
 }
