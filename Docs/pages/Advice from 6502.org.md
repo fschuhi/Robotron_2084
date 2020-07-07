@@ -1,4 +1,4 @@
-[Bid Ed](http://forum.6502.org/viewtopic.php?f=3&t=5517#p67235)
+[BidEd](http://forum.6502.org/viewtopic.php?f=3&t=5517#p67235)
 
 * You've already met with the creative use of the stack: pushing and RTS is often used for a table-driven dispatch.
 * sometimes conditional branches can be proved to be always taken, so they become branch-always
@@ -9,7 +9,7 @@
 
 What are your overall goals from this project? What are you trying to learn, and what are you expecting this to teach you?
 
-[Big Ed](http://forum.6502.org/viewtopic.php?f=3&t=5517#p67247)
+[BigEd](http://forum.6502.org/viewtopic.php?f=3&t=5517#p67247)
 
 > Is there value in trying to identify blocks of instructions and grouping them into macros, to speed up the understanding?
 I'd suspect not. Good names for routines and for locations will be a big help, and note that you might need to rename them too, as you figure things out. It's also possible that locations will be time-multiplexed so one location serves several temporary purposes.
@@ -29,7 +29,7 @@ From a structural point of view, you may find that classifying subroutines into 
 * WFDis uses a "flooding" algorithm to try to detect the instructions to disassemble. This idea can be used to detect relocatable code, or what I called "compact subroutines" in the OP. Those are important building blocks and it's good to pinpoint them as early as possible.
 *  I already know the parts of the code which are responsible to throwing the stuff onto the screen, by watching which parts of the code STA to pages $20 and following. I don't know but I would guess that I'll find the LDA to the sprite tables in the vicinity.
 
-[Big Ed](http://forum.6502.org/viewtopic.php?f=3&t=5517#p67258)
+[BigEd](http://forum.6502.org/viewtopic.php?f=3&t=5517#p67258)
 
 I think for the most part you'll be able to understand the clever code so long as you can zoom out far enough to see the whole picture of what it's doing. If you do find anything you can't get your head around, I'm sure there are many here who would be more than pleased to have a 6502 puzzle to solve.
 
@@ -53,7 +53,7 @@ Self-modifying code might seek to increase speed by replacing the operand bytes 
 
 Discovering code vs data is actually quite a small part of the work, though it's nice when it's automatic. Figuring out why a piece of code/data is in there and what it's doing is the real reverse engineering.
 
-[Big Ed](http://forum.6502.org/viewtopic.php?f=3&t=5517&start=15#p67343)
+[BigEd](http://forum.6502.org/viewtopic.php?f=3&t=5517&start=15#p67343)
 
 * an operand byte might be best viewed as an expression, which you'll only be able to conjure up as you get to appreciate the code. It's not too unusual for an index not to be zero-based - if the valid values for an index are 10-25 then the index might well be used to point a little below the data in question.
 * Being very clear about byte values and their interpretation either as signed or unsigned numbers, or as an enumerated type, or a character, or other things, could be an important watershed.
@@ -75,7 +75,7 @@ Discovering code vs data is actually quite a small part of the work, though it's
 * Find the hardware manipulations. These are reads/writes to hardware registers, which you find out by studying the Apple II reference manuals. Every time there's a register read, understand what that does. Every time there's a write, know what it does. It is changing a color register? Is it starting a timer? Is it clearing an interrupt? Is the read getting a joystick value? A key value? Find all these and try to understand their enclosing function.
 * The hardest thing with reverse-engineering is figuring out intent. Not _what_ something does, mechanically, but _why_. Why is the code comparing this to that? What's the significance of the literal value #$CE in this CMP? With an emulator you can change these values and see if you observe a difference. That's playing on hard mode, for sure... but you can do it.
 
-[Big Ed](http://forum.6502.org/viewtopic.php?f=3&t=5517&start=15#p67386)
+[BigEd](http://forum.6502.org/viewtopic.php?f=3&t=5517&start=15#p67386)
 
 The use of two tables for the high and low bytes of pointers (or other values) so the same index can be used for both bytes - that's a fairly common idiom, and not an obvious one.
 
@@ -88,7 +88,7 @@ If anyone is interested in Williams Robotron and its object management, a chap c
 * [Combination from Hackers](https://www.youtube.com/watch?v=2_7N8NsU4jQ)
 * multiplication $4c4f
 
-[Big Ed](http://forum.6502.org/viewtopic.php?f=3&t=5517&start=30#p67398)
+[BigEd](http://forum.6502.org/viewtopic.php?f=3&t=5517&start=30#p67398)
 
 *  a tracing disassembler can only reach code which is executed, so we become interested in code coverage.
 * (takeaway from static vs execution tracing disassembler: start w/ static, set up guards for code and data in the second which generate hints for first)
@@ -100,7 +100,7 @@ If anyone is interested in Williams Robotron and its object management, a chap c
 
 > Yes, that's a nicer looking algorithm. It saves a branch and increment by sucking the overflow carry bit back into the accumulator as soon as it's produced, which in turn is made possible by processing everything LSB first instead of MSB first. But it's still fundamentally performing an add of one operand for each set bit in the other operand, so is recognisable as a multiply on the same basis.
 
-[Big Ed](http://forum.6502.org/viewtopic.php?f=3&t=5517&start=30#p67406)
+[BigEd](http://forum.6502.org/viewtopic.php?f=3&t=5517&start=30#p67406)
 
 > I haven't started w/ a repository of 6502 idioms and algorithms yet, maybe it's time to contemplate that.
 
