@@ -1,1 +1,1 @@
-link to [README](README.me)
+see also [README](README.md)
