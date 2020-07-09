@@ -11,19 +11,16 @@ using System.Windows.Forms;
 using System.IO;
 using System.Threading.Tasks;
 
-// https://github.com/dotnet-state-machine/stateless
-// https://www.hanselman.com/blog/Stateless30AStateMachineLibraryForNETCore.aspx
-
-// http://www.albahari.com/threading/part2.aspx
-
-// https://stackoverflow.com/questions/28772886/how-to-call-a-method-on-a-running-thread
-// https://stackoverflow.com/questions/530211/creating-a-blocking-queuet-in-net/530228#530228
 
 namespace Robotron {
 
     public class VirtuRunner : IDisposable {
 
         private Machine _machine;
+        public MainWindow _mainWindow;
+        public MainPage _mainPage;
+        private AutoResetEvent _pageLoadedEvent = new AutoResetEvent( false );
+
 
         #region debugging
         private static string FormatMessage( string format, params object[] args ) {
@@ -48,43 +45,74 @@ namespace Robotron {
         #endregion
 
 
-        public void TestVirtu() {
-            WriteMessage( "TestVirtu() enter" );
+        public void TestVirtu2() {
+            WriteMessage( "TestVirtu() exit" );
 
-            StartDialogThread();
+            // setup window (includes MainPage)
+            _mainWindow = new MainWindow();
+            _mainPage = _mainWindow.GetMainPage();
 
-            // StorageService.LoadResource( "Disks/Default.dsk", stream => _machine.BootDiskII.BootDrive.InsertDisk( "Default.dsk", stream, false ) );
+            _machine = _mainPage.Machine;
+            VirtuRoCWpfKeyboardService keyboardService = new VirtuRoCWpfKeyboardService( _machine, _mainPage );
+            _mainPage.Init( keyboardService );
+
+            _mainPage.Loaded += MainPage_loaded;
+
+            _mainWindow.ShowActivated = true;
+            _mainWindow.ShowDialog();
+
+            WriteMessage( "ShowDialog exited, shutting down" );
+
+            // prevents that Debugger throws System.Runtime.InteropServices.InvalidComObjectException
+            // https://stackoverflow.com/questions/6232867/com-exceptions-on-exit-with-wpf
+            Dispatcher.CurrentDispatcher.InvokeShutdown();
+
+            _mainWindow = null;
+            WriteMessage( "TestVirtu2() exit" );
+        }
+
+        private void MainPage_loaded( object sender, System.Windows.RoutedEventArgs e ) {
+
+            // We now have a WPF message pump in place.
+
+            // make sure we wait until MainPage and its Machine have been created
+            WriteMessage( "MainPage loaded, waiting for paused" );
+
+            // Machine starts paused so that we can insert the boot disk
+            _machine.StartMachineThread();
+            _machine.WaitForPaused();
 
             // TODO: move load/save state to helper method
             if (true) {
                 Task taskA = new Task( () => {
+                    WriteMessage( "Task LoadFromFile bla.bin" );
                     Thread.CurrentThread.SetApartmentState( ApartmentState.MTA );
-                    _machine.LoadStateFromFile( "tmp\\bla.bin" );
+                    if (Debugger.IsAttached) {
+                        _machine.LoadStateFromFile( "..\\..\\tmp\\bla.bin" );
+                    } else {
+                        _machine.LoadStateFromFile( "tmp\\bla.bin" );
+                    }
                 } );
                 taskA.Start();
                 taskA.Wait();
+
+                // insert waiting for breakpoint pause here
+                // 09.07.20 
+                // IMPORTANT: This doesn't work without a "completion callback" because we are unable to wait for a Pause anymore - - we are on the main thread.
+                // The new mechanism would not wait on a Pause event but would let the BackgroundWorker thread end on which the machine is running.
+                // The passed result to the completion-callback can indicate that we encountered a breakpoint.
+                // Afterwards the BackgroundWorker is restarted, again going into the main machine event loop.
+                // _machine.Memory.SetBreakpoint( 0x4060 );
+
             }
-
-            // TODO: test if breakpoint is set in loaded state
-            // TODO: clear all breakpoints here
-
-            // insert waiting for breakpoint pause here
-            _machine.Memory.SetBreakpoint( 0x4060 );
 
             // afterwards we *must* unpause manually
             WriteMessage( "before first unpause" );
             _machine.Unpause();
+        }
 
-            WriteMessage( "after first unpause, now WaitForPaused()" );
 
-            // WriteMessage( "before _machine.WaitForPaused()" );
-            _machine.WaitForPaused();
-
-            WriteMessage( "after _machine.WaitForPaused(), now calling Unpause" );
-
-            // not necessarily a breakpoint (e.g. if immediately stop startup of machine / Robotron)
-            // Debug.Assert( _machine.Cpu.RPC == 0x4060 );
-
+        private void SaveToBlaBinDuringPauseAfterBreakpoint() {
             if (true) {
                 Task taskA = new Task( () => {
                     Thread.CurrentThread.SetApartmentState( ApartmentState.MTA );
@@ -97,76 +125,7 @@ namespace Robotron {
             SpriteTable spriteTable = new SpriteTable( _machine.Memory, 0x7a00 );
             spriteTable.SaveEntriesToFile( "tmp\\entries.csv" );
             spriteTable.SaveStrobesToFile( "tmp\\strobes.csv" );
-
-            // _machine.Unpause();
-
-            WaitForDialogThreadEnded();
-
-            WriteMessage( "TestVirtu() exit" );
-
-            // https://stackoverflow.com/questions/5923767/simple-state-machine-example-in-c
         }
-
-        public MainWindow _showDialogWindow;
-        private Thread _showDialogThread;
-        private AutoResetEvent _pageLoadedEvent = new AutoResetEvent( false );
-
-        #region dialog thread mgmnt
-        private void StartDialogThread() {
-            // start WPF thread
-            _showDialogThread = new Thread( () => RunShowDialogThread( _pageLoadedEvent ) ) { Name = "ShowDialog" };
-            _showDialogThread.SetApartmentState( ApartmentState.STA );
-            _showDialogThread.Start();
-            WriteMessage( "ShowDialog thread started" );
-
-            // make sure we wait until MainPage and its Machine have been created
-            _pageLoadedEvent.WaitOne();
-            WriteMessage( "MainPage loaded, waiting for paused" );
-
-            // Machine starts paused so that we can insert the boot disk
-            _machine.WaitForPaused();
-        }
-
-        private void WaitForDialogThreadEnded() {
-            // leave it to the user to close the WPF MainWindow, which will exit ShowDialog() and and the thread
-            WriteMessage( "waiting for join ShowDialog thread" );
-            _showDialogThread.Join();
-        }
-
-        private void RunShowDialogThread( AutoResetEvent loadedEvent ) {
-            WriteMessage( "RunShowDialogThread() enter" );
-
-            // setup window (includes MainPage)
-            _showDialogWindow = new MainWindow();
-
-            // InputLanguage.CurrentInputLanguage.LayoutName = "US";
-
-
-            // MainPage has created a Machine, which will be started as soon as the MainPage is loaded
-            // IMPORTANT: MachineThread has not been started yet => we could set up breakpoints here ...
-            _machine = _showDialogWindow.GetMainPage().Machine;
-
-            // ... or in the caller after it receives the signal that the page (i.e. its Machine) is loaded
-            loadedEvent.Set();
-
-            // display and start message pumping
-            // ASSUMPTION: this is where MainPage.Loaded starts the MachineThread, which in turn immediately starts executing 6502
-            // TODO: fix Machine startup action (e.g. start paused)
-            _showDialogWindow.ShowActivated = true;
-            _showDialogWindow.ShowDialog();
-
-            WriteMessage( "ShowDialog exited, shutting down" );
-
-            // prevents that Debugger throws System.Runtime.InteropServices.InvalidComObjectException
-            // https://stackoverflow.com/questions/6232867/com-exceptions-on-exit-with-wpf
-            Dispatcher.CurrentDispatcher.InvokeShutdown();
-
-            WriteMessage( "shut down (via InvokeShutdown)" );
-
-            _showDialogWindow = null;
-            WriteMessage( "RunShowDialogThread() exit" );
-        }
-        #endregion
 
         #region Dispose
         private bool disposedValue;
@@ -186,11 +145,10 @@ namespace Robotron {
                 // TODO: free unmanaged resources (unmanaged objects) and override finalizer
                 // TODO: set large fields to null
                 disposedValue = true;
-                WriteMessage( "inside" );
+                WriteMessage( "Dispose inside" );
             }
-            WriteMessage( "outside" );
+            WriteMessage( "Dispose outside" );
         }
         #endregion
-
     }
 }
