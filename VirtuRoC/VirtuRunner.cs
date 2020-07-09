@@ -16,6 +16,7 @@ namespace Robotron {
 
     public class VirtuRunner : IDisposable {
 
+        private MachineOperator _operator;
         private Machine _machine;
         public MainWindow _mainWindow;
         public MainPage _mainPage;
@@ -46,18 +47,24 @@ namespace Robotron {
 
 
         public void TestVirtu2() {
-            WriteMessage( "TestVirtu() exit" );
+            WriteMessage( "TestVirtu() enter" );
 
-            // setup window (includes MainPage)
+            // setup window, including MainPage
             _mainWindow = new MainWindow();
             _mainPage = _mainWindow.GetMainPage();
 
+            // MainPage has created a Machine object, but hasn't done anything with it yet
             _machine = _mainPage.Machine;
+            _operator = new MachineOperator( _mainPage, _machine );
+
+            // we can supply an own key handler which interfaces with our MachineOperator
             VirtuRoCWpfKeyboardService keyboardService = new VirtuRoCWpfKeyboardService( _machine, _mainPage );
             _mainPage.Init( keyboardService );
 
+            // machine doesn't start to run on MainPage loaded, we'll do it in our own handler below
             _mainPage.Loaded += MainPage_loaded;
 
+            // start message pumping
             _mainWindow.ShowActivated = true;
             _mainWindow.ShowDialog();
 
@@ -83,7 +90,12 @@ namespace Robotron {
             _machine.WaitForPaused();
 
             // TODO: move load/save state to helper method
-            if (true) {
+            if (Debugger.IsAttached) {
+                _operator.LoadFromFile( "..\\..\\tmp\\bla.bin" );
+            } else {
+                _operator.LoadFromFile( "tmp\\bla.bin" );
+            }            
+            if (false) {
                 Task taskA = new Task( () => {
                     WriteMessage( "Task LoadFromFile bla.bin" );
                     Thread.CurrentThread.SetApartmentState( ApartmentState.MTA );
