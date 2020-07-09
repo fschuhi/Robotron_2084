@@ -52,7 +52,7 @@
     <Reference Include="WindowsBase" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Class1.cs" />
+    <Compile Include="MachineOperator.cs" />
     <Compile Include="KeyboardLayouts.cs" />
     <Compile Include="BackgroundWorkerExamples.cs" />
     <Compile Include="Sprites.cs" />
