@@ -11,6 +11,7 @@ using Stateless;
 using Stateless.Graph;
 using Jellyfish.Virtu;
 using Jellyfish.Virtu.Services;
+using System.Reflection;
 
 namespace Robotron {
 
@@ -41,6 +42,14 @@ namespace Robotron {
         public MainPage _mainPage;
         public Machine _machine;
 
+        public enum State { Started, Running, Pausing, Paused, Terminating, Terminated }
+        public enum Trigger { Run, Pause, Join, Unpause, Terminate }
+
+        public readonly StateMachine<State, Trigger> _sm;
+        private readonly StateMachine<State, Trigger>.TriggerWithParameters<RunWorkerCompletedEventArgs> _joinTrigger;
+
+        private BackgroundWorker _bw;
+
         public MachineOperator( MainPage mainPage, Machine machine ) {
             _mainPage = mainPage;
             _machine = machine;
@@ -52,6 +61,45 @@ namespace Robotron {
 
             // machine doesn't start to run on MainPage loaded, we'll do it in our own handler below
             _mainPage.Loaded += MainPage_loaded;
+
+            _sm = new StateMachine<State, Trigger>( State.Started );
+
+            // Instantiate a new trigger with a parameter. 
+            _joinTrigger = _sm.SetTriggerParameters<RunWorkerCompletedEventArgs>( Trigger.Join );
+
+            _sm.Configure( State.Started )
+                .Permit( Trigger.Run, State.Running );
+
+            _sm.Configure( State.Running )
+                .SubstateOf( State.Started )
+                .OnEntry( sm_OnRunning )
+                .Permit( Trigger.Pause, State.Pausing )
+                .Permit( Trigger.Terminate, State.Terminating );
+
+            _sm.Configure( State.Pausing )
+                .SubstateOf( State.Running )
+                .Permit( Trigger.Join, State.Paused );
+
+            _sm.Configure( State.Paused )
+                .SubstateOf( State.Started )
+                .OnEntryFrom( _joinTrigger, sm_OnPaused )
+                .Permit( Trigger.Unpause, State.Running )
+                .Permit( Trigger.Terminate, State.Terminated );
+
+            _sm.Configure( State.Terminating )
+                .SubstateOf( State.Started )
+                .Permit( Trigger.Join, State.Terminated );
+
+            _sm.Configure( State.Terminated )
+                .OnEntryFrom( _joinTrigger, sm_OnTerminated );
+
+            _bw = new BackgroundWorker {
+                WorkerReportsProgress = true,
+                WorkerSupportsCancellation = true
+            };
+            _bw.DoWork += bw_DoWork;
+            _bw.ProgressChanged += bw_ProgressChanged;
+            _bw.RunWorkerCompleted += bw_RunWorkerCompleted;
         }
 
         private void MainPage_loaded( object sender, System.Windows.RoutedEventArgs e ) {
@@ -75,6 +123,53 @@ namespace Robotron {
             // afterwards we *must* unpause manually
             WriteMessage( "before first unpause" );
             _machine.Unpause();
+        }
+
+        private void sm_OnRunning() {
+            WriteMessage( MethodBase.GetCurrentMethod().Name );
+            _bw.RunWorkerAsync( "Hello to worker" );
+        }
+
+        private void sm_OnPaused( RunWorkerCompletedEventArgs e ) {
+            WriteMessage( MethodBase.GetCurrentMethod().Name );
+        }
+
+        private void sm_OnTerminated( RunWorkerCompletedEventArgs e ) {
+            WriteMessage( MethodBase.GetCurrentMethod().Name );
+        }
+
+        public void sm_Run() { _sm.Fire( Trigger.Run ); }
+        public void sm_Pause() { _sm.Fire( Trigger.Pause ); }
+        public void sm_Unpause() { _sm.Fire( Trigger.Unpause ); }
+        public void sm_Stop() { _sm.Fire( Trigger.Terminate ); }
+
+        private void bw_ProgressChanged( object sender, ProgressChangedEventArgs e ) {
+            Console.WriteLine( "Reached " + e.ProgressPercentage + "%" );
+        }
+
+        private void bw_RunWorkerCompleted( object sender, RunWorkerCompletedEventArgs e ) {
+
+            _sm.Fire( _joinTrigger, e );
+
+            if (e.Cancelled)
+                Console.WriteLine( "You canceled!" );
+            else if (e.Error != null)
+                Console.WriteLine( "Worker exception: " + e.Error.ToString() );
+            else
+                Console.WriteLine( "Complete: " + e.Result );      // from DoWork
+        }
+
+        private void bw_DoWork( object sender, DoWorkEventArgs e ) {
+            for (int i = 0; i <= 100; i += 20) {
+                if (_bw.CancellationPending) {
+                    Console.WriteLine( "CancellationPending" );
+                    e.Cancel = true; return;
+                }
+                _bw.ReportProgress( i );
+                Thread.Sleep( 1000 );      // Just for the demo... don't go sleeping
+            }                           // for real in pooled threads!
+
+            e.Result = 123;    // This gets passed to RunWorkerCompleted
         }
 
         public void LoadFromFile( string filename ) {
