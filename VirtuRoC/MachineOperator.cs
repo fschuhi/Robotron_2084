@@ -12,12 +12,47 @@ using Stateless.Graph;
 using Jellyfish.Virtu;
 using Jellyfish.Virtu.Services;
 using System.Reflection;
+using Microsoft.Win32;
+using AspectInjector.Broker;
+using Microsoft.SqlServer.Server;
 
 namespace Robotron {
 
-    class MachineOperator : IDisposable {
+    #region aspects
+    [Aspect( Scope.Global )]
+    [Injection( typeof( OnEntry ) )]
+    public class OnEntry : Attribute {
+        [Advice( Kind.Before )] // you can have also After (async-aware), and Around(Wrap/Instead) kinds
+        public void LogEnter( [Argument( Source.Name )] string name ) {
+            MachineOperator.WriteMessage( $"OnEntry '{name}'" );   //you can debug it	
+        }
+    }
 
-        #region debugging
+    [Aspect( Scope.Global )]
+    [Injection( typeof( OnExit ) )]
+    public class OnExit : Attribute {
+        [Advice( Kind.Before )]
+        public void LogEnter( [Argument( Source.Name )] string name ) {
+            MachineOperator.WriteMessage( $"OnExit '{name}'" );
+        }
+    }
+
+#if BLA
+    [Aspect( Scope.Global )]
+    [Injection( typeof( FireTrigger ) )]
+    public class FireTrigger : Attribute {
+        [Advice( Kind.Before )]
+        public void LogEnter( [Argument( Source.Arguments )] object[] args ) {
+            MachineOperator.WriteMessage( $"Trigger '{args[0].ToString()}'" );
+        }
+    }
+#endif
+#endregion
+
+
+    public class MachineOperator : IDisposable {
+
+#region debugging
         private static string FormatMessage( string format, params object[] args ) {
             var message = new StringBuilder( 256 );
             message.AppendFormat( CultureInfo.InvariantCulture, "[{0} T{1:X3} Runner] ", DateTime.Now.ToString( "HH:mm:ss.fff", CultureInfo.InvariantCulture ), Thread.CurrentThread.ManagedThreadId );
@@ -37,16 +72,17 @@ namespace Robotron {
         public static void WriteMessage( string format, params object[] args ) {
             Trace.WriteLine( FormatMessage( format, args ) );
         }
-        #endregion
+#endregion
 
         public MainPage _mainPage;
         public Machine _machine;
+        private ManualResetEvent _unsuspendedEvent = new ManualResetEvent( true );
 
-        public enum State { Started, Running, Pausing, Paused, Terminating, Terminated }
-        public enum Trigger { Run, Pause, Join, Unpause, Terminate }
+        public enum State { Starting, Started, Running, Suspended, Pausing, Paused, Terminating, Terminated }
+        public enum Trigger { Start, Suspend, Resume, Pause, Join, Unpause, Terminate }
 
-        public readonly StateMachine<State, Trigger> _sm;
-        private readonly StateMachine<State, Trigger>.TriggerWithParameters<RunWorkerCompletedEventArgs> _joinTrigger;
+        public StateMachine<State, Trigger> _sm;
+        private StateMachine<State, Trigger>.TriggerWithParameters<RunWorkerCompletedEventArgs> _joinTrigger;
 
         private BackgroundWorker _bw;
 
@@ -56,50 +92,105 @@ namespace Robotron {
             Debug.Assert( _mainPage.Machine == _machine );
 
             // we can supply an own key handler which interfaces with our MachineOperator
-            VirtuRoCWpfKeyboardService keyboardService = new VirtuRoCWpfKeyboardService( _machine, _mainPage );
+            VirtuRoCWpfKeyboardService keyboardService = new VirtuRoCWpfKeyboardService( this, _machine, _mainPage );
             _mainPage.Init( keyboardService );
 
             // machine doesn't start to run on MainPage loaded, we'll do it in our own handler below
             _mainPage.Loaded += MainPage_loaded;
 
-            _sm = new StateMachine<State, Trigger>( State.Started );
+            _mainPage.MainWindow.Closing += MainWindow_Closing;
+
+            _mainPage._disk1Button.Click += ( sender, e ) => MainPage_OnDiskButtonClick( 0 );
+            _mainPage._disk2Button.Click += ( sender, e ) => MainPage_OnDiskButtonClick( 1 );
+
+            ConfigureStatemachine();
+            ConfigureBackgroundWorker();
+        }
+
+        private void ConfigureStatemachine() {
+
+            _sm = new StateMachine<State, Trigger>( State.Starting );
 
             // Instantiate a new trigger with a parameter. 
             _joinTrigger = _sm.SetTriggerParameters<RunWorkerCompletedEventArgs>( Trigger.Join );
 
+            // always starts in Paused state, to be able to load the state before running, or set breakpoints
+            _sm.Configure( State.Starting )
+                .Permit( Trigger.Start, State.Paused );
+
             _sm.Configure( State.Started )
-                .Permit( Trigger.Run, State.Running );
-
-            _sm.Configure( State.Running )
-                .SubstateOf( State.Started )
-                .OnEntry( sm_OnRunning )
-                .Permit( Trigger.Pause, State.Pausing )
-                .Permit( Trigger.Terminate, State.Terminating );
-
-            _sm.Configure( State.Pausing )
-                .SubstateOf( State.Running )
-                .Permit( Trigger.Join, State.Paused );
+                .OnEntry( sm_OnEntry_Started );
 
             _sm.Configure( State.Paused )
                 .SubstateOf( State.Started )
-                .OnEntryFrom( _joinTrigger, sm_OnPaused )
+                .OnEntryFrom( _joinTrigger, sm_OnEntry_Paused )
+                .OnExit( sm_OnExit_Paused )
+                .Ignore( Trigger.Pause )
                 .Permit( Trigger.Unpause, State.Running )
                 .Permit( Trigger.Terminate, State.Terminated );
 
+            _sm.Configure( State.Running )
+                .SubstateOf( State.Started )
+                .OnEntry( sm_OnEntry_Running )
+                .Permit( Trigger.Suspend, State.Suspended )
+                .Permit( Trigger.Pause, State.Pausing )
+                .Permit( Trigger.Terminate, State.Terminating );
+
+            _sm.Configure( State.Suspended )
+                .SubstateOf( State.Running )
+                .Permit( Trigger.Resume, State.Running )
+                .OnEntry( sm_OnEntry_Suspended )
+                .OnExit( sm_OnExit_Suspended );
+
+            _sm.Configure( State.Pausing )
+                .SubstateOf( State.Running )
+                .OnEntry( sm_OnStopping )
+                .Permit( Trigger.Join, State.Paused );
+
             _sm.Configure( State.Terminating )
                 .SubstateOf( State.Started )
+                .OnEntry( sm_OnStopping )
                 .Permit( Trigger.Join, State.Terminated );
 
             _sm.Configure( State.Terminated )
-                .OnEntryFrom( _joinTrigger, sm_OnTerminated );
+                .OnEntryFrom( _joinTrigger, sm_OnEntry_Terminated );
 
+            _sm.OnTransitioned( t => WriteMessage( $"OnTransitioned: {t.Source} -> {t.Destination} via {t.Trigger}({string.Join( ", ", t.Parameters )})" ) );
+
+            string dotGraph = UmlDotGraph.Format( _sm.GetInfo() );
+            System.IO.File.WriteAllText( "tmp\\MachineOperator.dot", dotGraph);
+
+        }
+
+
+        private void ConfigureBackgroundWorker() {
             _bw = new BackgroundWorker {
                 WorkerReportsProgress = true,
                 WorkerSupportsCancellation = true
             };
-            _bw.DoWork += bw_DoWork;
+            _bw.DoWork += bw_DoWork_OnRunning;
             _bw.ProgressChanged += bw_ProgressChanged;
             _bw.RunWorkerCompleted += bw_RunWorkerCompleted;
+        }
+
+
+        private void ExecuteMachineTask<T>( Action<T> machineAction, T argument ) {
+            Task taskA = new Task( () => {
+                WriteMessage( $"running on machine: {machineAction.Method.Name}({(argument == null ? "null" : argument.ToString())})" );
+                Thread.CurrentThread.SetApartmentState( ApartmentState.MTA );
+                machineAction( (T)argument );
+            } );
+            taskA.Start();
+            taskA.Wait();
+        }
+
+        private void MainWindow_Closing( object sender, CancelEventArgs e ) {
+            // do not close the window if we are still terminating
+            WriteMessage( "MainWindow_Closing" );
+            if (!(_sm.IsInState( State.Terminating ) || _sm.IsInState( State.Terminated ))) {
+                e.Cancel = true;
+                mo_Terminate();
+            } 
         }
 
         private void MainPage_loaded( object sender, System.Windows.RoutedEventArgs e ) {
@@ -109,99 +200,114 @@ namespace Robotron {
             // make sure we wait until MainPage and its Machine have been created
             WriteMessage( "MainPage loaded, waiting for paused" );
 
-            // Machine starts paused so that we can insert the boot disk
-            _machine.StartMachineThread();
-            _machine.WaitForPaused();
+            mo_Start();
+            Debug.Assert( _sm.IsInState( State.Paused ) );
 
-            // TODO: move load/save state to helper method
-            if (Debugger.IsAttached) {
-                LoadFromFile( "..\\..\\tmp\\bla.bin" );
-            } else {
-                LoadFromFile( "tmp\\bla.bin" );
+            ExecuteMachineTask( _machine.LoadStateFromFile, BlaBin );
+
+            mo_Unpause();
+
+            // we could set breakpoints here
+            // _machine.Memory.SetBreakpoint( 0x4060 );
+        }
+
+        private void MainPage_OnDiskButtonClick( int drive ) {
+            var dialog = new OpenFileDialog() { Filter = "Disk Files (*.dsk;*.nib;*.2mg;*.po;*.do)|*.dsk;*.nib;*.2mg;*.po;*.do|All Files (*.*)|*.*" };
+            bool? result = dialog.ShowDialog();
+            if (result.HasValue && result.Value) {
+                // Machine.Pause();
+                mo_Suspend();
+
+                StorageService.LoadFile( dialog.FileName, stream => _machine.BootDiskII.Drives[drive].InsertDisk( dialog.FileName, stream, false ) );
+                // Machine.Unpause();
+                mo_Resume();
             }
-
-            // afterwards we *must* unpause manually
-            WriteMessage( "before first unpause" );
-            _machine.Unpause();
         }
 
-        private void sm_OnRunning() {
-            WriteMessage( MethodBase.GetCurrentMethod().Name );
-            _bw.RunWorkerAsync( "Hello to worker" );
+
+        #region OnEntry / OnExit
+        [OnEntry]
+        private void sm_OnEntry_Started() {
+            ExecuteMachineTask<object>( _machine.Initialize, null );
+            ExecuteMachineTask<object>( _machine.Reset, null );
+        }
+        
+        [OnEntry]
+        private void sm_OnEntry_Running() { _bw.RunWorkerAsync( "some unnecessary argument" ); }
+
+        [OnEntry]
+        private void sm_OnEntry_Suspended() { _unsuspendedEvent.Reset(); }
+
+        [OnExit]
+        private void sm_OnExit_Suspended() { _unsuspendedEvent.Set(); }
+
+        [OnEntry]
+        private void sm_OnStopping() { _bw.CancelAsync(); }
+
+        [OnEntry]
+        private void sm_OnEntry_Paused( RunWorkerCompletedEventArgs e ) { _mainPage.OnPause(); }
+
+        [OnExit]
+        private void sm_OnExit_Paused() { _mainPage.OnUnpause(); }
+
+        [OnEntry]
+        private void sm_OnEntry_Terminated( RunWorkerCompletedEventArgs e ) {
+            ExecuteMachineTask<object>( _machine.Uninitialize, null );
+            _mainPage.MainWindow.Close();
+        }
+        #endregion
+
+
+        #region triggers
+        public void FireTrigger( Trigger trigger ) {
+            WriteMessage( $"FireTrigger({trigger.ToString()})" );
+            _sm.Fire( trigger ); 
         }
 
-        private void sm_OnPaused( RunWorkerCompletedEventArgs e ) {
-            WriteMessage( MethodBase.GetCurrentMethod().Name );
-        }
+        public void mo_Start() { FireTrigger( Trigger.Start ); }
+        public void mo_Pause() { FireTrigger( Trigger.Pause ); }
+        public void mo_Suspend() { FireTrigger( Trigger.Suspend ); }
+        public void mo_Resume() { FireTrigger( Trigger.Resume ); }
+        public void mo_Unpause() { FireTrigger( Trigger.Unpause ); }
+        public void mo_Terminate() { FireTrigger( Trigger.Terminate ); }
+        #endregion
 
-        private void sm_OnTerminated( RunWorkerCompletedEventArgs e ) {
-            WriteMessage( MethodBase.GetCurrentMethod().Name );
-        }
-
-        public void sm_Run() { _sm.Fire( Trigger.Run ); }
-        public void sm_Pause() { _sm.Fire( Trigger.Pause ); }
-        public void sm_Unpause() { _sm.Fire( Trigger.Unpause ); }
-        public void sm_Stop() { _sm.Fire( Trigger.Terminate ); }
 
         private void bw_ProgressChanged( object sender, ProgressChangedEventArgs e ) {
-            Console.WriteLine( "Reached " + e.ProgressPercentage + "%" );
+            WriteMessage( "Reached " + e.ProgressPercentage + "%" );
         }
 
         private void bw_RunWorkerCompleted( object sender, RunWorkerCompletedEventArgs e ) {
 
-            _sm.Fire( _joinTrigger, e );
+            // method runs GUI thread
+            // bw_DoWork (on worker thread) has ended, e is marshalled from bw_DoWork
 
             if (e.Cancelled)
-                Console.WriteLine( "You canceled!" );
+                WriteMessage( "You canceled!" );
             else if (e.Error != null)
-                Console.WriteLine( "Worker exception: " + e.Error.ToString() );
+                WriteMessage( "Worker exception: " + e.Error.ToString() );
             else
-                Console.WriteLine( "Complete: " + e.Result );      // from DoWork
+                WriteMessage( "Complete: " + e.Result );
+
+            // execution has joined with GUI thread
+            // semantics of "where we come from" is handled by states - - we just have to signal that we are back
+            _sm.Fire( _joinTrigger, e );
         }
 
-        private void bw_DoWork( object sender, DoWorkEventArgs e ) {
-            for (int i = 0; i <= 100; i += 20) {
-                if (_bw.CancellationPending) {
-                    Console.WriteLine( "CancellationPending" );
-                    e.Cancel = true; return;
-                }
-                _bw.ReportProgress( i );
-                Thread.Sleep( 1000 );      // Just for the demo... don't go sleeping
-            }                           // for real in pooled threads!
+        private void bw_DoWork_OnRunning( object sender, DoWorkEventArgs e ) {
+            do {
+                _machine.Events.HandleEvents( _machine.Cpu.Execute() );
+                _unsuspendedEvent.WaitOne();
+            } while (!_bw.CancellationPending);
 
-            e.Result = 123;    // This gets passed to RunWorkerCompleted
+            // This gets passed to RunWorkerCompleted
+            e.Result = 123;
         }
 
-        public void LoadFromFile( string filename ) {
-            Task taskA = new Task( () => {
-                WriteMessage( "Task LoadFromFile bla.bin" );
-                Thread.CurrentThread.SetApartmentState( ApartmentState.MTA );
-                if (Debugger.IsAttached) {
-                    _machine.LoadStateFromFile( "..\\..\\tmp\\bla.bin" );
-                } else {
-                    _machine.LoadStateFromFile( "tmp\\bla.bin" );
-                }
-            } );
-            taskA.Start();
-            taskA.Wait();
-
-            // insert waiting for breakpoint pause here
-            // 09.07.20 
-            // IMPORTANT: This doesn't work without a "completion callback" because we are unable to wait for a Pause anymore - - we are on the main thread.
-            // The new mechanism would not wait on a Pause event but would let the BackgroundWorker thread end on which the machine is running.
-            // The passed result to the completion-callback can indicate that we encountered a breakpoint.
-            // Afterwards the BackgroundWorker is restarted, again going into the main machine event loop.
-            // _machine.Memory.SetBreakpoint( 0x4060 );
-        }
+        private string BlaBin { get { return Debugger.IsAttached ? "..\\..\\tmp\\bla.bin" : "tmp\\bla.bin"; } }
 
         private void SaveToBlaBinDuringPauseAfterBreakpoint() {
-            Task taskA = new Task( () => {
-                Thread.CurrentThread.SetApartmentState( ApartmentState.MTA );
-                _machine.SaveStateToFile( "tmp\\bla.bin" );
-            } );
-            taskA.Start();
-            taskA.Wait();
-
+            ExecuteMachineTask( _machine.SaveStateToFile, BlaBin );
         }
 
         private void SaveSpriteTable() {
@@ -210,7 +316,7 @@ namespace Robotron {
             spriteTable.SaveStrobesToFile( "tmp\\strobes.csv" );
         }
 
-        #region Dispose
+#region Dispose
         private bool disposedValue;
 
         public void Dispose() {
@@ -232,7 +338,7 @@ namespace Robotron {
             }
             WriteMessage( "MachineOperator.Dispose() outside" );
         }
-        #endregion
+#endregion
     }
 
 }

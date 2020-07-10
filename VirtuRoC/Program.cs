@@ -44,21 +44,20 @@ namespace Robotron {
 
             //MachineOperator mop = new MachineOperator();
             //mop.Test();
+#if BLA
+            Bug bug = new Bug( "bug" );
+            Debug.Assert( bug.CanAssign );
+            Debug.Assert( bug._machine.IsInState( Bug.State.Open ) );
+            bug.Assign( "Frank" );
+            Debug.Assert( bug._machine.IsInState( Bug.State.Assigned ) );
+            bug.Assign( "Holger" );
 
-            if ( false ) {
-                Bug bug = new Bug( "bug" );
-                Debug.Assert( bug.CanAssign );
-                Debug.Assert( bug._machine.IsInState( Bug.State.Open ) );
-                bug.Assign( "Frank" );
-                Debug.Assert( bug._machine.IsInState( Bug.State.Assigned ) );
-                bug.Assign( "Holger" );
-
-                bug.Defer();
-                bug.Assign( "Eva" );
-                bug.Close();
-                Debug.Assert( !bug.CanAssign );
-                Debug.Assert( bug._machine.IsInState( Bug.State.Closed ) );
-            }
+            bug.Defer();
+            bug.Assign( "Eva" );
+            bug.Close();
+            Debug.Assert( !bug.CanAssign );
+            Debug.Assert( bug._machine.IsInState( Bug.State.Closed ) );
+#endif
 
             // Write a final trace message to all trace listeners.
             Trace.WriteLine( "Main() end" );

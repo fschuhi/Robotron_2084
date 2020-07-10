@@ -1,2 +1,3 @@
 https://github.com/dotnet-state-machine/stateless
 https://github.com/fschuhi/Virtu/tree/hex-ray
+https://github.com/pamidur/aspect-injector

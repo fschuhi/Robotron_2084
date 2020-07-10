@@ -3,15 +3,22 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Windows.Controls;
 using System.Windows.Input;
+using Jellyfish.Virtu;
+using Jellyfish.Virtu.Services;
 
-namespace Jellyfish.Virtu.Services {
+namespace Robotron {
     public sealed class VirtuRoCWpfKeyboardService : KeyboardService {
 
-        public VirtuRoCWpfKeyboardService( Machine machine, UserControl page ) :
+        MachineOperator _operator;
+        private bool _resetKeyDown;
+
+        public VirtuRoCWpfKeyboardService( MachineOperator mop, Machine machine, UserControl page ) :
             base( machine ) {
             if (page == null) {
                 throw new ArgumentNullException( "page" );
             }
+
+            _operator = mop;
 
             page.KeyDown += OnPageKeyDown;
             page.KeyUp += OnPageKeyUp;
@@ -46,24 +53,15 @@ namespace Jellyfish.Virtu.Services {
             IsCloseAppleKeyDown = keyboard.IsKeyDown( Key.RightAlt ) || IsKeyDown( Key.Decimal );
             IsResetKeyDown = IsControlKeyDown && keyboard.IsKeyDown( Key.Back );
 
-            //base.Update();
-            base_Update();
-        }
-
-        private bool _resetKeyDown;
-
-        public void base_Update() {
-            var keyboard = Machine.Keyboard;
-
-            if (IsResetKeyDown && !keyboard.DisableResetKey) {
+            if (IsResetKeyDown && !Machine.Keyboard.DisableResetKey) {
                 if (!_resetKeyDown) {
                     _resetKeyDown = true; // entering reset; pause until key released
-                    Machine.Pause();
-                    Machine.Reset();
+                    _operator.mo_Suspend();
+                    Machine.Reset( null );
                 }
             } else if (_resetKeyDown) {
                 _resetKeyDown = false; // leaving reset
-                Machine.Unpause();
+                _operator.mo_Resume();
             }
         }
 
@@ -114,9 +112,11 @@ namespace Jellyfish.Virtu.Services {
             } else if (alt && (e.SystemKey == Key.F)) {
                 Machine.Video.IsFullScreen ^= true;
             } else if (alt && (e.SystemKey == Key.P)) {
-                Machine.Pause();
+                //Machine.Pause();
+                _operator.mo_Pause();
             } else if (alt && (e.SystemKey == Key.U)) {
-                Machine.Unpause();
+                //Machine.Unpause();
+                _operator.mo_Unpause();
             }
 
             Update();
