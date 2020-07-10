@@ -76,7 +76,8 @@ namespace Robotron {
 
         public MainPage _mainPage;
         public Machine _machine;
-        private ManualResetEvent _unsuspendedEvent = new ManualResetEvent( true );
+        private AutoResetEvent _resumeEvent = new AutoResetEvent( false );
+        private bool _suspending = false;
 
         public enum State { Starting, Started, Running, Suspended, Pausing, Paused, Terminating, Terminated }
         public enum Trigger { Start, Suspend, Resume, Pause, Join, Unpause, Terminate }
@@ -236,10 +237,10 @@ namespace Robotron {
         private void sm_OnEntry_Running() { _bw.RunWorkerAsync( "some unnecessary argument" ); }
 
         [OnEntry]
-        private void sm_OnEntry_Suspended() { _unsuspendedEvent.Reset(); }
+        private void sm_OnEntry_Suspended() { _suspending = true; }
 
         [OnExit]
-        private void sm_OnExit_Suspended() { _unsuspendedEvent.Set(); }
+        private void sm_OnExit_Suspended() { _resumeEvent.Set(); }
 
         [OnEntry]
         private void sm_OnStopping() { _bw.CancelAsync(); }
@@ -297,7 +298,10 @@ namespace Robotron {
         private void bw_DoWork_OnRunning( object sender, DoWorkEventArgs e ) {
             do {
                 _machine.Events.HandleEvents( _machine.Cpu.Execute() );
-                _unsuspendedEvent.WaitOne();
+                if (_suspending) {
+                    _resumeEvent.WaitOne();
+                    _suspending = false;
+                }
             } while (!_bw.CancellationPending);
 
             // This gets passed to RunWorkerCompleted
