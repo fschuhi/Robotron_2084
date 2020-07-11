@@ -8,7 +8,6 @@ subgraph clusterStarted
 	label = "Started\n----------\nentry / sm_OnEntry_Started"
 Paused [label="Paused|exit / sm_OnExit_Paused"];
 Running [label="Running|entry / sm_OnEntry_Running"];
-Terminating [label="Terminating|entry / sm_OnStopping"];
 }
 
 subgraph clusterRunning
@@ -16,6 +15,7 @@ subgraph clusterRunning
 	label = "Running\n----------\nentry / sm_OnEntry_Running"
 Suspended [label="Suspended|entry / sm_OnEntry_Suspended\nexit / sm_OnExit_Suspended"];
 Pausing [label="Pausing|entry / sm_OnStopping"];
+Terminating [label="Terminating|entry / sm_OnStopping"];
 }
 Starting [label="Starting"];
 Terminated [label="Terminated"];
@@ -24,6 +24,7 @@ Starting -> Paused [style="solid", label="Start"];
 Paused -> Running [style="solid", label="Unpause"];
 Paused -> Terminated [style="solid", label="Terminate"];
 Paused -> Paused [style="solid", label="Pause"];
+Running -> Paused [style="solid", label="Join / sm_OnEntry_Paused"];
 Running -> Suspended [style="solid", label="Suspend"];
 Running -> Pausing [style="solid", label="Pause"];
 Running -> Terminating [style="solid", label="Terminate"];

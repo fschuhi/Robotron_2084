@@ -122,36 +122,37 @@ namespace Robotron {
             _sm.Configure( State.Started )
                 .OnEntry( sm_OnEntry_Started );
 
-            _sm.Configure( State.Paused )
-                .SubstateOf( State.Started )
-                .OnEntryFrom( _joinTrigger, sm_OnEntry_Paused )
-                .OnExit( sm_OnExit_Paused )
-                .Ignore( Trigger.Pause )
-                .Permit( Trigger.Unpause, State.Running )
-                .Permit( Trigger.Terminate, State.Terminated );
+                _sm.Configure( State.Paused )
+                    .SubstateOf( State.Started )
+                    .OnEntryFrom( _joinTrigger, sm_OnEntry_Paused )
+                    .OnExit( sm_OnExit_Paused )
+                    .Ignore( Trigger.Pause )
+                    .Permit( Trigger.Unpause, State.Running )
+                    .Permit( Trigger.Terminate, State.Terminated );
 
-            _sm.Configure( State.Running )
-                .SubstateOf( State.Started )
-                .OnEntry( sm_OnEntry_Running )
-                .Permit( Trigger.Suspend, State.Suspended )
-                .Permit( Trigger.Pause, State.Pausing )
-                .Permit( Trigger.Terminate, State.Terminating );
+                _sm.Configure( State.Running )
+                    .SubstateOf( State.Started )
+                    .OnEntry( sm_OnEntry_Running )
+                    .Permit( Trigger.Join, State.Paused )
+                    .Permit( Trigger.Suspend, State.Suspended )
+                    .Permit( Trigger.Pause, State.Pausing )
+                    .Permit( Trigger.Terminate, State.Terminating );
 
-            _sm.Configure( State.Suspended )
-                .SubstateOf( State.Running )
-                .Permit( Trigger.Resume, State.Running )
-                .OnEntry( sm_OnEntry_Suspended )
-                .OnExit( sm_OnExit_Suspended );
+                    _sm.Configure( State.Suspended )
+                        .SubstateOf( State.Running )
+                        .Permit( Trigger.Resume, State.Running )
+                        .OnEntry( sm_OnEntry_Suspended )
+                        .OnExit( sm_OnExit_Suspended );
 
-            _sm.Configure( State.Pausing )
-                .SubstateOf( State.Running )
-                .OnEntry( sm_OnStopping )
-                .Permit( Trigger.Join, State.Paused );
+                    _sm.Configure( State.Pausing )
+                        .SubstateOf( State.Running )
+                        .OnEntry( sm_OnStopping )
+                        .Permit( Trigger.Join, State.Paused );
 
-            _sm.Configure( State.Terminating )
-                .SubstateOf( State.Started )
-                .OnEntry( sm_OnStopping )
-                .Permit( Trigger.Join, State.Terminated );
+                    _sm.Configure( State.Terminating )
+                        .SubstateOf( State.Running )
+                        .OnEntry( sm_OnStopping )
+                        .Permit( Trigger.Join, State.Terminated );
 
             _sm.Configure( State.Terminated )
                 .OnEntryFrom( _joinTrigger, sm_OnEntry_Terminated );
@@ -160,7 +161,6 @@ namespace Robotron {
 
             string dotGraph = UmlDotGraph.Format( _sm.GetInfo() );
             System.IO.File.WriteAllText( "tmp\\MachineOperator.dot", dotGraph);
-
         }
 
 
@@ -185,15 +185,8 @@ namespace Robotron {
             taskA.Wait();
         }
 
-        private void MainWindow_Closing( object sender, CancelEventArgs e ) {
-            // do not close the window if we are still terminating
-            WriteMessage( "MainWindow_Closing" );
-            if (!(_sm.IsInState( State.Terminating ) || _sm.IsInState( State.Terminated ))) {
-                e.Cancel = true;
-                mo_Terminate();
-            } 
-        }
 
+        #region MainWindow / MainPage events
         private void MainPage_loaded( object sender, System.Windows.RoutedEventArgs e ) {
 
             // We now have a WPF message pump in place.
@@ -206,10 +199,10 @@ namespace Robotron {
 
             ExecuteMachineTask( _machine.LoadStateFromFile, BlaBin );
 
-            mo_Unpause();
-
             // we could set breakpoints here
-            // _machine.Memory.SetBreakpoint( 0x4060 );
+            _machine.Memory.SetBreakpoint( 0x4060 );
+
+            mo_Unpause();
         }
 
         private void MainPage_OnDiskButtonClick( int drive ) {
@@ -224,6 +217,17 @@ namespace Robotron {
                 mo_Resume();
             }
         }
+        
+        private void MainWindow_Closing( object sender, CancelEventArgs e ) {
+            // do not close the window if we are still terminating
+            WriteMessage( "MainWindow_Closing" );
+            if (!(_sm.IsInState( State.Terminating ) || _sm.IsInState( State.Terminated ))) {
+                mo_Terminate();
+            }
+
+            e.Cancel = !(_sm.IsInState( State.Terminated ));
+        }
+        #endregion
 
 
         #region OnEntry / OnExit
@@ -246,7 +250,14 @@ namespace Robotron {
         private void sm_OnStopping() { _bw.CancelAsync(); }
 
         [OnEntry]
-        private void sm_OnEntry_Paused( RunWorkerCompletedEventArgs e ) { _mainPage.OnPause(); }
+        private void sm_OnEntry_Paused( RunWorkerCompletedEventArgs e ) {
+            // show on the MainPage where we paused (PC)
+            _mainPage.OnPause(); 
+
+            if ((int)e.Result == 666) {
+                WriteMessage( "YESYESYESYES!!!!!" );
+            }
+        }
 
         [OnExit]
         private void sm_OnExit_Paused() { _mainPage.OnUnpause(); }
@@ -274,6 +285,7 @@ namespace Robotron {
         #endregion
 
 
+        #region BackgroundWorker
         private void bw_ProgressChanged( object sender, ProgressChangedEventArgs e ) {
             WriteMessage( "Reached " + e.ProgressPercentage + "%" );
         }
@@ -295,10 +307,30 @@ namespace Robotron {
             _sm.Fire( _joinTrigger, e );
         }
 
+        int _RPC;
+        int _lastRPC;
+
         private void bw_DoWork_OnRunning( object sender, DoWorkEventArgs e ) {
             do {
+                _lastRPC = _RPC;
+                _RPC = _machine.Cpu.RPC;
+
+                if (_machine.Memory.DebugInfo[_RPC].Flags.HasFlag( DebugFlags.Breakpoint )) {
+                    if (_RPC == _lastRPC) {
+                        // we probably paused on a breakpoint and unpaused; in this case the PC is still on the breakpoint
+                        // => never break right away again on the same PC
+                    } else {
+                        WriteMessage( $"break @ PC ${_RPC:X4}" );
+                        e.Result = 666;
+                        return;
+                    }
+                }
+
+                // main MachineEvents loop
                 _machine.Events.HandleEvents( _machine.Cpu.Execute() );
+
                 if (_suspending) {
+                    // assigning to _suspending is atomic
                     _resumeEvent.WaitOne();
                     _suspending = false;
                 }
@@ -307,6 +339,8 @@ namespace Robotron {
             // This gets passed to RunWorkerCompleted
             e.Result = 123;
         }
+        #endregion
+
 
         private string BlaBin { get { return Debugger.IsAttached ? "..\\..\\tmp\\bla.bin" : "tmp\\bla.bin"; } }
 
