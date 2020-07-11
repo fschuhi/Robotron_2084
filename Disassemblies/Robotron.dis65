@@ -862,7 +862,7 @@
 "BackgroundColor":0},
 
 "7762":{
-"Text":"multiply\r\n\r\nThe two 8-bit operands are provided in A and X\r\nX result\r\nA workspace (?)\r\nY untouched",
+"Text":"multiply\r\n\r\nThe two 8-bit operands are provided in A and X\r\nX: result\r\nA: workspace (?)\r\nY: untouched",
 "BoxMode":true,
 "MaxWidth":80,
 "BackgroundColor":0},
@@ -1374,6 +1374,12 @@
 "9114":{
 "Text":"\r\n",
 "BoxMode":false,
+"MaxWidth":80,
+"BackgroundColor":0},
+
+"7737":{
+"Text":"generate random number\r\n\r\nA: random number\r\nMON_RND[LH]: 16bit random number (TOCHECK)\r\nMON_RNDL := A\r\n\r\nMON_RND usually changed by KEYIN (see Peeled), but we don\u0027t call KEYIN anywhere in Robotron.\r\n",
+"BoxMode":true,
 "MaxWidth":80,
 "BackgroundColor":0}},
 

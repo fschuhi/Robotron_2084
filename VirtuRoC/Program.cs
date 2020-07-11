@@ -1,19 +1,5 @@
 ﻿using System;
 using System.Diagnostics;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Jellyfish.Virtu;
-using System.Threading;
-using System.Windows.Forms;
-using System.Windows.Input;
-using System.Runtime.CompilerServices;
-using System.IO.IsolatedStorage;
-using System.IO;
-using System.ComponentModel;
-using System.Runtime.InteropServices;
-using System.Globalization;
 
 namespace Robotron {
 
@@ -21,11 +7,6 @@ namespace Robotron {
 
         [STAThread]
         static void Main( string[] args ) {
-
-            //SettingKeyboardLanguage.SetKeyboardLayout( SettingKeyboardLanguage.GetInputLanguageByName( "English" ) );
-            //Console.WriteLine( InputLanguage.CurrentInputLanguage.LayoutName );
-            //Console.ReadLine();
-            //return;
 
             ConsoleTraceListener consoleTracer = new ConsoleTraceListener();
             Trace.Listeners.Add( consoleTracer );
@@ -37,27 +18,12 @@ namespace Robotron {
 
             // TestWindow1();
 
-            using (VirtuRunner st = new VirtuRunner()) {
-                st.TestVirtu2();
-                Console.WriteLine( "exit TestVirtu() from using" );
+            using (MachineOperator _operator = new MachineOperator()) {
+
+                Workbench _workbench = new Workbench( _operator );
+
+                _operator.ShowDialog();
             }
-
-            //MachineOperator mop = new MachineOperator();
-            //mop.Test();
-#if BLA
-            Bug bug = new Bug( "bug" );
-            Debug.Assert( bug.CanAssign );
-            Debug.Assert( bug._machine.IsInState( Bug.State.Open ) );
-            bug.Assign( "Frank" );
-            Debug.Assert( bug._machine.IsInState( Bug.State.Assigned ) );
-            bug.Assign( "Holger" );
-
-            bug.Defer();
-            bug.Assign( "Eva" );
-            bug.Close();
-            Debug.Assert( !bug.CanAssign );
-            Debug.Assert( bug._machine.IsInState( Bug.State.Closed ) );
-#endif
 
             // Write a final trace message to all trace listeners.
             Trace.WriteLine( "Main() end" );

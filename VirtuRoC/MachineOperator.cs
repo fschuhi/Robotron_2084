@@ -15,6 +15,7 @@ using System.Reflection;
 using Microsoft.Win32;
 using AspectInjector.Broker;
 using Microsoft.SqlServer.Server;
+using System.Windows.Threading;
 
 namespace Robotron {
 
@@ -47,12 +48,23 @@ namespace Robotron {
         }
     }
 #endif
-#endregion
+    #endregion
 
+    public class BreakpointEventArgs : EventArgs {
+        // was in namespace System.ComponentModel(.ProgressChangedEventArgs)
+        public BreakpointEventArgs( int breakpointRPC ) {
+            BreakpointRCP = breakpointRPC;
+        }
+
+        public int BreakpointRCP { get; private set; }
+    }
+
+    public delegate void BreakpointEventHandler( MachineOperator mop, BreakpointEventArgs e );
+    public delegate void LoadedEventHandler( MachineOperator mop );
 
     public class MachineOperator : IDisposable {
 
-#region debugging
+        #region debugging
         private static string FormatMessage( string format, params object[] args ) {
             var message = new StringBuilder( 256 );
             message.AppendFormat( CultureInfo.InvariantCulture, "[{0} T{1:X3} Runner] ", DateTime.Now.ToString( "HH:mm:ss.fff", CultureInfo.InvariantCulture ), Thread.CurrentThread.ManagedThreadId );
@@ -72,29 +84,40 @@ namespace Robotron {
         public static void WriteMessage( string format, params object[] args ) {
             Trace.WriteLine( FormatMessage( format, args ) );
         }
-#endregion
+        #endregion
 
-        public MainPage _mainPage;
-        public Machine _machine;
+        public Machine Machine;
+
+        private MainWindow _mainWindow;
+        private MainPage _mainPage;
+
         private AutoResetEvent _resumeEvent = new AutoResetEvent( false );
         private bool _suspending = false;
 
-        public enum State { Starting, Started, Running, Suspended, Pausing, Paused, Terminating, Terminated }
-        public enum Trigger { Start, Suspend, Resume, Pause, Join, Unpause, Terminate }
+        public event BreakpointEventHandler OnBreakpoint;
+        public event LoadedEventHandler OnLoaded;
 
-        public StateMachine<State, Trigger> _sm;
+        private enum State { Starting, Started, Running, Suspended, Pausing, Paused, Terminating, Terminated }
+        private enum Trigger { Start, Suspend, Resume, Pause, Join, Unpause, Terminate }
+        private StateMachine<State, Trigger> _sm;
         private StateMachine<State, Trigger>.TriggerWithParameters<RunWorkerCompletedEventArgs> _joinTrigger;
 
         private BackgroundWorker _bw;
 
-        public MachineOperator( MainPage mainPage, Machine machine ) {
-            _mainPage = mainPage;
-            _machine = machine;
-            Debug.Assert( _mainPage.Machine == _machine );
+        public MachineOperator() {
 
-            // we can supply an own key handler which interfaces with our MachineOperator
-            VirtuRoCWpfKeyboardService keyboardService = new VirtuRoCWpfKeyboardService( this, _machine, _mainPage );
-            _mainPage.Init( keyboardService );
+            ConfigureWPF();
+            ConfigureStatemachine();
+            ConfigureBackgroundWorker();
+        }
+
+        private void ConfigureWPF() {
+            // setup window, including MainPage
+            _mainWindow = new MainWindow();
+            _mainPage = _mainWindow.GetMainPage();
+
+            // MainPage has created a Machine object, but hasn't done anything with it yet
+            Machine = _mainPage.Machine;
 
             // machine doesn't start to run on MainPage loaded, we'll do it in our own handler below
             _mainPage.Loaded += MainPage_loaded;
@@ -104,8 +127,9 @@ namespace Robotron {
             _mainPage._disk1Button.Click += ( sender, e ) => MainPage_OnDiskButtonClick( 0 );
             _mainPage._disk2Button.Click += ( sender, e ) => MainPage_OnDiskButtonClick( 1 );
 
-            ConfigureStatemachine();
-            ConfigureBackgroundWorker();
+            // we can supply an own key handler which interfaces with our MachineOperator
+            VirtuRoCWpfKeyboardService keyboardService = new VirtuRoCWpfKeyboardService( this, Machine, _mainPage );
+            _mainPage.Init( keyboardService );
         }
 
         private void ConfigureStatemachine() {
@@ -175,6 +199,15 @@ namespace Robotron {
         }
 
 
+        public void ShowDialog() {
+            // start message pumping
+            _mainWindow.ShowActivated = true;
+            _mainWindow.ShowDialog();
+            WriteMessage( "ShowDialog exited, shutting down" );
+        }
+
+
+        #region ExecuteMachineTask
         private void ExecuteMachineTask<T>( Action<T> machineAction, T argument ) {
             Task taskA = new Task( () => {
                 WriteMessage( $"running on machine: {machineAction.Method.Name}({(argument == null ? "null" : argument.ToString())})" );
@@ -183,6 +216,19 @@ namespace Robotron {
             } );
             taskA.Start();
             taskA.Wait();
+        }
+
+        public void LoadStateFromFile( string name ) {
+            ExecuteMachineTask( Machine.LoadStateFromFile, name );
+        }
+        #endregion
+
+        public void SetBreakpoint( int breakpoint ) {
+            Machine.Memory.SetBreakpoint( breakpoint );
+        }
+
+        public void ClearBreakpoint( int breakpoint ) {
+            Machine.Memory.ClearBreakpoint( breakpoint );
         }
 
 
@@ -197,10 +243,7 @@ namespace Robotron {
             mo_Start();
             Debug.Assert( _sm.IsInState( State.Paused ) );
 
-            ExecuteMachineTask( _machine.LoadStateFromFile, BlaBin );
-
-            // we could set breakpoints here
-            _machine.Memory.SetBreakpoint( 0x4060 );
+            OnLoaded( this );
 
             mo_Unpause();
         }
@@ -212,7 +255,7 @@ namespace Robotron {
                 // Machine.Pause();
                 mo_Suspend();
 
-                StorageService.LoadFile( dialog.FileName, stream => _machine.BootDiskII.Drives[drive].InsertDisk( dialog.FileName, stream, false ) );
+                StorageService.LoadFile( dialog.FileName, stream => Machine.BootDiskII.Drives[drive].InsertDisk( dialog.FileName, stream, false ) );
                 // Machine.Unpause();
                 mo_Resume();
             }
@@ -233,8 +276,8 @@ namespace Robotron {
         #region OnEntry / OnExit
         [OnEntry]
         private void sm_OnEntry_Started() {
-            ExecuteMachineTask<object>( _machine.Initialize, null );
-            ExecuteMachineTask<object>( _machine.Reset, null );
+            ExecuteMachineTask<object>( Machine.Initialize, null );
+            ExecuteMachineTask<object>( Machine.Reset, null );
         }
         
         [OnEntry]
@@ -255,7 +298,7 @@ namespace Robotron {
             _mainPage.OnPause(); 
 
             if ((int)e.Result == 666) {
-                WriteMessage( "YESYESYESYES!!!!!" );
+                OnBreakpoint( this, new BreakpointEventArgs( CurrentRPC ) );
             }
         }
 
@@ -264,14 +307,14 @@ namespace Robotron {
 
         [OnEntry]
         private void sm_OnEntry_Terminated( RunWorkerCompletedEventArgs e ) {
-            ExecuteMachineTask<object>( _machine.Uninitialize, null );
+            ExecuteMachineTask<object>( Machine.Uninitialize, null );
             _mainPage.MainWindow.Close();
         }
         #endregion
 
 
         #region triggers
-        public void FireTrigger( Trigger trigger ) {
+        private void FireTrigger( Trigger trigger ) {
             WriteMessage( $"FireTrigger({trigger.ToString()})" );
             _sm.Fire( trigger ); 
         }
@@ -307,27 +350,27 @@ namespace Robotron {
             _sm.Fire( _joinTrigger, e );
         }
 
-        int _RPC;
-        int _lastRPC;
+        public int CurrentRPC { get; private set; }
+        public int PreviousRPC { get; private set; }
 
         private void bw_DoWork_OnRunning( object sender, DoWorkEventArgs e ) {
             do {
-                _lastRPC = _RPC;
-                _RPC = _machine.Cpu.RPC;
+                PreviousRPC = CurrentRPC;
+                CurrentRPC = Machine.Cpu.RPC;
 
-                if (_machine.Memory.DebugInfo[_RPC].Flags.HasFlag( DebugFlags.Breakpoint )) {
-                    if (_RPC == _lastRPC) {
+                if (Machine.Memory.DebugInfo[CurrentRPC].Flags.HasFlag( DebugFlags.Breakpoint )) {
+                    if (CurrentRPC == PreviousRPC) {
                         // we probably paused on a breakpoint and unpaused; in this case the PC is still on the breakpoint
                         // => never break right away again on the same PC
                     } else {
-                        WriteMessage( $"break @ PC ${_RPC:X4}" );
+                        WriteMessage( $"break @ PC ${CurrentRPC:X4}" );
                         e.Result = 666;
                         return;
                     }
                 }
 
                 // main MachineEvents loop
-                _machine.Events.HandleEvents( _machine.Cpu.Execute() );
+                Machine.Events.HandleEvents( Machine.Cpu.Execute() );
 
                 if (_suspending) {
                     // assigning to _suspending is atomic
@@ -342,19 +385,19 @@ namespace Robotron {
         #endregion
 
 
-        private string BlaBin { get { return Debugger.IsAttached ? "..\\..\\tmp\\bla.bin" : "tmp\\bla.bin"; } }
+        public string BlaBin { get { return Debugger.IsAttached ? "..\\..\\tmp\\bla.bin" : "tmp\\bla.bin"; } }
 
         private void SaveToBlaBinDuringPauseAfterBreakpoint() {
-            ExecuteMachineTask( _machine.SaveStateToFile, BlaBin );
+            ExecuteMachineTask( Machine.SaveStateToFile, BlaBin );
         }
 
         private void SaveSpriteTable() {
-            SpriteTable spriteTable = new SpriteTable( _machine.Memory, 0x7a00 );
+            SpriteTable spriteTable = new SpriteTable( Machine.Memory, 0x7a00 );
             spriteTable.SaveEntriesToFile( "tmp\\entries.csv" );
             spriteTable.SaveStrobesToFile( "tmp\\strobes.csv" );
         }
 
-#region Dispose
+        #region Dispose
         private bool disposedValue;
 
         public void Dispose() {
@@ -367,6 +410,12 @@ namespace Robotron {
             if (!disposedValue) {
                 if (disposing) {
                     // TODO: dispose managed state (managed objects)
+
+                    // prevents that Debugger throws System.Runtime.InteropServices.InvalidComObjectException
+                    // https://stackoverflow.com/questions/6232867/com-exceptions-on-exit-with-wpf
+                    Dispatcher.CurrentDispatcher.InvokeShutdown();
+
+                    _mainWindow = null;
                 }
 
                 // TODO: free unmanaged resources (unmanaged objects) and override finalizer
@@ -376,7 +425,7 @@ namespace Robotron {
             }
             WriteMessage( "MachineOperator.Dispose() outside" );
         }
-#endregion
+        #endregion
     }
 
 }
