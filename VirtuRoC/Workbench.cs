@@ -12,6 +12,7 @@ namespace Robotron {
     class Workbench {
 
         private MachineOperator _operator;
+        private AsmReader _asmReader = new AsmReader( "tmp\\Robotron.csv" );
 
         private int CurrentRPC { get { return _operator.CurrentRPC; } }
 
@@ -25,7 +26,7 @@ namespace Robotron {
 
         private void _operator_OnLoaded( MachineOperator mop ) {
             _operator.LoadStateFromFile( _operator.BlaBin );
-            _operator.SetBreakpoint( 0x4060 );
+            _operator.SetBreakpoint( _asmReader.AsmLinesByGlobalLabel["doneAtari"].Address );
         }
 
         private void _operator_Breakpoint( MachineOperator mop, BreakpointEventArgs e ) {

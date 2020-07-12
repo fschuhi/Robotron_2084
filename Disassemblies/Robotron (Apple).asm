@@ -375,19 +375,19 @@
                            * story exposition + tutorial                                                  *
                            *                                                                              *
                            ********************************************************************************
-+000c43 0140: 4c 58 01     L0140               jmp   storyPart1
++000c43 0140: 4c 58 01     storyPart1_jmp      jmp   storyPart1
 
-+000c46 0143: 4c 4f 03     L0143               jmp   storyPart3
++000c46 0143: 4c 4f 03     storyPart3_jmp      jmp   storyPart3
 
-+000c49 0146: 4c 8e 02     L0146               jmp   storyPart2
++000c49 0146: 4c 8e 02     storyPart2_jmp      jmp   storyPart2
 
-+000c4c 0149: 4c b4 03     L0149               jmp   storyPart4
++000c4c 0149: 4c b4 03     storyPart4_jmp      jmp   storyPart4
 
-+000c4f 014c: 4c fe 03     L014C               jmp   storyPart5
++000c4f 014c: 4c fe 03     storyPart5_jmp      jmp   storyPart5
 
-+000c52 014f: 4c 74 04     L014F               jmp   storyPart6
++000c52 014f: 4c 74 04     storyPart6_jmp      jmp   storyPart6
 
-+000c55 0152: 4c e9 04     L0152               jmp   L04E9
++000c55 0152: 4c e9 04     S0152               jmp   L04E9
 
 +000c58 0155: 4c 4a 05     doShowWilliams      jmp   showWilliams
 
@@ -759,7 +759,7 @@
                            ** checking for reentry inside the box ("don't jump into the box")
 +0012af 40ac: 20 0e 43     @stillInLevel       jsr   S430E
 +0012b2 40af: 20 10 41                         jsr   checkKbdAndBtn
-+0012b5 40b2: 20 5b 42                         jsr   S425B
++0012b5 40b2: 20 5b 42                         jsr   speaker_1411?
 +0012b8 40b5: 20 10 41                         jsr   checkKbdAndBtn
 +0012bb 40b8: 20 71 41                         jsr   checkJoystAndPdl
 +0012be 40bb: 20 09 52                         jsr   L5209
@@ -976,14 +976,17 @@
 +00145b 4258: c9 0a                            cmp   #$0a                                    ;NW: C is clear if [TODO: ?]
 +00145d 425a: 60           @rts                rts
 
-+00145e 425b: ae 11 14     S425B               ldx   $1411
+                           NOTE: This is a nice test routine to check speaker action.
+                           install guard on $1411 (assumption: #0)
+                           check how the speaker changes pith if we change the #$40
++00145e 425b: ae 11 14     speaker_1411?       ldx   $1411                                   ;assumption: $1411 = #0
 +001461 425e: e8                               inx
-+001462 425f: a0 40        B425F               ldy   #$40
-+001464 4261: 88           B4261               dey
-+001465 4262: d0 fd                            bne   B4261
++001462 425f: a0 40        @loopOuter          ldy   #$40
++001464 4261: 88           @loopInner          dey
++001465 4262: d0 fd                            bne   @loopInner
 +001467 4264: 20 6e 4c                         jsr   doSpeaker
 +00146a 4267: ca                               dex
-+00146b 4268: d0 f5                            bne   B425F
++00146b 4268: d0 f5                            bne   @loopOuter
 +00146d 426a: 60                               rts
 
 +00146e 426b: ce 04 14     checkLevelCompleted dec   $1404
@@ -1251,7 +1254,7 @@
 +0016c4 44c1: 60                               rts
 
 +0016c5 44c2: 20 6b 42     L44C2               jsr   checkLevelCompleted
-+0016c8 44c5: 20 5b 42                         jsr   S425B
++0016c8 44c5: 20 5b 42                         jsr   speaker_1411?
 +0016cb 44c8: 20 09 52                         jsr   L5209
 +0016ce 44cb: 20 1b 5a                         jsr   L5A1B
 +0016d1 44ce: 20 06 52                         jsr   L5206
@@ -1270,8 +1273,8 @@
 +0016f8 44f5: 20 03 69                         jsr   L6903
 +0016fb 44f8: 20 06 69                         jsr   L6906
 +0016fe 44fb: 20 09 69                         jsr   L6909
-+001701 44fe: 20 52 01                         jsr   L0152
-+001704 4501: 4c 3d 45                         jmp   peekKey
++001701 44fe: 20 52 01                         jsr   S0152
++001704 4501: 4c 3d 45                         jmp   peekKey                                 ;peekKey tail call
 
                            ********************************************************************************
                            *                                                                              *
@@ -1282,7 +1285,7 @@
                            ********************************************************************************
 +001707 4504: 8d 10 c0     startIntro          sta   KBDSTRB
 +00170a 4507: ad 6e 4c                         lda   doSpeaker                               ;save first byte of doSpeaker (lda?)
-+00170d 450a: 85 2f                            sta   $2f
++00170d 450a: 85 2f                            sta   $2f                                     ;why save the byte instead of just assuming LDA? (see STX below)
 +00170f 450c: a9 60                            lda   #$60
 +001711 450e: 8d 6e 4c                         sta   doSpeaker                               ;disable doSpeaker by putting an rts as first byte
 +001714 4511: 8d d0 4d                         sta   detectCollision
@@ -1293,7 +1296,11 @@
 +001721 451e: 8d d0 4d                         sta   detectCollision
 +001724 4521: 60                               rts
 
-                           ; NW: attract mode loop
+                           ********************************************************************************
+                           *                                                                              *
+                           * NW: attract mode loop                                                        *
+                           *                                                                              *
+                           ********************************************************************************
 +001725 4522: 20 5e 45     titleScene          jsr   L455E
 +001728 4525: 20 2a 46                         jsr   introStory1
 +00172b 4528: 20 28 47                         jsr   introStory2
@@ -1389,6 +1396,7 @@
 +0017e9 45e6: 85 fa                            sta   $fa
 +0017eb 45e8: a9 00                            lda   #$00
 +0017ed 45ea: 85 0a                            sta   $0a
+                           ; 
                            ; NW: loop to flash Robotron logo
 +0017ef 45ec: a6 0a        loopRobotronFlash   ldx   $0a
 +0017f1 45ee: bd 1e 46                         lda   L461E,x                                 ;NW: colour pairs for Robotron logo flash routine
@@ -1417,16 +1425,18 @@
 
 +001821 461e: 55 2a 2a 55+ L461E               .bulk 552a2a557f7fd5aaaad5ffff                ;NW: colour pairs for Robotron logo flash routine
 
-                           ; NW: intro 1 - first text of Robotron story
+                           ********************************************************************************
+                           * NW: intro 1 - first text of Robotron story                                   *
+                           ********************************************************************************
 +00182d 462a: 20 66 46     introStory1         jsr   showRobotron2084
-+001830 462d: 20 40 01                         jsr   L0140
-+001833 4630: 20 6b 42     L4630               jsr   checkLevelCompleted
-+001836 4633: 20 5b 42                         jsr   S425B
++001830 462d: 20 40 01                         jsr   storyPart1_jmp
++001833 4630: 20 6b 42     @loop               jsr   checkLevelCompleted
++001836 4633: 20 5b 42                         jsr   speaker_1411?
 +001839 4636: 20 3d 45                         jsr   peekKey
-+00183c 4639: 20 52 01                         jsr   L0152
++00183c 4639: 20 52 01                         jsr   S0152
 +00183f 463c: a0 00                            ldy   #$00
 +001841 463e: b1 28                            lda   (MON_BASL),y
-+001843 4640: d0 ee                            bne   L4630
++001843 4640: d0 ee                            bne   @loop
 +001845 4642: 60                               rts
 
                            NOTE: mark implicit target labels with leading B, S, J
@@ -1454,9 +1464,11 @@
 
 +001881 467e: 60                               rts
 
-                           ; NW: intro 3 - GRUNTS
+                           ********************************************************************************
+                           * NW: intro 3 - GRUNTS                                                         *
+                           ********************************************************************************
 +001882 467f: 20 66 46     introStory3         jsr   showRobotron2084
-+001885 4682: 20 43 01                         jsr   L0143
++001885 4682: 20 43 01                         jsr   storyPart3_jmp
 +001888 4685: a0 90                            ldy   #$90
 +00188a 4687: a2 06                            ldx   #$06
 +00188c 4689: 20 31 48                         jsr   L4831
@@ -1536,9 +1548,11 @@
 +001928 4725: 84 fb                            sty   $fb
 +00192a 4727: 60           @rts                rts
 
-                           ; NW: intro 2 - mutant protagonist
+                           ********************************************************************************
+                           * NW: intro 2 - mutant protagonist                                             *
+                           ********************************************************************************
 +00192b 4728: 20 66 46     introStory2         jsr   showRobotron2084
-+00192e 472b: 20 46 01                         jsr   L0146
++00192e 472b: 20 46 01                         jsr   storyPart2_jmp
 +001931 472e: a0 a0                            ldy   #$a0
 +001933 4730: a2 78                            ldx   #$78
 +001935 4732: 20 31 48                         jsr   L4831
@@ -1586,9 +1600,11 @@
 +0019b9 47b6: 9d b0 19                         sta   $19b0,x
 +0019bc 47b9: e8                               inx
 +0019bd 47ba: 10 cf                            bpl   L478B                                   ;NW: does this ever fall through?
-                           ; NW: intro 4 - HULKS
+                           ********************************************************************************
+                           * NW: intro 4 - HULKS                                                          *
+                           ********************************************************************************
 +0019bf 47bc: 20 66 46     introStory4         jsr   showRobotron2084
-+0019c2 47bf: 20 49 01                         jsr   L0149
++0019c2 47bf: 20 49 01                         jsr   storyPart4_jmp
 +0019c5 47c2: a2 f0                            ldx   #$f0
 +0019c7 47c4: a0 b0                            ldy   #$b0
 +0019c9 47c6: 20 31 48                         jsr   L4831
@@ -1631,7 +1647,9 @@
 +001a3d 483a: 8c 03 15                         sty   $1503
 +001a40 483d: 60                               rts
 
-                           ; NW: intro 7 - controls
+                           ********************************************************************************
+                           * NW: intro 7 - controls                                                       *
+                           ********************************************************************************
 +001a41 483e: 20 43 46     introStory7         jsr   S4643
 +001a44 4841: 20 30 49                         jsr   explainControls
 +001a47 4844: a2 08                            ldx   #$08
@@ -1649,9 +1667,11 @@
 +001a62 485f: 19 01 19 04+                     .bulk 190119041a01120c09010800108110831081108302800a0112041c01180c1001
                                                 +    18047203190c200000
 
-                           ; NW: intro 5 - BRAINS, PROGS
+                           ********************************************************************************
+                           * NW: intro 5 - BRAINS, PROGS                                                  *
+                           ********************************************************************************
 +001a8b 4888: 20 66 46     introStory5         jsr   showRobotron2084
-+001a8e 488b: 20 4c 01                         jsr   L014C
++001a8e 488b: 20 4c 01                         jsr   storyPart5_jmp
 +001a91 488e: a2 f0                            ldx   #$f0
 +001a93 4890: a0 a0                            ldy   #$a0
 +001a95 4892: 20 31 48                         jsr   L4831
@@ -1708,7 +1728,9 @@
 
 +001b13 4910: 80 00 60 00+                     .bulk 80006000018320801000020f0500018310802a0301830b8020000022a0000100
 
-                           ; NW: print the controls screen
+                           ********************************************************************************
+                           * NW: print the controls screen                                                *
+                           ********************************************************************************
 +001b33 4930: 20 b8 51     explainControls     jsr   showText
 +001b36 4933: 0d                               .dd1  $0d
 +001b37 4934: 0f                               .dd1  15
@@ -1790,9 +1812,11 @@
 
 +001c54 4a51: 60                               rts
 
-                           ; NW: intro 6 - SPHEROIDS, QUARKS, ENFORCERS, TANKS
+                           ********************************************************************************
+                           * NW: intro 6 - SPHEROIDS, QUARKS, ENFORCERS, TANKS                            *
+                           ********************************************************************************
 +001c55 4a52: 20 66 46     introStory6         jsr   showRobotron2084
-+001c58 4a55: 20 4f 01                         jsr   L014F
++001c58 4a55: 20 4f 01                         jsr   storyPart6_jmp
 +001c5b 4a58: a2 08                            ldx   #$08
 +001c5d 4a5a: a0 08                            ldy   #$08
 +001c5f 4a5c: 20 31 48                         jsr   L4831
@@ -1889,7 +1913,9 @@
 +001d45 4b42: 44 04 01 00+                     .bulk 440401005000040101810f8001810b8020030c0401005000040101811f800181
                                                 +    1480200000
 
-                           ; NW: print select controls screen
+                           ********************************************************************************
+                           * NW: print select controls screen                                             *
+                           ********************************************************************************
 +001d6a 4b67: 20 25 4f     chooseControls      jsr   clearScreen
 +001d6d 4b6a: 20 b8 51                         jsr   showText
 +001d70 4b6d: 0d                               .dd1  $0d
@@ -1982,6 +2008,16 @@
 +001e38 4c35: 60                               rts
 
                            NOTE: idea: fake result from random number generator
+                           ********************************************************************************
+                           * generate random number                                                       *
+                           *                                                                              *
+                           * A: random number                                                             *
+                           * MON_RND[LH]: 16bit random number (TOCHECK)                                   *
+                           * MON_RNDL := A                                                                *
+                           *                                                                              *
+                           * MON_RND usually changed by KEYIN (see Peeled), but we don't call KEYIN       *
+                           * anywhere in Robotron.                                                        *
+                           ********************************************************************************
 +001e39 4c36: a5 4f        randomA             lda   MON_RNDH
 +001e3b 4c38: 0a                               asl   A
 +001e3c 4c39: 65 fc                            adc   PixelLineBaseL                          ;last pixel line is very random (but data range?)
@@ -2004,28 +2040,40 @@
                            * multiply                                                                     *
                            *                                                                              *
                            * The two 8-bit operands are provided in A and X                               *
-                           * Y untouched                                                                  *
+                           * X: result                                                                    *
+                           * A: workspace (?)                                                             *
+                           * Y: untouched                                                                 *
                            ********************************************************************************
-+001e52 4c4f: 85 e0        multiplyAX          sta   $e0
-+001e54 4c51: 86 e1                            stx   $e1
+                           _mult1              .var  $e0    {addr/1}
+                           _mult2              .var  $e1    {addr/1}
+                           _workspace          .var  $e2    {addr/1}
+
++001e52 4c4f: 85 e0        multiplyAX          sta   _mult1
++001e54 4c51: 86 e1                            stx   _mult2
 +001e56 4c53: a9 00                            lda   #$00
-+001e58 4c55: 85 e2                            sta   $e2                                     ;workspace byte
++001e58 4c55: 85 e2                            sta   _workspace                              ;workspace, starts w/ 0
 +001e5a 4c57: a2 08                            ldx   #$08
+                           ; 
 +001e5c 4c59: 0a           @loop               asl   A                                       ;The loop structure consists of the three instructions LDX #8 ; […] ; DEX ; BNE .L8 (backwards branch) and encompasses the majority of the subroutine body. This is an idiom that you should learn to recognise instantly.
-+001e5d 4c5a: 26 e2                            rol   $e2                                     ;This is a two-byte multiprecision left shift, effectively transferring the top bit of A into the bottom bit of $E2 via the Carry flag, and the former top bit of $E2 ends up in the Carry flag. This is further confirmation that they're being treated as a single wide value. But on the first iteration both are still zero, and remain so for the time being.
-+001e5f 4c5c: 06 e0                            asl   $e0                                     ;The following ASL $E0 is where the real action begins. Recall that $E0 contains the former value of A on entry; we've just popped out the top bit of it into the Carry. The very next instruction branches on the Carry, skipping all the rest of the loop body if it is cleared. Clearly the individual bits of the first operand, most-significant first, are crucial to the algorithm.
++001e5d 4c5a: 26 e2                            rol   _workspace                              ;This is a two-byte multiprecision left shift, effectively transferring the top bit of A into the bottom bit of $E2 via the Carry flag, and the former top bit of $E2 ends up in the Carry flag. This is further confirmation that they're being treated as a single wide value. But on the first iteration both are still zero, and remain so for the time being.
++001e5f 4c5c: 06 e0                            asl   _mult1                                  ;The following ASL $E0 is where the real action begins. Recall that $E0 contains the former value of A on entry; we've just popped out the top bit of it into the Carry. The very next instruction branches on the Carry, skipping all the rest of the loop body if it is cleared. Clearly the individual bits of the first operand, most-significant first, are crucial to the algorithm.
 +001e61 4c5e: 90 07                            bcc   L4C67
+                           ; 
 +001e63 4c60: 18                               clc
-+001e64 4c61: 65 e1                            adc   $e1                                     ;So one operand is added to the shifted workspace for each set bit in the other operand; this is a classic multiplication algorithm!
++001e64 4c61: 65 e1                            adc   _mult2                                  ;So one operand is added to the shifted workspace for each set bit in the other operand; this is a classic multiplication algorithm!
 +001e66 4c63: 90 02                            bcc   L4C67                                   ;The Carry flag now indicates unsigned overflow from the addition, and there is a branch testing it immediately afterwards - which happens to be always-taken for the moment. But the sensible thing to do if the Carry is set is to propagate it into the high half of the workspace at $E2 ...
-+001e68 4c65: e6 e2                            inc   $e2                                     ;... which can be done with INC $E2
+                           ; 
++001e68 4c65: e6 e2                            inc   _workspace                              ;... which can be done with INC $E2
 +001e6a 4c67: ca           L4C67               dex
 +001e6b 4c68: d0 ef                            bne   @loop
+                           ; 
 +001e6d 4c6a: aa                               tax
-+001e6e 4c6b: a5 e2                            lda   $e2
++001e6e 4c6b: a5 e2                            lda   _workspace
 +001e70 4c6d: 60                               rts
 
-                           ; NW: click the speaker if needed
+                           ********************************************************************************
+                           * NW: click the speaker if needed                                              *
+                           ********************************************************************************
 +001e71 4c6e: a5 ca        doSpeaker           lda   $ca                                     ;this is sometimes set to #$60 (rts)
 +001e73 4c70: f0 09                            beq   @rts
 +001e75 4c72: 65 cb                            adc   $cb
@@ -2063,7 +2111,9 @@
 +001eac 4ca9: a2 00                            ldx   #$00                                    ;needed for (zp),X access into sprite bytes
 +001eae 4cab: 60                               rts
 
-                           ; NW: draw shape to screen (used for family)
+                           ********************************************************************************
+                           * NW: draw shape to screen (used for family)                                   *
+                           ********************************************************************************
 +001eaf 4cac: 20 7c 4c     drawFamily          jsr   fetchSprite
 +001eb2 4caf: b1 fc        L4CAF               lda   (PixelLineBaseL),y
 +001eb4 4cb1: 85 06                            sta   PixelLine
@@ -2083,7 +2133,9 @@
 +001ece 4ccb: 10 e2                            bpl   L4CAF
 +001ed0 4ccd: 4c 6e 4c                         jmp   doSpeaker                               ;speaker tail call
 
-                           ; NW: erase shape from screen (used for family)
+                           ********************************************************************************
+                           * NW: erase shape from screen (used for family)                                *
+                           ********************************************************************************
 +001ed3 4cd0: 86 fc        eraseFamily         stx   PixelLineBaseL
 +001ed5 4cd2: 86 fe                            stx   PixelLineBaseH
 +001ed7 4cd4: 20 1c 4c                         jsr   L4C1C
@@ -2105,7 +2157,9 @@
 +001ef4 4cf1: 10 e9                            bpl   L4CDC
 +001ef6 4cf3: 4c 6e 4c                         jmp   doSpeaker                               ;speaker tail call
 
-                           ; NW: store 3-byte-wide shape to screen (used for hulks)
+                           ********************************************************************************
+                           * NW: store 3-byte-wide shape to screen (used for hulks)                       *
+                           ********************************************************************************
 +001ef9 4cf6: 20 7c 4c     drawHulk            jsr   fetchSprite
 +001efc 4cf9: b1 fc        L4CF9               lda   (PixelLineBaseL),y
 +001efe 4cfb: 85 06                            sta   PixelLine
@@ -2129,7 +2183,9 @@
 +001f1f 4d1c: 10 db                            bpl   L4CF9
 +001f21 4d1e: 4c 6e 4c                         jmp   doSpeaker                               ;speaker tail call
 
-                           ; NW: erase 3-byte-wide shape from screen (used for hulks)
+                           ********************************************************************************
+                           * NW: erase 3-byte-wide shape from screen (used for hulks)                     *
+                           ********************************************************************************
 +001f24 4d21: 86 fc        eraseHulk           stx   PixelLineBaseL
 +001f26 4d23: 86 fe                            stx   PixelLineBaseH
 +001f28 4d25: 20 1c 4c                         jsr   L4C1C
@@ -2224,7 +2280,9 @@
 +001fcf 4dcc: 20 6e 4c                         jsr   doSpeaker                               ;optimise speaker tail call?
 +001fd2 4dcf: 60                               rts
 
-                           ; NW: collision detection? (disabled for attract mode)
+                           ********************************************************************************
+                           * NW: collision detection? (disabled for attract mode)                         *
+                           ********************************************************************************
 +001fd3 4dd0: 86 06        detectCollision     stx   PixelLine                               ;sometimes deactivated w/ #$60 (rts)
 +001fd5 4dd2: 85 07                            sta   PixelLine+1
 +001fd7 4dd4: ad 0a 15                         lda   Score0
@@ -2280,7 +2338,9 @@
 +00204f 4e4c: d0 e4                            bne   L4E32
 +002051 4e4e: 60                               rts
 
-                           ; NW: draw shape to screen (used for men left at right)
+                           ********************************************************************************
+                           * NW: draw shape to screen (used for men left at right)                        *
+                           ********************************************************************************
 +002052 4e4f: ad 00 08     showLives           lda   L0800
 +002055 4e52: 85 06                            sta   PixelLine
 +002057 4e54: ad 20 08                         lda   L0820
@@ -2369,7 +2429,9 @@
 +0020f1 4eee: 86 02                            stx   $02
 +0020f3 4ef0: 60                               rts
 
-                           ; NW: xor whole screen 7 times (used for protagonist death)
+                           ********************************************************************************
+                           * NW: xor whole screen 7 times (used for protagonist death)                    *
+                           ********************************************************************************
 +0020f4 4ef1: a9 06        xorScreen7x         lda   #$06
 +0020f6 4ef3: 85 00                            sta   $00
 +0020f8 4ef5: 20 36 4c                         jsr   randomA                                 ;NW: get random number in A?
@@ -2485,7 +2547,9 @@
 +0021cc 4fc9: 8e 05 14                         stx   $1405
 +0021cf 4fcc: 60                               rts
 
-                           ; NW: and 3-byte-wide shape mask to screen (used to erase grunt)
+                           ********************************************************************************
+                           * NW: and 3-byte-wide shape mask to screen (used to erase grunt)               *
+                           ********************************************************************************
 +0021d0 4fcd: 20 7c 4c     eraseGrunt          jsr   fetchSprite
 +0021d3 4fd0: b1 fc        L4FD0               lda   (PixelLineBaseL),y
 +0021d5 4fd2: 85 06                            sta   PixelLine
@@ -2512,7 +2576,9 @@
 +0021fc 4ff9: 10 d5                            bpl   L4FD0
 +0021fe 4ffb: 4c 6e 4c                         jmp   doSpeaker                               ;speaker tail call
 
-                           ; NW: store and or 3-byte-wide shape to screen (used to draw grunt)
+                           ********************************************************************************
+                           * NW: store and or 3-byte-wide shape to screen (used to draw grunt)            *
+                           ********************************************************************************
 +002201 4ffe: 20 7c 4c     drawGrunt           jsr   fetchSprite
 +002204 5001: b1 fc        L5001               lda   (PixelLineBaseL),y
 +002206 5003: 85 06                            sta   PixelLine
@@ -2538,7 +2604,9 @@
 +00222b 5028: 10 d7                            bpl   L5001
 +00222d 502a: 4c 6e 4c                         jmp   doSpeaker                               ;speaker tail call
 
-                           ; NW: xor 2-byte-wide shape mask to screen (used to erase protagonist)
+                           ********************************************************************************
+                           * NW: xor 2-byte-wide shape mask to screen (used to erase protagonist)         *
+                           ********************************************************************************
 +002230 502d: 20 7c 4c     eraseYou            jsr   fetchSprite                             ;TODO: used to be named "outerDisplay"
 +002233 5030: b1 fc        L5030               lda   (PixelLineBaseL),y
 +002235 5032: 85 06                            sta   PixelLine                               ;we will use the pl as base, offset w/ sprite byte (left and right)
@@ -2562,7 +2630,9 @@
 +002257 5054: 10 da                            bpl   L5030
 +002259 5056: 4c 6e 4c                         jmp   doSpeaker                               ;speaker tail call
 
-                           ; NW: or 2-byte-wide shape to screen (used to draw protagonist)
+                           ********************************************************************************
+                           * NW: or 2-byte-wide shape to screen (used to draw protagonist)                *
+                           ********************************************************************************
 +00225c 5059: 20 7c 4c     drawYou             jsr   fetchSprite
 +00225f 505c: b1 fc        L505C               lda   (PixelLineBaseL),y
 +002261 505e: 85 06                            sta   PixelLine
@@ -2584,6 +2654,11 @@
 +00227f 507c: 10 de                            bpl   L505C
 +002281 507e: 4c 6e 4c                         jmp   doSpeaker                               ;speaker tail call
 
+                           ********************************************************************************
+                           *                                                                              *
+                           * Robonoise                                                                    *
+                           *                                                                              *
+                           ********************************************************************************
 +002284 5081: bd 60 09     initRoboNoise       lda   L0960,x
 +002287 5084: 85 06                            sta   PixelLine
 +002289 5086: bd 64 09                         lda   L0964,x
@@ -2668,113 +2743,156 @@
                            * NW: store shape on screen (used for score etc)                               *
                            *                                                                              *
                            ********************************************************************************
-                           AsciiLineByteAddr   .var  $08    {addr/2}
+                           _AsciiLineByteAddr  .var  $08    {addr/2}
 
 +00230b 5108: 84 fc        printChar           sty   PixelLineBaseL                          ;Y has pixel line, saved to low nibble
 +00230d 510a: 84 fe                            sty   PixelLineBaseH                          ;high bytes are set in initialisation routine
 +00230f 510c: a0 40                            ldy   #$40                                    ;will be ROLd => $8000 first offset
-+002311 510e: 84 09                            sty   AsciiLineByteAddr+1
++002311 510e: 84 09                            sty   _AsciiLineByteAddr+1
 +002313 5110: 38                               sec
 +002314 5111: e9 20                            sbc   #$20                                    ;ascii table begins w/ <space>
 +002316 5113: 0a                               asl   A                                       ;A has char, each has 8 pixel lines
 +002317 5114: 0a                               asl   A                                       ;3x ASL + ROL = x8 (2 bytes)
 +002318 5115: 0a                               asl   A
-+002319 5116: 26 09                            rol   AsciiLineByteAddr+1                     ;(AsciiLineByteAddr) points to char pixel byte
-+00231b 5118: 85 08                            sta   AsciiLineByteAddr
++002319 5116: 26 09                            rol   _AsciiLineByteAddr+1                    ;(AsciiLineByteAddr) points to char pixel byte
++00231b 5118: 85 08                            sta   _AsciiLineByteAddr
 +00231d 511a: a0 07                            ldy   #$07                                    ;each char has 8 pixel lines (BPL)
 +00231f 511c: b1 fc        @loop               lda   (PixelLineBaseL),y                      ;determine offset into hires for line
 +002321 511e: 8d 29 51                         sta   @savePoint+1
 +002324 5121: b1 fe                            lda   (PixelLineBaseH),y
 +002326 5123: 8d 2a 51                         sta   @savePoint+2
-+002329 5126: b1 08                            lda   (AsciiLineByteAddr),y                   ;load char pixel line byte
++002329 5126: b1 08                            lda   (_AsciiLineByteAddr),y                  ;load char pixel line byte
 +00232b 5128: 9d ff ff     @savePoint          sta   $ffff,x                                 ;SELF-MODIFIED! - - X is TextCol
 +00232e 512b: 88                               dey
 +00232f 512c: 10 ee                            bpl   @loop                                   ;BPL goes from #$0-7, i.e. correct first offset
 +002331 512e: 60                               rts
 
+                           NOTE: think about isolating PC changes (maybe including branches?)
+
+                           think about Ptr, Offs, Addr
+                           uppercase variables or labels?
+                           how to mark temp variables?
                            ********************************************************************************
                            * init01                                                                       *
+                           *                                                                              *
+                           * Looks like AsciiLineByteAddr has a different meaning here, maybe just a temp *
+                           * variable                                                                     *
+                           *                                                                              *
+                           * pages $7A-$7D: sprite table                                                  *
+                           * pages $7E-$89: shapes (strobe0)                                              *
+                           * pages $90-$bf: strobe[1-6]                                                   *
+                           *                                                                              *
+                           * sprite table start w/ 2 bytes (width, height), then 6x strobe addr (strobe0  *
+                           * = shape, strobe[1-6] shifted)                                                *
+                           *                                                                              *
+                           * TODO: check if #0 end marker after last entry                                *
+                           *                                                                              *
                            ********************************************************************************
+                           _spriteEntryPtr     .var  $00    {addr/2}                         ;read: width/height (first 2 bytes), ^shape(^strobe0); write: ^strobe1-^strobe6
+                           _strobePtrOffs      .var  $02    {addr/1}
+                           _length             .var  $04    {addr/1}
+                           _ix                 .var  $05    {addr/1}
+                           _strobePtr          .var  $06    {addr/2}                         ;maybe better "_shapePtr"?
+                           _destPtr            .var  $08    {addr/2}
+                           _colorBit           .var  $0a    {addr/1}
+
 +002332 512f: a9 00        init01_GenerateShapeTables lda #$00
-+002334 5131: 85 00                            sta   $00
-+002336 5133: 85 08                            sta   AsciiLineByteAddr
-+002338 5135: a9 7a                            lda   #$7a                                    ;NW: source = 7A00
-+00233a 5137: 85 01                            sta   $01
-+00233c 5139: a9 90                            lda   #$90                                    ;NW: dest = 9000
-+00233e 513b: 85 09                            sta   AsciiLineByteAddr+1
-+002340 513d: a0 00        L513D               ldy   #$00
-+002342 513f: b1 00                            lda   ($00),y                                 ;NW: byte 0 = size 1 (0 ends)
-+002344 5141: 10 01                            bpl   L5144
++002334 5131: 85 00                            sta   _spriteEntryPtr
++002336 5133: 85 08                            sta   _destPtr
++002338 5135: a9 7a                            lda   #$7a                                    ;sprite table starts at $7A00
++00233a 5137: 85 01                            sta   _spriteEntryPtr+1
++00233c 5139: a9 90                            lda   #$90                                    ;strobes 1-6 are starting at $9000
++00233e 513b: 85 09                            sta   _destPtr+1
+                           ; 
+                           ; this is basically a WHILE pattern
++002340 513d: a0 00        @loop1              ldy   #$00
++002342 513f: b1 00                            lda   (_spriteEntryPtr),y                     ;byte 0 = horizontal size in bytes (0 ends)
++002344 5141: 10 01                            bpl   @notExit
 +002346 5143: 60                               rts
 
-+002347 5144: aa           L5144               tax
+                           ; (mark: "only reached via branch")
++002347 5144: aa           @notExit            tax
 +002348 5145: c8                               iny
-+002349 5146: b1 00                            lda   ($00),y                                 ;NW: byte 1 = size 2
-+00234b 5148: 20 4f 4c                         jsr   multiplyAX                              ;NW: multiply A by X - get shape data size (X)
-+00234e 514b: 86 04                            stx   $04
++002349 5146: b1 00                            lda   (_spriteEntryPtr),y                     ;byte 1 = vertical size in pixel lines
+                           ; 
++00234b 5148: 20 4f 4c                         jsr   multiplyAX                              ;get shape data size (X := width * size)
+                           ; 
++00234e 514b: 86 04                            stx   _length
 +002350 514d: a9 02                            lda   #$02
-+002352 514f: 85 02                            sta   $02
-+002354 5151: a4 02        L5151               ldy   $02
-+002356 5153: b1 00                            lda   ($00),y                                 ;NW: byte 2 = shape data low
-+002358 5155: 85 06                            sta   PixelLine
++002352 514f: 85 02                            sta   _strobePtrOffs                          ;index of first byte of strobe addresses := #2
+                           ; 
+                           ; (mark: load ptr from mem)
++002354 5151: a4 02        @loop2              ldy   _strobePtrOffs
++002356 5153: b1 00                            lda   (_spriteEntryPtr),y                     ;shape base addr, low
++002358 5155: 85 06                            sta   _strobePtr
 +00235a 5157: c8                               iny
-+00235b 5158: b1 00                            lda   ($00),y                                 ;NW: byte 3 = shape data high
-+00235d 515a: 85 07                            sta   PixelLine+1
++00235b 5158: b1 00                            lda   (_spriteEntryPtr),y                     ;shape base addr, high
++00235d 515a: 85 07                            sta   _strobePtr+1
+                           ; 
 +00235f 515c: c8                               iny
-+002360 515d: 84 02                            sty   $02                                     ;NW: (4)
++002360 515d: 84 02                            sty   _strobePtrOffs                          ;advance from shape (strobe0) to next strobe (strobe1 ff)
 +002362 515f: c0 10                            cpy   #$10                                    ;NW: up to 0F, so $10 bytes per source shape
-+002364 5161: 90 10                            bcc   L5173
-+002366 5163: a5 00                            lda   $00
++002364 5161: 90 10                            bcc   @advanceToNextStrobe                    ;yes, handle this strobe
+                           ; 
+                           ; (mark: advance to next list entry)
++002366 5163: a5 00                            lda   _spriteEntryPtr                         ;no = done with strobes, do next sprite
 +002368 5165: 18                               clc
-+002369 5166: 69 10                            adc   #$10
-+00236b 5168: 85 00                            sta   $00
-+00236d 516a: a5 01                            lda   $01
-+00236f 516c: 69 00                            adc   #$00
-+002371 516e: 85 01                            sta   $01
++002369 5166: 69 10                            adc   #$10                                    ;move to first byte of next sprite entry
++00236b 5168: 85 00                            sta   _spriteEntryPtr
++00236d 516a: a5 01                            lda   _spriteEntryPtr+1
++00236f 516c: 69 00                            adc   #$00                                    ;page++ if ADC crossed page boundary
++002371 516e: 85 01                            sta   _spriteEntryPtr+1
+                           ; 
 +002373 5170: 38                               sec
-+002374 5171: b0 ca                            bcs   L513D
++002374 5171: b0 ca                            bcs   @loop1                                  ;mark: SEC/BCS = always branch
 
-+002376 5173: a5 08        L5173               lda   AsciiLineByteAddr
++002376 5173: a5 08        @advanceToNextStrobe lda  _destPtr
 +002378 5175: 18                               clc
-+002379 5176: 65 04                            adc   $04
-+00237b 5178: 90 06                            bcc   L5180
-+00237d 517a: e6 09                            inc   AsciiLineByteAddr+1
-+00237f 517c: a9 00                            lda   #$00
-+002381 517e: 85 08                            sta   AsciiLineByteAddr
-+002383 5180: a5 08        L5180               lda   AsciiLineByteAddr
-+002385 5182: 91 00                            sta   ($00),y                                 ;NW: byte 4 = shifted shape data low
++002379 5176: 65 04                            adc   _length                                 ;all strobes have the same length
++00237b 5178: 90 06                            bcc   @transferStrobePtr
+                           ; 
++00237d 517a: e6 09                            inc   _destPtr+1
++00237f 517c: a9 00                            lda   #$00                                    ;strobes must not to extend across page boundaries (probably due to Y access)
++002381 517e: 85 08                            sta   _destPtr
+                           ; 
++002383 5180: a5 08        @transferStrobePtr  lda   _destPtr
++002385 5182: 91 00                            sta   (_spriteEntryPtr),y                     ;NW: byte 4 = shifted shape data low
 +002387 5184: c8                               iny
-+002388 5185: a5 09                            lda   AsciiLineByteAddr+1
-+00238a 5187: 91 00                            sta   ($00),y                                 ;NW: byte 5 = shifted shape data high
++002388 5185: a5 09                            lda   _destPtr+1
++00238a 5187: 91 00                            sta   (_spriteEntryPtr),y                     ;NW: byte 5 = shifted shape data high
+                           ; 
 +00238c 5189: a0 00                            ldy   #$00
 +00238e 518b: 18                               clc
 +00238f 518c: 08                               php
-+002390 518d: a5 04                            lda   $04
-+002392 518f: 85 05                            sta   $05
-+002394 5191: b1 06        L5191               lda   (PixelLine),y                           ;NW: shift
++002390 518d: a5 04                            lda   _length
++002392 518f: 85 05                            sta   _ix
+                           ; 
++002394 5191: b1 06        @shift              lda   (_strobePtr),y                          ;save color bit
 +002396 5193: 29 80                            and   #$80
-+002398 5195: 85 0a                            sta   $0a
-+00239a 5197: b1 06                            lda   (PixelLine),y
++002398 5195: 85 0a                            sta   _colorBit
+                           ; 
++00239a 5197: b1 06                            lda   (_strobePtr),y
 +00239c 5199: 28                               plp
 +00239d 519a: 2a                               rol   A
 +00239e 519b: 0a                               asl   A
 +00239f 519c: 08                               php
 +0023a0 519d: 4a                               lsr   A
-+0023a1 519e: 05 0a                            ora   $0a
-+0023a3 51a0: 91 08                            sta   (AsciiLineByteAddr),y
++0023a1 519e: 05 0a                            ora   _colorBit
++0023a3 51a0: 91 08                            sta   (_destPtr),y
 +0023a5 51a2: c8                               iny
-+0023a6 51a3: c6 05                            dec   $05
-+0023a8 51a5: d0 ea                            bne   L5191
-+0023aa 51a7: 28                               plp
-+0023ab 51a8: a5 08                            lda   AsciiLineByteAddr
++0023a6 51a3: c6 05                            dec   _ix
++0023a8 51a5: d0 ea                            bne   @shift
+                           ; 
++0023aa 51a7: 28                               plp                                           ;assumption: can be removed, status flags not used anywhere, so why restore them?
++0023ab 51a8: a5 08                            lda   _destPtr
 +0023ad 51aa: 18                               clc
-+0023ae 51ab: 65 04                            adc   $04                                     ;NW: advance shape data dest pointer
-+0023b0 51ad: 85 08                            sta   AsciiLineByteAddr
-+0023b2 51af: a5 09                            lda   AsciiLineByteAddr+1
++0023ae 51ab: 65 04                            adc   _length                                 ;we create _length bytes
++0023b0 51ad: 85 08                            sta   _destPtr                                ;advance dest pointer (including boundary check, same as above)
++0023b2 51af: a5 09                            lda   _destPtr+1
 +0023b4 51b1: 69 00                            adc   #$00
-+0023b6 51b3: 85 09                            sta   AsciiLineByteAddr+1
++0023b6 51b3: 85 09                            sta   _destPtr+1
 +0023b8 51b5: 38                               sec
-+0023b9 51b6: b0 99                            bcs   L5151                                   ;NW: always
++0023b9 51b6: b0 99                            bcs   @loop2                                  ;NW: always
 
                            ; NW: 
                            ; print text following JSR
@@ -2853,28 +2971,28 @@
 +00243c 5239: d0 40                            bne   L527B
 +00243e 523b: ac 05 14                         ldy   $1405
 +002441 523e: a9 0b                            lda   #$0b
-+002443 5240: 85 00                            sta   $00
++002443 5240: 85 00                            sta   _spriteEntryPtr
 +002445 5242: ad 00 15                         lda   $1500
 +002448 5245: 20 1c 4c                         jsr   L4C1C
-+00244b 5248: 85 02                            sta   $02
-+00244d 524a: a5 02        L524A               lda   $02
++00244b 5248: 85 02                            sta   _strobePtrOffs
++00244d 524a: a5 02        L524A               lda   _strobePtrOffs
 +00244f 524c: 99 c0 17                         sta   $17c0,y
-+002452 524f: a6 00                            ldx   $00
++002452 524f: a6 00                            ldx   _spriteEntryPtr
 +002454 5251: bd 26 0d                         lda   L0D26,x
 +002457 5254: 99 10 18                         sta   $1810,y
 +00245a 5257: bd 32 0d                         lda   L0D32,x
 +00245d 525a: 99 60 18                         sta   $1860,y
 +002460 525d: ae 02 0c                         ldx   L0C02
 +002463 5260: 20 4f 4c                         jsr   multiplyAX                              ;NW: get shape data size (X)
-+002466 5263: 86 06                            stx   PixelLine
++002466 5263: 86 06                            stx   _strobePtr
 +002468 5265: a9 60                            lda   #$60
 +00246a 5267: 38                               sec
-+00246b 5268: e5 06                            sbc   PixelLine
++00246b 5268: e5 06                            sbc   _strobePtr
 +00246d 526a: 99 70 17                         sta   $1770,y
 +002470 526d: ad 02 0c                         lda   L0C02
 +002473 5270: 99 b0 18                         sta   $18b0,y
 +002476 5273: c8                               iny
-+002477 5274: c6 00                            dec   $00
++002477 5274: c6 00                            dec   _spriteEntryPtr
 +002479 5276: 10 d2                            bpl   L524A
 +00247b 5278: 8c 05 14                         sty   $1405
 +00247e 527b: 18           L527B               clc
@@ -2913,18 +3031,18 @@
 +0024c7 52c4: 48                               pha
 +0024c8 52c5: aa                               tax
 +0024c9 52c6: bd 00 08                         lda   L0800,x
-+0024cc 52c9: 85 06                            sta   PixelLine
++0024cc 52c9: 85 06                            sta   _strobePtr
 +0024ce 52cb: bd 20 08                         lda   L0820,x
-+0024d1 52ce: 85 07                            sta   PixelLine+1                             ;=> ($06) = $7a00, param for fetchSprite (outerDisplay starts w/ call to innerDisplay)
++0024d1 52ce: 85 07                            sta   _strobePtr+1                            ;=> ($06) = $7a00, param for fetchSprite (outerDisplay starts w/ call to innerDisplay)
 +0024d3 52d0: ac 01 15                         ldy   $1501                                   ;param for fetchSprite, pixel line
 +0024d6 52d3: ae 00 15                         ldx   $1500                                   ;param for fetchSprite, x coord (?)
 +0024d9 52d6: 20 2d 50                         jsr   eraseYou
 +0024dc 52d9: 68                               pla
 +0024dd 52da: aa                               tax
 +0024de 52db: bd 40 08                         lda   L0840,x                                 ;lookup independent of outerDisplay
-+0024e1 52de: 85 06                            sta   PixelLine
++0024e1 52de: 85 06                            sta   _strobePtr
 +0024e3 52e0: bd 60 08                         lda   L0860,x
-+0024e6 52e3: 85 07                            sta   PixelLine+1                             ;=> ($06) = $7bd0
++0024e6 52e3: 85 07                            sta   _strobePtr+1                            ;=> ($06) = $7bd0
 +0024e8 52e5: ac 01 15                         ldy   $1501
 +0024eb 52e8: 88                               dey
 +0024ec 52e9: ae 00 15                         ldx   $1500
@@ -2932,29 +3050,29 @@
 +0024f0 52ed: ca                               dex
 +0024f1 52ee: 20 7c 4c                         jsr   fetchSprite
 +0024f4 52f1: b1 fc        L52F1               lda   (PixelLineBaseL),y
-+0024f6 52f3: 85 06                            sta   PixelLine
++0024f6 52f3: 85 06                            sta   _strobePtr
 +0024f8 52f5: b1 fe                            lda   (PixelLineBaseH),y
-+0024fa 52f7: 85 07                            sta   PixelLine+1
-+0024fc 52f9: 84 05                            sty   $05                                     ;sprite pixel line
-+0024fe 52fb: a4 04                            ldy   $04                                     ;screen byte
-+002500 52fd: a1 08                            lda   (AsciiLineByteAddr,x)
-+002502 52ff: 31 06                            and   (PixelLine),y
++0024fa 52f7: 85 07                            sta   _strobePtr+1
++0024fc 52f9: 84 05                            sty   _ix                                     ;sprite pixel line
++0024fe 52fb: a4 04                            ldy   _length                                 ;screen byte
++002500 52fd: a1 08                            lda   (_destPtr,x)
++002502 52ff: 31 06                            and   (_strobePtr),y
 +002504 5301: f0 03                            beq   L5306
 +002506 5303: 20 8d 53                         jsr   L538D
-+002509 5306: e6 08        L5306               inc   AsciiLineByteAddr
++002509 5306: e6 08        L5306               inc   _destPtr
 +00250b 5308: c8                               iny
-+00250c 5309: a1 08                            lda   (AsciiLineByteAddr,x)
-+00250e 530b: 31 06                            and   (PixelLine),y
++00250c 5309: a1 08                            lda   (_destPtr,x)
++00250e 530b: 31 06                            and   (_strobePtr),y
 +002510 530d: f0 03                            beq   L5312
 +002512 530f: 20 8d 53                         jsr   L538D
-+002515 5312: e6 08        L5312               inc   AsciiLineByteAddr
++002515 5312: e6 08        L5312               inc   _destPtr
 +002517 5314: c8                               iny
-+002518 5315: a1 08                            lda   (AsciiLineByteAddr,x)
-+00251a 5317: 31 06                            and   (PixelLine),y
++002518 5315: a1 08                            lda   (_destPtr,x)
++00251a 5317: 31 06                            and   (_strobePtr),y
 +00251c 5319: f0 03                            beq   L531E
 +00251e 531b: 20 8d 53                         jsr   L538D
-+002521 531e: e6 08        L531E               inc   AsciiLineByteAddr
-+002523 5320: a4 05                            ldy   $05
++002521 531e: e6 08        L531E               inc   _destPtr
++002523 5320: a4 05                            ldy   _ix
 +002525 5322: 88                               dey
 +002526 5323: 10 cc                            bpl   L52F1
 +002528 5325: 20 6e 4c                         jsr   doSpeaker
@@ -2967,38 +3085,38 @@
 +00253a 5337: 0d 08 15                         ora   UsedPaddle?
 +00253d 533a: aa                               tax
 +00253e 533b: bd 00 08                         lda   L0800,x
-+002541 533e: 85 06                            sta   PixelLine
++002541 533e: 85 06                            sta   _strobePtr
 +002543 5340: bd 20 08                         lda   L0820,x
-+002546 5343: 85 07                            sta   PixelLine+1
++002546 5343: 85 07                            sta   _strobePtr+1
 +002548 5345: ac 03 15                         ldy   $1503                                   ;some pl (y-coord), starts w/ #$08
 +00254b 5348: 8c 01 15                         sty   $1501                                   ;same as $1503
 +00254e 534b: ae 02 15                         ldx   $1502                                   ;some x coord?
 +002551 534e: 8e 00 15                         stx   $1500                                   ;same as $1502
 +002554 5351: 20 7c 4c                         jsr   fetchSprite
 +002557 5354: b1 fc        L5354               lda   (PixelLineBaseL),y
-+002559 5356: 85 06                            sta   PixelLine
++002559 5356: 85 06                            sta   _strobePtr
 +00255b 5358: b1 fe                            lda   (PixelLineBaseH),y
-+00255d 535a: 85 07                            sta   PixelLine+1
-+00255f 535c: 84 05                            sty   $05                                     ;ubound of sprite lines (0-based)
-+002561 535e: a4 04                            ldy   $04                                     ;x-pos left byte (of sprite), #$01 at first
-+002563 5360: b1 06                            lda   (PixelLine),y                           ;check if any pixels will be overwritten
-+002565 5362: 21 08                            and   (AsciiLineByteAddr,x)                   ;X ist immer 0
++00255d 535a: 85 07                            sta   _strobePtr+1
++00255f 535c: 84 05                            sty   _ix                                     ;ubound of sprite lines (0-based)
++002561 535e: a4 04                            ldy   _length                                 ;x-pos left byte (of sprite), #$01 at first
++002563 5360: b1 06                            lda   (_strobePtr),y                          ;check if any pixels will be overwritten
++002565 5362: 21 08                            and   (_destPtr,x)                            ;X ist immer 0
 +002567 5364: f0 03                            beq   L5369
 +002569 5366: 20 8d 53                         jsr   L538D
-+00256c 5369: a1 08        L5369               lda   (AsciiLineByteAddr,x)
-+00256e 536b: 11 06                            ora   (PixelLine),y                           ;(.LoLoPL),Y = screen byte
-+002570 536d: 91 06                            sta   (PixelLine),y
-+002572 536f: e6 08                            inc   AsciiLineByteAddr                       ;X = const (0) => needs to inc $08
++00256c 5369: a1 08        L5369               lda   (_destPtr,x)
++00256e 536b: 11 06                            ora   (_strobePtr),y                          ;(.LoLoPL),Y = screen byte
++002570 536d: 91 06                            sta   (_strobePtr),y
++002572 536f: e6 08                            inc   _destPtr                                ;X = const (0) => needs to inc $08
 +002574 5371: c8                               iny
-+002575 5372: b1 06                            lda   (PixelLine),y
-+002577 5374: 21 08                            and   (AsciiLineByteAddr,x)
++002575 5372: b1 06                            lda   (_strobePtr),y
++002577 5374: 21 08                            and   (_destPtr,x)
 +002579 5376: f0 03                            beq   L537B
 +00257b 5378: 20 8d 53                         jsr   L538D
-+00257e 537b: a1 08        L537B               lda   (AsciiLineByteAddr,x)
-+002580 537d: 11 06                            ora   (PixelLine),y
-+002582 537f: 91 06                            sta   (PixelLine),y
-+002584 5381: e6 08                            inc   AsciiLineByteAddr                       ;same here w/ $08; no page cross
-+002586 5383: a4 05                            ldy   $05
++00257e 537b: a1 08        L537B               lda   (_destPtr,x)
++002580 537d: 11 06                            ora   (_strobePtr),y
++002582 537f: 91 06                            sta   (_strobePtr),y
++002584 5381: e6 08                            inc   _destPtr                                ;same here w/ $08; no page cross
++002586 5383: a4 05                            ldy   _ix
 +002588 5385: 88                               dey
 +002589 5386: 10 cc                            bpl   L5354                                   ;0, Y runs through sprite lines
 +00258b 5388: 20 6e 4c                         jsr   doSpeaker                               ;no speaker tail call - optimise? (but CLC!)
@@ -3011,7 +3129,7 @@
 +002597 5394: a5 fc                            lda   PixelLineBaseL
 +002599 5396: 8d 02 07                         sta   $0702
 +00259c 5399: a2 05                            ldx   #$05
-+00259e 539b: b5 04        L539B               lda   $04,x
++00259e 539b: b5 04        L539B               lda   _length,x
 +0025a0 539d: 9d 03 07                         sta   $0703,x
 +0025a3 53a0: ca                               dex
 +0025a4 53a1: 10 f8                            bpl   L539B
@@ -3028,9 +3146,9 @@
 +0025bc 53b9: 0d 08 15                         ora   UsedPaddle?
 +0025bf 53bc: aa                               tax
 +0025c0 53bd: bd 00 08                         lda   L0800,x
-+0025c3 53c0: 85 06                            sta   PixelLine
++0025c3 53c0: 85 06                            sta   _strobePtr
 +0025c5 53c2: bd 20 08                         lda   L0820,x
-+0025c8 53c5: 85 07                            sta   PixelLine+1
++0025c8 53c5: 85 07                            sta   _strobePtr+1
 +0025ca 53c7: ae 02 15                         ldx   $1502
 +0025cd 53ca: ac 03 15                         ldy   $1503
 +0025d0 53cd: 20 59 50                         jsr   drawYou
@@ -3041,7 +3159,7 @@
 
 +0025d7 53d4: a2 05        L53D4               ldx   #$05
 +0025d9 53d6: bd 03 07     L53D6               lda   $0703,x
-+0025dc 53d9: 95 04                            sta   $04,x
++0025dc 53d9: 95 04                            sta   _length,x
 +0025de 53db: ca                               dex
 +0025df 53dc: 10 f8                            bpl   L53D6
 +0025e1 53de: ad 02 07                         lda   $0702
@@ -3119,10 +3237,10 @@
 +002675 5472: 69 0e                            adc   #$0e
 +002677 5474: 99 10 15                         sta   $1510,y
 +00267a 5477: 20 1c 4c                         jsr   L4C1C
-+00267d 547a: 86 00                            stx   $00
++00267d 547a: 86 00                            stx   _spriteEntryPtr
 +00267f 547c: a9 06                            lda   #$06
 +002681 547e: 38                               sec
-+002682 547f: e5 00                            sbc   $00
++002682 547f: e5 00                            sbc   _spriteEntryPtr
 +002684 5481: 99 60 15                         sta   $1560,y
 +002687 5484: 10 1c                            bpl   L54A2
 +002689 5486: e0 0c        L5486               cpx   #$0c
@@ -3131,11 +3249,11 @@
 +002690 548d: 38                               sec
 +002691 548e: e9 04                            sbc   #$04
 +002693 5490: 20 1c 4c                         jsr   L4C1C
-+002696 5493: 85 00                            sta   $00
++002696 5493: 85 00                            sta   _spriteEntryPtr
 +002698 5495: 0a                               asl   A
-+002699 5496: 65 00                            adc   $00
++002699 5496: 65 00                            adc   _spriteEntryPtr
 +00269b 5498: 0a                               asl   A
-+00269c 5499: 65 00                            adc   $00
++00269c 5499: 65 00                            adc   _spriteEntryPtr
 +00269e 549b: 99 10 15                         sta   $1510,y
 +0026a1 549e: 8a                               txa
 +0026a2 549f: 99 60 15                         sta   $1560,y
@@ -3213,13 +3331,13 @@
 +002729 5526: 10 01                            bpl   L5529
 +00272b 5528: 60           L5528               rts
 
-+00272c 5529: 86 00        L5529               stx   $00
++00272c 5529: 86 00        L5529               stx   _spriteEntryPtr
 +00272e 552b: bd 30 15                         lda   $1530,x
 +002731 552e: c9 04                            cmp   #$04
 +002733 5530: b0 5a                            bcs   L558C
 +002735 5532: 49 03                            eor   #$03
-+002737 5534: 85 04                            sta   $04
-+002739 5536: c6 04                            dec   $04
++002737 5534: 85 04                            sta   _length
++002739 5536: c6 04                            dec   _length
 +00273b 5538: bd 40 15                         lda   $1540,x
 +00273e 553b: f0 05                            beq   L5542
 +002740 553d: de 40 15                         dec   $1540,x
@@ -3229,7 +3347,7 @@
 +00274a 5547: 9d 50 15                         sta   $1550,x
 +00274d 554a: bd 20 15                         lda   $1520,x
 +002750 554d: 18                               clc
-+002751 554e: 65 04                            adc   $04
++002751 554e: 65 04                            adc   _length
 +002753 5550: 9d 20 15                         sta   $1520,x
 +002756 5553: c9 25                            cmp   #$25
 +002758 5555: 90 03                            bcc   L555A
@@ -3239,14 +3357,14 @@
 +002760 555d: 85 fc                            sta   PixelLineBaseL
 +002762 555f: 85 fe                            sta   PixelLineBaseH
 +002764 5561: a0 00                            ldy   #$00
-+002766 5563: 84 05                            sty   $05
++002766 5563: 84 05                            sty   _ix
 +002768 5565: b1 fc                            lda   (PixelLineBaseL),y
-+00276a 5567: 85 06                            sta   PixelLine
++00276a 5567: 85 06                            sta   _strobePtr
 +00276c 5569: b1 fe                            lda   (PixelLineBaseH),y
-+00276e 556b: 85 07                            sta   PixelLine+1
++00276e 556b: 85 07                            sta   _strobePtr+1
 +002770 556d: bc 20 15                         ldy   $1520,x
 +002773 5570: bd 50 15                         lda   $1550,x
-+002776 5573: 31 06                            and   (PixelLine),y
++002776 5573: 31 06                            and   (_strobePtr),y
 +002778 5575: f0 0b                            beq   L5582
 +00277a 5577: 20 aa 59                         jsr   L59AA
 +00277d 557a: 90 06                            bcc   L5582
@@ -3254,8 +3372,8 @@
 +002782 557f: 4c 59 59                         jmp   L5959
 
 +002785 5582: bd 50 15     L5582               lda   $1550,x
-+002788 5585: 11 06                            ora   (PixelLine),y
-+00278a 5587: 91 06                            sta   (PixelLine),y
++002788 5585: 11 06                            ora   (_strobePtr),y
++00278a 5587: 91 06                            sta   (_strobePtr),y
 +00278c 5589: 4c 25 55                         jmp   L5525
 
 +00278f 558c: c9 04        L558C               cmp   #$04
@@ -3265,7 +3383,7 @@
 +002798 5595: de 40 15                         dec   $1540,x
 +00279b 5598: 10 1b                            bpl   L55B5
 +00279d 559a: 20 55 58     L559A               jsr   undrawYouVertBullets
-+0027a0 559d: a6 00                            ldx   $00
++0027a0 559d: a6 00                            ldx   _spriteEntryPtr
 +0027a2 559f: bd 10 15                         lda   $1510,x
 +0027a5 55a2: 38                               sec
 +0027a6 55a3: 7d 60 15                         adc   $1560,x
@@ -3281,34 +3399,34 @@
 +0027bd 55ba: 85 fe                            sta   PixelLineBaseH
 +0027bf 55bc: bc 60 15                         ldy   $1560,x
 +0027c2 55bf: bd 20 15                         lda   $1520,x
-+0027c5 55c2: 85 04                            sta   $04
++0027c5 55c2: 85 04                            sta   _length
 +0027c7 55c4: bd 50 15                         lda   $1550,x
 +0027ca 55c7: aa                               tax
 +0027cb 55c8: b1 fc        L55C8               lda   (PixelLineBaseL),y
-+0027cd 55ca: 85 06                            sta   PixelLine
++0027cd 55ca: 85 06                            sta   _strobePtr
 +0027cf 55cc: b1 fe                            lda   (PixelLineBaseH),y
-+0027d1 55ce: 85 07                            sta   PixelLine+1
-+0027d3 55d0: 84 05                            sty   $05
-+0027d5 55d2: a4 04                            ldy   $04
++0027d1 55ce: 85 07                            sta   _strobePtr+1
++0027d3 55d0: 84 05                            sty   _ix
++0027d5 55d2: a4 04                            ldy   _length
 +0027d7 55d4: 8a                               txa
-+0027d8 55d5: 31 06                            and   (PixelLine),y
++0027d8 55d5: 31 06                            and   (_strobePtr),y
 +0027da 55d7: f0 13                            beq   L55EC
-+0027dc 55d9: 86 01                            stx   $01
-+0027de 55db: a6 00                            ldx   $00
++0027dc 55d9: 86 01                            stx   _spriteEntryPtr+1
++0027de 55db: a6 00                            ldx   _spriteEntryPtr
 +0027e0 55dd: 20 aa 59                         jsr   L59AA
 +0027e3 55e0: 90 08                            bcc   L55EA
 +0027e5 55e2: 20 55 58                         jsr   undrawYouVertBullets
 +0027e8 55e5: a6 1f                            ldx   $1f
 +0027ea 55e7: 4c 59 59                         jmp   L5959
 
-+0027ed 55ea: a6 01        L55EA               ldx   $01
++0027ed 55ea: a6 01        L55EA               ldx   _spriteEntryPtr+1
 +0027ef 55ec: 8a           L55EC               txa
-+0027f0 55ed: 11 06                            ora   (PixelLine),y
-+0027f2 55ef: 91 06                            sta   (PixelLine),y
-+0027f4 55f1: a4 05                            ldy   $05
++0027f0 55ed: 11 06                            ora   (_strobePtr),y
++0027f2 55ef: 91 06                            sta   (_strobePtr),y
++0027f4 55f1: a4 05                            ldy   _ix
 +0027f6 55f3: 88                               dey
 +0027f7 55f4: 10 d2                            bpl   L55C8
-+0027f9 55f6: a6 00                            ldx   $00
++0027f9 55f6: a6 00                            ldx   _spriteEntryPtr
 +0027fb 55f8: 4c 25 55                         jmp   L5525
 
 +0027fe 55fb: c9 0c        L55FB               cmp   #$0c
@@ -3318,7 +3436,7 @@
 +002807 5604: de 40 15                         dec   $1540,x
 +00280a 5607: 10 18                            bpl   L5621
 +00280c 5609: 20 55 58     L5609               jsr   undrawYouVertBullets
-+00280f 560c: a6 00                            ldx   $00
++00280f 560c: a6 00                            ldx   _spriteEntryPtr
 +002811 560e: bd 10 15                         lda   $1510,x
 +002814 5611: 38                               sec
 +002815 5612: e9 07                            sbc   #$07
@@ -3333,34 +3451,34 @@
 +002829 5626: 85 fe                            sta   PixelLineBaseH
 +00282b 5628: bc 60 15                         ldy   $1560,x
 +00282e 562b: bd 20 15                         lda   $1520,x
-+002831 562e: 85 04                            sta   $04
++002831 562e: 85 04                            sta   _length
 +002833 5630: bd 50 15                         lda   $1550,x
 +002836 5633: aa                               tax
 +002837 5634: b1 fc        L5634               lda   (PixelLineBaseL),y
-+002839 5636: 85 06                            sta   PixelLine
++002839 5636: 85 06                            sta   _strobePtr
 +00283b 5638: b1 fe                            lda   (PixelLineBaseH),y
-+00283d 563a: 85 07                            sta   PixelLine+1
-+00283f 563c: 84 05                            sty   $05
-+002841 563e: a4 04                            ldy   $04
++00283d 563a: 85 07                            sta   _strobePtr+1
++00283f 563c: 84 05                            sty   _ix
++002841 563e: a4 04                            ldy   _length
 +002843 5640: 8a                               txa
-+002844 5641: 31 06                            and   (PixelLine),y
++002844 5641: 31 06                            and   (_strobePtr),y
 +002846 5643: f0 13                            beq   L5658
-+002848 5645: 86 01                            stx   $01
-+00284a 5647: a6 00                            ldx   $00
++002848 5645: 86 01                            stx   _spriteEntryPtr+1
++00284a 5647: a6 00                            ldx   _spriteEntryPtr
 +00284c 5649: 20 aa 59                         jsr   L59AA
 +00284f 564c: 90 08                            bcc   L5656
 +002851 564e: 20 55 58                         jsr   undrawYouVertBullets
 +002854 5651: a6 1f                            ldx   $1f
 +002856 5653: 4c 59 59                         jmp   L5959
 
-+002859 5656: a6 01        L5656               ldx   $01
++002859 5656: a6 01        L5656               ldx   _spriteEntryPtr+1
 +00285b 5658: 8a           L5658               txa
-+00285c 5659: 11 06                            ora   (PixelLine),y
-+00285e 565b: 91 06                            sta   (PixelLine),y
-+002860 565d: a4 05                            ldy   $05
++00285c 5659: 11 06                            ora   (_strobePtr),y
++00285e 565b: 91 06                            sta   (_strobePtr),y
++002860 565d: a4 05                            ldy   _ix
 +002862 565f: 88                               dey
 +002863 5660: 10 d2                            bpl   L5634
-+002865 5662: a6 00                            ldx   $00
++002865 5662: a6 00                            ldx   _spriteEntryPtr
 +002867 5664: 4c 25 55                         jmp   L5525
 
 +00286a 5667: c9 05        L5667               cmp   #$05
@@ -3370,7 +3488,7 @@
 +002873 5670: de 40 15                         dec   $1540,x
 +002876 5673: 10 23                            bpl   L5698
 +002878 5675: 20 83 58     L5675               jsr   undrawYouDiagDRBullets
-+00287b 5678: a6 00                            ldx   $00
++00287b 5678: a6 00                            ldx   _spriteEntryPtr
 +00287d 567a: a9 01                            lda   #$01
 +00287f 567c: 9d 50 15                         sta   $1550,x
 +002882 567f: fe 20 15                         inc   $1520,x
@@ -3386,7 +3504,7 @@
 +002898 5695: 4c 59 59     L5695               jmp   L5959
 
 +00289b 5698: bd 20 15     L5698               lda   $1520,x
-+00289e 569b: 85 04                            sta   $04
++00289e 569b: 85 04                            sta   _length
 +0028a0 569d: bd 10 15                         lda   $1510,x
 +0028a3 56a0: 85 fc                            sta   PixelLineBaseL
 +0028a5 56a2: 85 fe                            sta   PixelLineBaseH
@@ -3394,34 +3512,34 @@
 +0028aa 56a7: aa                               tax
 +0028ab 56a8: a0 00                            ldy   #$00
 +0028ad 56aa: b1 fc        L56AA               lda   (PixelLineBaseL),y
-+0028af 56ac: 85 06                            sta   PixelLine
++0028af 56ac: 85 06                            sta   _strobePtr
 +0028b1 56ae: b1 fe                            lda   (PixelLineBaseH),y
-+0028b3 56b0: 85 07                            sta   PixelLine+1
-+0028b5 56b2: 84 05                            sty   $05
-+0028b7 56b4: a4 04                            ldy   $04
++0028b3 56b0: 85 07                            sta   _strobePtr+1
++0028b5 56b2: 84 05                            sty   _ix
++0028b7 56b4: a4 04                            ldy   _length
 +0028b9 56b6: 8a                               txa
-+0028ba 56b7: 31 06                            and   (PixelLine),y
++0028ba 56b7: 31 06                            and   (_strobePtr),y
 +0028bc 56b9: f0 13                            beq   L56CE
-+0028be 56bb: 86 01                            stx   $01
-+0028c0 56bd: a6 00                            ldx   $00
++0028be 56bb: 86 01                            stx   _spriteEntryPtr+1
++0028c0 56bd: a6 00                            ldx   _spriteEntryPtr
 +0028c2 56bf: 20 aa 59                         jsr   L59AA
 +0028c5 56c2: 90 08                            bcc   L56CC
 +0028c7 56c4: 20 83 58                         jsr   undrawYouDiagDRBullets
 +0028ca 56c7: a6 1f                            ldx   $1f
 +0028cc 56c9: 4c 59 59                         jmp   L5959
 
-+0028cf 56cc: a6 01        L56CC               ldx   $01
++0028cf 56cc: a6 01        L56CC               ldx   _spriteEntryPtr+1
 +0028d1 56ce: 8a           L56CE               txa
-+0028d2 56cf: 11 06                            ora   (PixelLine),y
-+0028d4 56d1: 91 06                            sta   (PixelLine),y
++0028d2 56cf: 11 06                            ora   (_strobePtr),y
++0028d4 56d1: 91 06                            sta   (_strobePtr),y
 +0028d6 56d3: 8a                               txa
 +0028d7 56d4: 0a                               asl   A
 +0028d8 56d5: 30 06                            bmi   L56DD
 +0028da 56d7: aa                               tax
-+0028db 56d8: a4 05                            ldy   $05
++0028db 56d8: a4 05                            ldy   _ix
 +0028dd 56da: c8                               iny
 +0028de 56db: d0 cd                            bne   L56AA
-+0028e0 56dd: a6 00        L56DD               ldx   $00
++0028e0 56dd: a6 00        L56DD               ldx   _spriteEntryPtr
 +0028e2 56df: 4c 25 55                         jmp   L5525
 
 +0028e5 56e2: c9 07        L56E2               cmp   #$07
@@ -3431,7 +3549,7 @@
 +0028ee 56eb: de 40 15                         dec   $1540,x
 +0028f1 56ee: 10 1e                            bpl   L570E
 +0028f3 56f0: 20 b9 58     L56F0               jsr   undrawYouDiagDLBullets
-+0028f6 56f3: a6 00                            ldx   $00
++0028f6 56f3: a6 00                            ldx   _spriteEntryPtr
 +0028f8 56f5: a9 80                            lda   #$80
 +0028fa 56f7: 9d 50 15                         sta   $1550,x
 +0028fd 56fa: de 20 15                         dec   $1520,x
@@ -3445,7 +3563,7 @@
 +00290e 570b: 4c 59 59     L570B               jmp   L5959
 
 +002911 570e: bd 20 15     L570E               lda   $1520,x
-+002914 5711: 85 04                            sta   $04
++002914 5711: 85 04                            sta   _length
 +002916 5713: bd 10 15                         lda   $1510,x
 +002919 5716: 85 fc                            sta   PixelLineBaseL
 +00291b 5718: 85 fe                            sta   PixelLineBaseH
@@ -3453,33 +3571,33 @@
 +002920 571d: aa                               tax
 +002921 571e: a0 00                            ldy   #$00
 +002923 5720: b1 fc        L5720               lda   (PixelLineBaseL),y
-+002925 5722: 85 06                            sta   PixelLine
++002925 5722: 85 06                            sta   _strobePtr
 +002927 5724: b1 fe                            lda   (PixelLineBaseH),y
-+002929 5726: 85 07                            sta   PixelLine+1
-+00292b 5728: 84 05                            sty   $05
-+00292d 572a: a4 04                            ldy   $04
++002929 5726: 85 07                            sta   _strobePtr+1
++00292b 5728: 84 05                            sty   _ix
++00292d 572a: a4 04                            ldy   _length
 +00292f 572c: 8a                               txa
 +002930 572d: 4a                               lsr   A
 +002931 572e: b0 22                            bcs   L5752
 +002933 5730: aa                               tax
-+002934 5731: 31 06                            and   (PixelLine),y
++002934 5731: 31 06                            and   (_strobePtr),y
 +002936 5733: f0 13                            beq   L5748
-+002938 5735: 86 01                            stx   $01
-+00293a 5737: a6 00                            ldx   $00
++002938 5735: 86 01                            stx   _spriteEntryPtr+1
++00293a 5737: a6 00                            ldx   _spriteEntryPtr
 +00293c 5739: 20 aa 59                         jsr   L59AA
 +00293f 573c: 90 08                            bcc   L5746
 +002941 573e: 20 b9 58                         jsr   undrawYouDiagDLBullets
 +002944 5741: a6 1f                            ldx   $1f
 +002946 5743: 4c 59 59                         jmp   L5959
 
-+002949 5746: a6 01        L5746               ldx   $01
++002949 5746: a6 01        L5746               ldx   _spriteEntryPtr+1
 +00294b 5748: 8a           L5748               txa
-+00294c 5749: 11 06                            ora   (PixelLine),y
-+00294e 574b: 91 06                            sta   (PixelLine),y
-+002950 574d: a4 05                            ldy   $05
++00294c 5749: 11 06                            ora   (_strobePtr),y
++00294e 574b: 91 06                            sta   (_strobePtr),y
++002950 574d: a4 05                            ldy   _ix
 +002952 574f: c8                               iny
 +002953 5750: d0 ce                            bne   L5720
-+002955 5752: a6 00        L5752               ldx   $00
++002955 5752: a6 00        L5752               ldx   _spriteEntryPtr
 +002957 5754: 4c 25 55                         jmp   L5525
 
 +00295a 5757: c9 0d        L5757               cmp   #$0d
@@ -3489,7 +3607,7 @@
 +002963 5760: de 40 15                         dec   $1540,x
 +002966 5763: 10 1d                            bpl   L5782
 +002968 5765: 20 ee 58     L5765               jsr   undrawYouDiagURBullets
-+00296b 5768: a6 00                            ldx   $00
++00296b 5768: a6 00                            ldx   _spriteEntryPtr
 +00296d 576a: a9 01                            lda   #$01
 +00296f 576c: 9d 50 15                         sta   $1550,x
 +002972 576f: fe 20 15                         inc   $1520,x
@@ -3502,7 +3620,7 @@
 +002982 577f: 4c 59 59     L577F               jmp   L5959
 
 +002985 5782: bd 20 15     L5782               lda   $1520,x
-+002988 5785: 85 04                            sta   $04
++002988 5785: 85 04                            sta   _length
 +00298a 5787: a9 00                            lda   #$00
 +00298c 5789: 85 fc                            sta   PixelLineBaseL
 +00298e 578b: 85 fe                            sta   PixelLineBaseH
@@ -3510,34 +3628,34 @@
 +002993 5790: bd 50 15                         lda   $1550,x
 +002996 5793: aa                               tax
 +002997 5794: b1 fc        L5794               lda   (PixelLineBaseL),y
-+002999 5796: 85 06                            sta   PixelLine
++002999 5796: 85 06                            sta   _strobePtr
 +00299b 5798: b1 fe                            lda   (PixelLineBaseH),y
-+00299d 579a: 85 07                            sta   PixelLine+1
-+00299f 579c: 84 05                            sty   $05
-+0029a1 579e: a4 04                            ldy   $04
++00299d 579a: 85 07                            sta   _strobePtr+1
++00299f 579c: 84 05                            sty   _ix
++0029a1 579e: a4 04                            ldy   _length
 +0029a3 57a0: 8a                               txa
-+0029a4 57a1: 31 06                            and   (PixelLine),y
++0029a4 57a1: 31 06                            and   (_strobePtr),y
 +0029a6 57a3: f0 13                            beq   L57B8
-+0029a8 57a5: 86 01                            stx   $01
-+0029aa 57a7: a6 00                            ldx   $00
++0029a8 57a5: 86 01                            stx   _spriteEntryPtr+1
++0029aa 57a7: a6 00                            ldx   _spriteEntryPtr
 +0029ac 57a9: 20 aa 59                         jsr   L59AA
 +0029af 57ac: 90 08                            bcc   L57B6
 +0029b1 57ae: 20 ee 58                         jsr   undrawYouDiagURBullets
 +0029b4 57b1: a6 1f                            ldx   $1f
 +0029b6 57b3: 4c 59 59                         jmp   L5959
 
-+0029b9 57b6: a6 01        L57B6               ldx   $01
++0029b9 57b6: a6 01        L57B6               ldx   _spriteEntryPtr+1
 +0029bb 57b8: 8a           L57B8               txa
-+0029bc 57b9: 11 06                            ora   (PixelLine),y
-+0029be 57bb: 91 06                            sta   (PixelLine),y
++0029bc 57b9: 11 06                            ora   (_strobePtr),y
++0029be 57bb: 91 06                            sta   (_strobePtr),y
 +0029c0 57bd: 8a                               txa
 +0029c1 57be: 0a                               asl   A
 +0029c2 57bf: 30 06                            bmi   L57C7
 +0029c4 57c1: aa                               tax
-+0029c5 57c2: a4 05                            ldy   $05
++0029c5 57c2: a4 05                            ldy   _ix
 +0029c7 57c4: 88                               dey
 +0029c8 57c5: d0 cd                            bne   L5794
-+0029ca 57c7: a6 00        L57C7               ldx   $00
++0029ca 57c7: a6 00        L57C7               ldx   _spriteEntryPtr
 +0029cc 57c9: 4c 25 55                         jmp   L5525
 
 +0029cf 57cc: bd 40 15     L57CC               lda   $1540,x
@@ -3545,7 +3663,7 @@
 +0029d4 57d1: de 40 15                         dec   $1540,x
 +0029d7 57d4: 10 18                            bpl   L57EE
 +0029d9 57d6: 20 24 59     L57D6               jsr   undrawYouDiagULBullets
-+0029dc 57d9: a6 00                            ldx   $00
++0029dc 57d9: a6 00                            ldx   _spriteEntryPtr
 +0029de 57db: a9 80                            lda   #$80
 +0029e0 57dd: 9d 50 15                         sta   $1550,x
 +0029e3 57e0: de 20 15                         dec   $1520,x
@@ -3556,7 +3674,7 @@
 +0029ee 57eb: 4c 59 59     L57EB               jmp   L5959
 
 +0029f1 57ee: bd 20 15     L57EE               lda   $1520,x
-+0029f4 57f1: 85 04                            sta   $04
++0029f4 57f1: 85 04                            sta   _length
 +0029f6 57f3: a9 00                            lda   #$00
 +0029f8 57f5: 85 fc                            sta   PixelLineBaseL
 +0029fa 57f7: 85 fe                            sta   PixelLineBaseH
@@ -3564,33 +3682,33 @@
 +0029ff 57fc: bd 50 15                         lda   $1550,x
 +002a02 57ff: aa                               tax
 +002a03 5800: b1 fc        L5800               lda   (PixelLineBaseL),y
-+002a05 5802: 85 06                            sta   PixelLine
++002a05 5802: 85 06                            sta   _strobePtr
 +002a07 5804: b1 fe                            lda   (PixelLineBaseH),y
-+002a09 5806: 85 07                            sta   PixelLine+1
-+002a0b 5808: 84 05                            sty   $05
-+002a0d 580a: a4 04                            ldy   $04
++002a09 5806: 85 07                            sta   _strobePtr+1
++002a0b 5808: 84 05                            sty   _ix
++002a0d 580a: a4 04                            ldy   _length
 +002a0f 580c: 8a                               txa
 +002a10 580d: 4a                               lsr   A
 +002a11 580e: b0 22                            bcs   L5832
 +002a13 5810: aa                               tax
-+002a14 5811: 31 06                            and   (PixelLine),y
++002a14 5811: 31 06                            and   (_strobePtr),y
 +002a16 5813: f0 13                            beq   L5828
-+002a18 5815: 86 01                            stx   $01
-+002a1a 5817: a6 00                            ldx   $00
++002a18 5815: 86 01                            stx   _spriteEntryPtr+1
++002a1a 5817: a6 00                            ldx   _spriteEntryPtr
 +002a1c 5819: 20 aa 59                         jsr   L59AA
 +002a1f 581c: 90 08                            bcc   L5826
 +002a21 581e: 20 24 59                         jsr   undrawYouDiagULBullets
 +002a24 5821: a6 1f                            ldx   $1f
 +002a26 5823: 4c 59 59                         jmp   L5959
 
-+002a29 5826: a6 01        L5826               ldx   $01
++002a29 5826: a6 01        L5826               ldx   _spriteEntryPtr+1
 +002a2b 5828: 8a           L5828               txa
-+002a2c 5829: 11 06                            ora   (PixelLine),y
-+002a2e 582b: 91 06                            sta   (PixelLine),y                           ;NW: draw protagonist's up-left bullets
-+002a30 582d: a4 05                            ldy   $05
++002a2c 5829: 11 06                            ora   (_strobePtr),y
++002a2e 582b: 91 06                            sta   (_strobePtr),y                          ;NW: draw protagonist's up-left bullets
++002a30 582d: a4 05                            ldy   _ix
 +002a32 582f: 88                               dey
 +002a33 5830: d0 ce                            bne   L5800
-+002a35 5832: a6 00        L5832               ldx   $00
++002a35 5832: a6 00        L5832               ldx   _spriteEntryPtr
 +002a37 5834: 4c 25 55                         jmp   L5525
 
                            ; NW: draw protagonist's horizontal bullets
@@ -3599,14 +3717,14 @@
 +002a3f 583c: 85 fe                            sta   PixelLineBaseH
 +002a41 583e: a0 00                            ldy   #$00
 +002a43 5840: b1 fc                            lda   (PixelLineBaseL),y
-+002a45 5842: 85 06                            sta   PixelLine
++002a45 5842: 85 06                            sta   _strobePtr
 +002a47 5844: b1 fe                            lda   (PixelLineBaseH),y
-+002a49 5846: 85 07                            sta   PixelLine+1
++002a49 5846: 85 07                            sta   _strobePtr+1
 +002a4b 5848: bc 20 15                         ldy   $1520,x
 +002a4e 584b: bd 50 15                         lda   $1550,x
 +002a51 584e: 49 ff                            eor   #$ff
-+002a53 5850: 31 06                            and   (PixelLine),y
-+002a55 5852: 91 06                            sta   (PixelLine),y
++002a53 5850: 31 06                            and   (_strobePtr),y
++002a55 5852: 91 06                            sta   (_strobePtr),y
 +002a57 5854: 60                               rts
 
                            ; NW: undraw protagonist's vertical bullets
@@ -3615,27 +3733,27 @@
 +002a5d 585a: 85 fe                            sta   PixelLineBaseH
 +002a5f 585c: bc 60 15                         ldy   $1560,x
 +002a62 585f: bd 20 15                         lda   $1520,x
-+002a65 5862: 85 04                            sta   $04
++002a65 5862: 85 04                            sta   _length
 +002a67 5864: bd 50 15                         lda   $1550,x
 +002a6a 5867: 49 ff                            eor   #$ff
 +002a6c 5869: aa                               tax
 +002a6d 586a: b1 fc        L586A               lda   (PixelLineBaseL),y
-+002a6f 586c: 85 06                            sta   PixelLine
++002a6f 586c: 85 06                            sta   _strobePtr
 +002a71 586e: b1 fe                            lda   (PixelLineBaseH),y
-+002a73 5870: 85 07                            sta   PixelLine+1
-+002a75 5872: 84 05                            sty   $05
-+002a77 5874: a4 04                            ldy   $04
++002a73 5870: 85 07                            sta   _strobePtr+1
++002a75 5872: 84 05                            sty   _ix
++002a77 5874: a4 04                            ldy   _length
 +002a79 5876: 8a                               txa
-+002a7a 5877: 31 06                            and   (PixelLine),y
-+002a7c 5879: 91 06                            sta   (PixelLine),y
-+002a7e 587b: a4 05                            ldy   $05
++002a7a 5877: 31 06                            and   (_strobePtr),y
++002a7c 5879: 91 06                            sta   (_strobePtr),y
++002a7e 587b: a4 05                            ldy   _ix
 +002a80 587d: 88                               dey
 +002a81 587e: 10 ea                            bpl   L586A
 +002a83 5880: 4c 6e 4c                         jmp   doSpeaker                               ;speaker tail call
 
                            ; NW: undraw protagonist's diagonal down-right bullets
 +002a86 5883: bd 20 15     undrawYouDiagDRBullets lda $1520,x
-+002a89 5886: 85 04                            sta   $04
++002a89 5886: 85 04                            sta   _length
 +002a8b 5888: bd 10 15                         lda   $1510,x
 +002a8e 588b: 85 fc                            sta   PixelLineBaseL
 +002a90 588d: 85 fe                            sta   PixelLineBaseH
@@ -3644,29 +3762,29 @@
 +002a97 5894: aa                               tax
 +002a98 5895: a0 00                            ldy   #$00
 +002a9a 5897: b1 fc        L5897               lda   (PixelLineBaseL),y
-+002a9c 5899: 85 06                            sta   PixelLine
++002a9c 5899: 85 06                            sta   _strobePtr
 +002a9e 589b: b1 fe                            lda   (PixelLineBaseH),y
-+002aa0 589d: 85 07                            sta   PixelLine+1
-+002aa2 589f: 84 05                            sty   $05
-+002aa4 58a1: a4 04                            ldy   $04
++002aa0 589d: 85 07                            sta   _strobePtr+1
++002aa2 589f: 84 05                            sty   _ix
++002aa4 58a1: a4 04                            ldy   _length
 +002aa6 58a3: 8a                               txa
-+002aa7 58a4: 31 06                            and   (PixelLine),y
-+002aa9 58a6: 91 06                            sta   (PixelLine),y
++002aa7 58a4: 31 06                            and   (_strobePtr),y
++002aa9 58a6: 91 06                            sta   (_strobePtr),y
 +002aab 58a8: 8a                               txa
 +002aac 58a9: 38                               sec
 +002aad 58aa: 2a                               rol   A
 +002aae 58ab: 10 06                            bpl   L58B3
 +002ab0 58ad: aa                               tax
-+002ab1 58ae: a4 05                            ldy   $05
++002ab1 58ae: a4 05                            ldy   _ix
 +002ab3 58b0: c8                               iny
 +002ab4 58b1: d0 e4                            bne   L5897
-+002ab6 58b3: a4 05        L58B3               ldy   $05
++002ab6 58b3: a4 05        L58B3               ldy   _ix
 +002ab8 58b5: c8                               iny
 +002ab9 58b6: 4c 6e 4c                         jmp   doSpeaker                               ;speaker tail call
 
                            ; NW: undraw protagonist's diagonal down-left bullets
 +002abc 58b9: bd 20 15     undrawYouDiagDLBullets lda $1520,x
-+002abf 58bc: 85 04                            sta   $04
++002abf 58bc: 85 04                            sta   _length
 +002ac1 58be: bd 10 15                         lda   $1510,x
 +002ac4 58c1: 85 fc                            sta   PixelLineBaseL
 +002ac6 58c3: 85 fe                            sta   PixelLineBaseH
@@ -3675,28 +3793,28 @@
 +002acd 58ca: aa                               tax
 +002ace 58cb: a0 00                            ldy   #$00
 +002ad0 58cd: b1 fc        L58CD               lda   (PixelLineBaseL),y
-+002ad2 58cf: 85 06                            sta   PixelLine
++002ad2 58cf: 85 06                            sta   _strobePtr
 +002ad4 58d1: b1 fe                            lda   (PixelLineBaseH),y
-+002ad6 58d3: 85 07                            sta   PixelLine+1
-+002ad8 58d5: 84 05                            sty   $05
-+002ada 58d7: a4 04                            ldy   $04
++002ad6 58d3: 85 07                            sta   _strobePtr+1
++002ad8 58d5: 84 05                            sty   _ix
++002ada 58d7: a4 04                            ldy   _length
 +002adc 58d9: 8a                               txa
 +002add 58da: 38                               sec
 +002ade 58db: 6a                               ror   A
 +002adf 58dc: 90 0a                            bcc   L58E8
 +002ae1 58de: aa                               tax
-+002ae2 58df: 31 06                            and   (PixelLine),y
-+002ae4 58e1: 91 06                            sta   (PixelLine),y
-+002ae6 58e3: a4 05                            ldy   $05
++002ae2 58df: 31 06                            and   (_strobePtr),y
++002ae4 58e1: 91 06                            sta   (_strobePtr),y
++002ae6 58e3: a4 05                            ldy   _ix
 +002ae8 58e5: c8                               iny
 +002ae9 58e6: d0 e5                            bne   L58CD
-+002aeb 58e8: a4 05        L58E8               ldy   $05
++002aeb 58e8: a4 05        L58E8               ldy   _ix
 +002aed 58ea: c8                               iny
 +002aee 58eb: 4c 6e 4c                         jmp   doSpeaker                               ;speaker tail call
 
                            ; NW: undraw protagonist's diagonal up-right bullets
 +002af1 58ee: bd 20 15     undrawYouDiagURBullets lda $1520,x
-+002af4 58f1: 85 04                            sta   $04
++002af4 58f1: 85 04                            sta   _length
 +002af6 58f3: a9 00                            lda   #$00
 +002af8 58f5: 85 fc                            sta   PixelLineBaseL
 +002afa 58f7: 85 fe                            sta   PixelLineBaseH
@@ -3705,29 +3823,29 @@
 +002b02 58ff: 49 ff                            eor   #$ff
 +002b04 5901: aa                               tax
 +002b05 5902: b1 fc        L5902               lda   (PixelLineBaseL),y
-+002b07 5904: 85 06                            sta   PixelLine
++002b07 5904: 85 06                            sta   _strobePtr
 +002b09 5906: b1 fe                            lda   (PixelLineBaseH),y
-+002b0b 5908: 85 07                            sta   PixelLine+1
-+002b0d 590a: 84 05                            sty   $05
-+002b0f 590c: a4 04                            ldy   $04
++002b0b 5908: 85 07                            sta   _strobePtr+1
++002b0d 590a: 84 05                            sty   _ix
++002b0f 590c: a4 04                            ldy   _length
 +002b11 590e: 8a                               txa
-+002b12 590f: 31 06                            and   (PixelLine),y
-+002b14 5911: 91 06                            sta   (PixelLine),y
++002b12 590f: 31 06                            and   (_strobePtr),y
++002b14 5911: 91 06                            sta   (_strobePtr),y
 +002b16 5913: 8a                               txa
 +002b17 5914: 38                               sec
 +002b18 5915: 2a                               rol   A
 +002b19 5916: 10 06                            bpl   L591E
 +002b1b 5918: aa                               tax
-+002b1c 5919: a4 05                            ldy   $05
++002b1c 5919: a4 05                            ldy   _ix
 +002b1e 591b: 88                               dey
 +002b1f 591c: d0 e4                            bne   L5902
-+002b21 591e: a4 05        L591E               ldy   $05
++002b21 591e: a4 05        L591E               ldy   _ix
 +002b23 5920: 88                               dey
 +002b24 5921: 4c 6e 4c                         jmp   doSpeaker                               ;speaker tail call
 
                            ; NW: undraw protagonist's diagonal up-left bullets
 +002b27 5924: bd 20 15     undrawYouDiagULBullets lda $1520,x
-+002b2a 5927: 85 04                            sta   $04
++002b2a 5927: 85 04                            sta   _length
 +002b2c 5929: a9 00                            lda   #$00
 +002b2e 592b: 85 fc                            sta   PixelLineBaseL
 +002b30 592d: 85 fe                            sta   PixelLineBaseH
@@ -3736,22 +3854,22 @@
 +002b38 5935: 49 ff                            eor   #$ff
 +002b3a 5937: aa                               tax
 +002b3b 5938: b1 fc        L5938               lda   (PixelLineBaseL),y
-+002b3d 593a: 85 06                            sta   PixelLine
++002b3d 593a: 85 06                            sta   _strobePtr
 +002b3f 593c: b1 fe                            lda   (PixelLineBaseH),y
-+002b41 593e: 85 07                            sta   PixelLine+1
-+002b43 5940: 84 05                            sty   $05
-+002b45 5942: a4 04                            ldy   $04
++002b41 593e: 85 07                            sta   _strobePtr+1
++002b43 5940: 84 05                            sty   _ix
++002b45 5942: a4 04                            ldy   _length
 +002b47 5944: 8a                               txa
 +002b48 5945: 38                               sec
 +002b49 5946: 6a                               ror   A
 +002b4a 5947: 90 0a                            bcc   L5953
 +002b4c 5949: aa                               tax
-+002b4d 594a: 31 06                            and   (PixelLine),y
-+002b4f 594c: 91 06                            sta   (PixelLine),y
-+002b51 594e: a4 05                            ldy   $05
++002b4d 594a: 31 06                            and   (_strobePtr),y
++002b4f 594c: 91 06                            sta   (_strobePtr),y
++002b51 594e: a4 05                            ldy   _ix
 +002b53 5950: 88                               dey
 +002b54 5951: d0 e5                            bne   L5938
-+002b56 5953: a4 05        L5953               ldy   $05
++002b56 5953: a4 05        L5953               ldy   _ix
 +002b58 5955: 88                               dey
 +002b59 5956: 4c 6e 4c                         jmp   doSpeaker                               ;speaker tail call
 
@@ -3797,7 +3915,7 @@
 +002ba3 59a0: 85 1c                            sta   $1c
 +002ba5 59a2: a5 fc                            lda   PixelLineBaseL
 +002ba7 59a4: 18                               clc
-+002ba8 59a5: 65 05                            adc   $05
++002ba8 59a5: 65 05                            adc   _ix
 +002baa 59a7: 85 1d                            sta   $1d
 +002bac 59a9: 60                               rts
 
@@ -3895,14 +4013,14 @@
 +002c62 5a5f: 99 70 15                         sta   $1570,y
 +002c65 5a62: a9 22                            lda   #$22
 +002c67 5a64: 20 4b 4c                         jsr   multiplyRndX
-+002c6a 5a67: 85 00                            sta   $00
++002c6a 5a67: 85 00                            sta   _spriteEntryPtr
 +002c6c 5a69: a2 00                            ldx   #$00
 +002c6e 5a6b: 20 36 4c                         jsr   randomA
 +002c71 5a6e: 10 02                            bpl   L5A72
 +002c73 5a70: a2 90                            ldx   #$90
 +002c75 5a72: 8a           L5A72               txa
 +002c76 5a73: 18                               clc
-+002c77 5a74: 65 00                            adc   $00
++002c77 5a74: 65 00                            adc   _spriteEntryPtr
 +002c79 5a76: 99 f0 15                         sta   $15f0,y
 +002c7c 5a79: 38                               sec
 +002c7d 5a7a: b0 21                            bcs   L5A9D
@@ -3912,14 +4030,14 @@
 +002c84 5a81: 99 f0 15                         sta   $15f0,y
 +002c87 5a84: a9 45                            lda   #$45
 +002c89 5a86: 20 4b 4c                         jsr   multiplyRndX
-+002c8c 5a89: 85 00                            sta   $00
++002c8c 5a89: 85 00                            sta   _spriteEntryPtr
 +002c8e 5a8b: a2 00                            ldx   #$00
 +002c90 5a8d: 20 36 4c                         jsr   randomA
 +002c93 5a90: 10 02                            bpl   L5A94
 +002c95 5a92: a2 b0                            ldx   #$b0
 +002c97 5a94: 8a           L5A94               txa
 +002c98 5a95: 18                               clc
-+002c99 5a96: 65 00                            adc   $00
++002c99 5a96: 65 00                            adc   _spriteEntryPtr
 +002c9b 5a98: 29 fe                            and   #$fe
 +002c9d 5a9a: 99 70 15                         sta   $1570,y
 +002ca0 5a9d: 20 36 4c     L5A9D               jsr   randomA
@@ -3950,11 +4068,11 @@
 +002cd1 5ace: 20 36 4c                         jsr   randomA
 +002cd4 5ad1: 10 02                            bpl   L5AD5
 +002cd6 5ad3: a2 90                            ldx   #$90
-+002cd8 5ad5: 86 00        L5AD5               stx   $00
++002cd8 5ad5: 86 00        L5AD5               stx   _spriteEntryPtr
 +002cda 5ad7: a9 1c                            lda   #$1c
 +002cdc 5ad9: 20 4b 4c                         jsr   multiplyRndX
 +002cdf 5adc: 18                               clc
-+002ce0 5add: 65 00                            adc   $00
++002ce0 5add: 65 00                            adc   _spriteEntryPtr
 +002ce2 5adf: 99 10 19                         sta   $1910,y
 +002ce5 5ae2: d0 23                            bne   L5B07
 +002ce7 5ae4: a9 a6        L5AE4               lda   #$a6
@@ -3966,11 +4084,11 @@
 +002cf4 5af1: 20 36 4c                         jsr   randomA
 +002cf7 5af4: 10 02                            bpl   L5AF8
 +002cf9 5af6: a2 c0                            ldx   #$c0
-+002cfb 5af8: 86 00        L5AF8               stx   $00
++002cfb 5af8: 86 00        L5AF8               stx   _spriteEntryPtr
 +002cfd 5afa: a9 2c                            lda   #$2c
 +002cff 5afc: 20 4b 4c                         jsr   multiplyRndX
 +002d02 5aff: 18                               clc
-+002d03 5b00: 65 00                            adc   $00
++002d03 5b00: 65 00                            adc   _spriteEntryPtr
 +002d05 5b02: 09 01                            ora   #$01
 +002d07 5b04: 99 00 19                         sta   $1900,y
 +002d0a 5b07: 20 36 4c     L5B07               jsr   randomA
@@ -4033,25 +4151,25 @@
 
 +002d8a 5b87: de f0 16     L5B87               dec   $16f0,x
 +002d8d 5b8a: 10 f5                            bpl   L5B81
-+002d8f 5b8c: 86 00                            stx   $00
++002d8f 5b8c: 86 00                            stx   _spriteEntryPtr
 +002d91 5b8e: bc 70 16                         ldy   $1670,x
 +002d94 5b91: b9 88 08                         lda   L0888,y
-+002d97 5b94: 85 06                            sta   PixelLine
++002d97 5b94: 85 06                            sta   _strobePtr
 +002d99 5b96: b9 8c 08                         lda   L088C,y
-+002d9c 5b99: 85 07                            sta   PixelLine+1
++002d9c 5b99: 85 07                            sta   _strobePtr+1
 +002d9e 5b9b: bc f0 15                         ldy   $15f0,x
 +002da1 5b9e: bd 70 15                         lda   $1570,x
 +002da4 5ba1: aa                               tax
 +002da5 5ba2: 20 cd 4f                         jsr   eraseGrunt
-+002da8 5ba5: a6 00                            ldx   $00
++002da8 5ba5: a6 00                            ldx   _spriteEntryPtr
 +002daa 5ba7: bd 70 16                         lda   $1670,x
 +002dad 5baa: 49 01                            eor   #$01
 +002daf 5bac: 9d 70 16                         sta   $1670,x
 +002db2 5baf: a8                               tay
 +002db3 5bb0: b9 80 08                         lda   L0880,y
-+002db6 5bb3: 85 06                            sta   PixelLine
++002db6 5bb3: 85 06                            sta   _strobePtr
 +002db8 5bb5: b9 84 08                         lda   L0884,y
-+002dbb 5bb8: 85 07                            sta   PixelLine+1
++002dbb 5bb8: 85 07                            sta   _strobePtr+1
 +002dbd 5bba: bd f0 15                         lda   $15f0,x
 +002dc0 5bbd: cd 01 15                         cmp   $1501
 +002dc3 5bc0: b0 05                            bcs   L5BC7
@@ -4071,7 +4189,7 @@
 +002de5 5be2: 20 fe 4f                         jsr   drawGrunt
 +002de8 5be5: ad 03 14                         lda   $1403
 +002deb 5be8: 20 4b 4c                         jsr   multiplyRndX
-+002dee 5beb: a6 00                            ldx   $00
++002dee 5beb: a6 00                            ldx   _spriteEntryPtr
 +002df0 5bed: 9d f0 16                         sta   $16f0,x
 +002df3 5bf0: 10 8f                            bpl   L5B81
 +002df5 5bf2: ae 02 14     L5BF2               ldx   $1402
@@ -4120,9 +4238,9 @@
 +002e44 5c41: aa                               tax
 +002e45 5c42: bc 70 16                         ldy   $1670,x
 +002e48 5c45: b9 88 08                         lda   L0888,y
-+002e4b 5c48: 85 06                            sta   PixelLine
++002e4b 5c48: 85 06                            sta   _strobePtr
 +002e4d 5c4a: b9 8c 08                         lda   L088C,y
-+002e50 5c4d: 85 07                            sta   PixelLine+1
++002e50 5c4d: 85 07                            sta   _strobePtr+1
 +002e52 5c4f: bc f0 15                         ldy   $15f0,x
 +002e55 5c52: bd 70 15                         lda   $1570,x
 +002e58 5c55: aa                               tax
@@ -4169,7 +4287,7 @@
 
 +002ea9 5ca6: de 30 19     L5CA6               dec   $1930,x
 +002eac 5ca9: 10 f7                            bpl   L5CA2
-+002eae 5cab: 86 00                            stx   $00
++002eae 5cab: 86 00                            stx   _spriteEntryPtr
 +002eb0 5cad: a9 03                            lda   #$03
 +002eb2 5caf: 9d 30 19                         sta   $1930,x
 +002eb5 5cb2: de 40 19                         dec   $1940,x
@@ -4179,24 +4297,24 @@
 +002ebf 5cbc: bd 20 19                         lda   $1920,x
 +002ec2 5cbf: 29 02                            and   #$02
 +002ec4 5cc1: 49 02                            eor   #$02
-+002ec6 5cc3: 85 06                            sta   PixelLine
++002ec6 5cc3: 85 06                            sta   _strobePtr
 +002ec8 5cc5: 20 36 4c                         jsr   randomA
 +002ecb 5cc8: 29 01                            and   #$01
-+002ecd 5cca: 05 06                            ora   PixelLine
++002ecd 5cca: 05 06                            ora   _strobePtr
 +002ecf 5ccc: 9d 20 19                         sta   $1920,x
 +002ed2 5ccf: ad 0e 0c     L5CCF               lda   L0C0E
 +002ed5 5cd2: 20 4b 4c                         jsr   multiplyRndX
 +002ed8 5cd5: 18                               clc
 +002ed9 5cd6: 69 03                            adc   #$03
 +002edb 5cd8: 09 01                            ora   #$01
-+002edd 5cda: a4 00                            ldy   $00
++002edd 5cda: a4 00                            ldy   _spriteEntryPtr
 +002edf 5cdc: 99 40 19                         sta   $1940,y
-+002ee2 5cdf: a4 00        L5CDF               ldy   $00
++002ee2 5cdf: a4 00        L5CDF               ldy   _spriteEntryPtr
 +002ee4 5ce1: b9 00 19                         lda   $1900,y
 +002ee7 5ce4: be 10 19                         ldx   $1910,y
 +002eea 5ce7: a0 0e                            ldy   #$0e
 +002eec 5ce9: 20 21 4d                         jsr   eraseHulk
-+002eef 5cec: a4 00                            ldy   $00
++002eef 5cec: a4 00                            ldy   _spriteEntryPtr
 +002ef1 5cee: ad 21 14                         lda   $1421
 +002ef4 5cf1: f0 07                            beq   L5CFA
 +002ef6 5cf3: b9 20 19                         lda   $1920,y
@@ -4252,9 +4370,9 @@
 +002f5e 5d5b: 2a                               rol   A
 +002f5f 5d5c: aa                               tax
 +002f60 5d5d: bd 90 08     L5D5D               lda   L0890,x
-+002f63 5d60: 85 06                            sta   PixelLine
++002f63 5d60: 85 06                            sta   _strobePtr
 +002f65 5d62: bd 98 08                         lda   L0898,x
-+002f68 5d65: 85 07                            sta   PixelLine+1
++002f68 5d65: 85 07                            sta   _strobePtr+1
 +002f6a 5d67: be 00 19                         ldx   $1900,y
 +002f6d 5d6a: b9 10 19                         lda   $1910,y
 +002f70 5d6d: a8                               tay
@@ -4294,7 +4412,7 @@
 +002fb7 5db4: 68                               pla
 +002fb8 5db5: aa                               tax
 +002fb9 5db6: 20 52 5f                         jsr   L5F52
-+002fbc 5db9: a6 00        L5DB9               ldx   $00
++002fbc 5db9: a6 00        L5DB9               ldx   _spriteEntryPtr
 +002fbe 5dbb: 4c a2 5c                         jmp   L5CA2
 
 +002fc1 5dbe: ae 09 14     L5DBE               ldx   $1409
@@ -4344,9 +4462,9 @@
 +003011 5e0e: 2a                               rol   A
 +003012 5e0f: a8                               tay
 +003013 5e10: b9 90 08                         lda   L0890,y
-+003016 5e13: 85 06                            sta   PixelLine
++003016 5e13: 85 06                            sta   _strobePtr
 +003018 5e15: b9 98 08                         lda   L0898,y
-+00301b 5e18: 85 07                            sta   PixelLine+1
++00301b 5e18: 85 07                            sta   _strobePtr+1
 +00301d 5e1a: bc 10 19                         ldy   $1910,x
 +003020 5e1d: bd 00 19                         lda   $1900,x
 +003023 5e20: aa                               tax
@@ -4392,7 +4510,7 @@
 
 +00306c 5e69: de a0 19     L5E69               dec   $19a0,x
 +00306f 5e6c: 10 f5                            bpl   L5E63
-+003071 5e6e: 86 00                            stx   $00
++003071 5e6e: 86 00                            stx   _spriteEntryPtr
 +003073 5e70: ad 08 0c                         lda   L0C08
 +003076 5e73: 9d a0 19                         sta   $19a0,x
 +003079 5e76: de b0 19                         dec   $19b0,x
@@ -4404,17 +4522,17 @@
 +003088 5e85: 20 4b 4c                         jsr   multiplyRndX
 +00308b 5e88: 38                               sec
 +00308c 5e89: e9 02                            sbc   #$02
-+00308e 5e8b: a4 00                            ldy   $00
++00308e 5e8b: a4 00                            ldy   _spriteEntryPtr
 +003090 5e8d: 99 80 19                         sta   $1980,y
 +003093 5e90: ad 0a 0c                         lda   L0C0A
 +003096 5e93: 20 4b 4c                         jsr   multiplyRndX
 +003099 5e96: 99 b0 19                         sta   $19b0,y
-+00309c 5e99: a4 00        L5E99               ldy   $00
++00309c 5e99: a4 00        L5E99               ldy   _spriteEntryPtr
 +00309e 5e9b: be 60 19                         ldx   $1960,y
 +0030a1 5e9e: b9 50 19                         lda   $1950,y
 +0030a4 5ea1: a0 0a                            ldy   #$0a
 +0030a6 5ea3: 20 d0 4c                         jsr   eraseFamily
-+0030a9 5ea6: a4 00                            ldy   $00
++0030a9 5ea6: a4 00                            ldy   _spriteEntryPtr
 +0030ab 5ea8: b9 50 19     L5EA8               lda   $1950,y
 +0030ae 5eab: be 70 19                         ldx   $1970,y
 +0030b1 5eae: 18                               clc
@@ -4443,20 +4561,20 @@
 +0030e5 5ee2: 0a                               asl   A
 +0030e6 5ee3: 19 70 19                         ora   $1970,y
 +0030e9 5ee6: 0a                               asl   A
-+0030ea 5ee7: 85 06                            sta   PixelLine
++0030ea 5ee7: 85 06                            sta   _strobePtr
 +0030ec 5ee9: b9 b0 19                         lda   $19b0,y
 +0030ef 5eec: 29 01                            and   #$01
-+0030f1 5eee: 05 06                            ora   PixelLine
++0030f1 5eee: 05 06                            ora   _strobePtr
 +0030f3 5ef0: aa                               tax
 +0030f4 5ef1: bd a0 08                         lda   L08A0,x
-+0030f7 5ef4: 85 06                            sta   PixelLine
++0030f7 5ef4: 85 06                            sta   _strobePtr
 +0030f9 5ef6: bd b0 08                         lda   L08B0,x
-+0030fc 5ef9: 85 07                            sta   PixelLine+1
++0030fc 5ef9: 85 07                            sta   _strobePtr+1
 +0030fe 5efb: be 50 19                         ldx   $1950,y
 +003101 5efe: b9 60 19                         lda   $1960,y
 +003104 5f01: a8                               tay
 +003105 5f02: 20 ac 4c                         jsr   drawFamily
-+003108 5f05: a6 00                            ldx   $00
++003108 5f05: a6 00                            ldx   _spriteEntryPtr
 +00310a 5f07: 4c 63 5e                         jmp   L5E63
 
 +00310d 5f0a: bd 60 19     L5F0A               lda   $1960,x
@@ -4473,12 +4591,12 @@
 +003123 5f20: 20 00 4c                         jsr   L4C00
 +003126 5f23: 38                               sec
 +003127 5f24: e9 01                            sbc   #$01
-+003129 5f26: 85 06                            sta   PixelLine
++003129 5f26: 85 06                            sta   _strobePtr
 +00312b 5f28: 68                               pla
 +00312c 5f29: aa                               tax
 +00312d 5f2a: 68                               pla
 +00312e 5f2b: a8                               tay
-+00312f 5f2c: a5 06                            lda   PixelLine
++00312f 5f2c: a5 06                            lda   _strobePtr
 +003131 5f2e: 20 b9 61                         jsr   L61B9
 +003134 5f31: ad 0d 14                         lda   $140d
 +003137 5f34: a2 64                            ldx   #$64
@@ -4528,12 +4646,12 @@
 
 +00319a 5f97: bc 70 17     L5F97               ldy   $1770,x
 +00319d 5f9a: b1 fc                            lda   (PixelLineBaseL),y
-+00319f 5f9c: 85 06                            sta   PixelLine
++00319f 5f9c: 85 06                            sta   _strobePtr
 +0031a1 5f9e: b1 fe                            lda   (PixelLineBaseH),y
-+0031a3 5fa0: 85 07                            sta   PixelLine+1
++0031a3 5fa0: 85 07                            sta   _strobePtr+1
 +0031a5 5fa2: bc c0 17                         ldy   $17c0,x
 +0031a8 5fa5: a9 00                            lda   #$00
-+0031aa 5fa7: 91 06                            sta   (PixelLine),y
++0031aa 5fa7: 91 06                            sta   (_strobePtr),y
 +0031ac 5fa9: bd 70 17                         lda   $1770,x
 +0031af 5fac: 18                               clc
 +0031b0 5fad: 7d 60 18                         adc   $1860,x
@@ -4568,12 +4686,12 @@
 
 +0031f3 5ff0: bc 70 17     L5FF0               ldy   $1770,x
 +0031f6 5ff3: b1 fc                            lda   (PixelLineBaseL),y
-+0031f8 5ff5: 85 06                            sta   PixelLine
++0031f8 5ff5: 85 06                            sta   _strobePtr
 +0031fa 5ff7: b1 fe                            lda   (PixelLineBaseH),y
-+0031fc 5ff9: 85 07                            sta   PixelLine+1
++0031fc 5ff9: 85 07                            sta   _strobePtr+1
 +0031fe 5ffb: bc c0 17                         ldy   $17c0,x
 +003201 5ffe: bd 10 18                         lda   $1810,x
-+003204 6001: 91 06                            sta   (PixelLine),y
++003204 6001: 91 06                            sta   (_strobePtr),y
 +003206 6003: d0 e7                            bne   L5FEC
 +003208 6005: 4c ec 5f                         jmp   L5FEC
 
@@ -4589,12 +4707,12 @@
 +00321b 6018: b9 f0 15                         lda   $15f0,y
 +00321e 601b: 18                               clc
 +00321f 601c: 69 07                            adc   #$07
-+003221 601e: 85 05                            sta   $05
++003221 601e: 85 05                            sta   _ix
 +003223 6020: b9 70 15                         lda   $1570,y
 +003226 6023: 18                               clc
 +003227 6024: 69 03                            adc   #$03
 +003229 6026: 20 1c 4c                         jsr   L4C1C
-+00322c 6029: 85 04                            sta   $04
++00322c 6029: 85 04                            sta   _length
 +00322e 602b: ac 0b 0c                         ldy   L0C0B
 +003231 602e: 88                               dey
 +003232 602f: ad 05 14                         lda   $1405
@@ -4604,7 +4722,7 @@
 +00323a 6037: 8d 05 14                         sta   $1405
 +00323d 603a: ad 07 0c     L603A               lda   L0C07
 +003240 603d: 9d b0 18                         sta   $18b0,x
-+003243 6040: a5 04                            lda   $04
++003243 6040: a5 04                            lda   _length
 +003245 6042: 9d c0 17                         sta   $17c0,x
 +003248 6045: 4a                               lsr   A
 +003249 6046: a9 aa                            lda   #$aa
@@ -4614,14 +4732,14 @@
 +003252 604f: 9d 10 18                         sta   $1810,x
 +003255 6052: b9 04 0d                         lda   L0D04,y
 +003258 6055: 9d 60 18                         sta   $1860,x
-+00325b 6058: 86 00                            stx   $00
++00325b 6058: 86 00                            stx   _spriteEntryPtr
 +00325d 605a: ae 07 0c                         ldx   L0C07
 +003260 605d: 20 4f 4c                         jsr   multiplyAX
-+003263 6060: 86 02                            stx   $02
-+003265 6062: a5 05                            lda   $05
++003263 6060: 86 02                            stx   _strobePtrOffs
++003265 6062: a5 05                            lda   _ix
 +003267 6064: 38                               sec
-+003268 6065: e5 02                            sbc   $02
-+00326a 6067: a6 00                            ldx   $00
++003268 6065: e5 02                            sbc   _strobePtrOffs
++00326a 6067: a6 00                            ldx   _spriteEntryPtr
 +00326c 6069: 9d 70 17                         sta   $1770,x
 +00326f 606c: e8                               inx
 +003270 606d: 88                               dey
@@ -4670,20 +4788,20 @@
 +0032bf 60bc: 10 f5                            bpl   L60B3
 +0032c1 60be: ad 5e 0c                         lda   L0C5E
 +0032c4 60c1: 9d d0 1e                         sta   $1ed0,x
-+0032c7 60c4: 86 00                            stx   $00
++0032c7 60c4: 86 00                            stx   _spriteEntryPtr
 +0032c9 60c6: bc f0 1e                         ldy   $1ef0,x
 +0032cc 60c9: b9 40 09                         lda   L0940,y
-+0032cf 60cc: 85 06                            sta   PixelLine
++0032cf 60cc: 85 06                            sta   _strobePtr
 +0032d1 60ce: b9 48 09                         lda   L0948,y
-+0032d4 60d1: 85 07                            sta   PixelLine+1
++0032d4 60d1: 85 07                            sta   _strobePtr+1
 +0032d6 60d3: bc c0 1e                         ldy   $1ec0,x
 +0032d9 60d6: bd b0 1e                         lda   $1eb0,x
 +0032dc 60d9: aa                               tax
 +0032dd 60da: 20 f6 4c                         jsr   drawHulk
-+0032e0 60dd: a6 00                            ldx   $00
++0032e0 60dd: a6 00                            ldx   _spriteEntryPtr
 +0032e2 60df: de e0 1e                         dec   $1ee0,x
 +0032e5 60e2: 10 cf                            bpl   L60B3
-+0032e7 60e4: a4 00                            ldy   $00
++0032e7 60e4: a4 00                            ldy   _spriteEntryPtr
 +0032e9 60e6: be c0 1e                         ldx   $1ec0,y
 +0032ec 60e9: b9 f0 1e                         lda   $1ef0,y
 +0032ef 60ec: c9 05                            cmp   #$05
@@ -4692,7 +4810,7 @@
 +0032f6 60f3: 90 02                            bcc   L60F7
 +0032f8 60f5: a0 0d                            ldy   #$0d
 +0032fa 60f7: 20 21 4d     L60F7               jsr   eraseHulk
-+0032fd 60fa: a6 00                            ldx   $00
++0032fd 60fa: a6 00                            ldx   _spriteEntryPtr
 +0032ff 60fc: ce 2c 14                         dec   $142c
 +003302 60ff: bd b1 1e     L60FF               lda   $1eb1,x
 +003305 6102: 9d b0 1e                         sta   $1eb0,x
@@ -4707,7 +4825,7 @@
 +003320 611d: e8                               inx
 +003321 611e: ec 2c 14                         cpx   $142c
 +003324 6121: 90 dc                            bcc   L60FF
-+003326 6123: a6 00                            ldx   $00
++003326 6123: a6 00                            ldx   _spriteEntryPtr
 +003328 6125: 10 8c                            bpl   L60B3
 +00332a 6127: 88           L6127               dey
 +00332b 6128: 98                               tya
@@ -4735,29 +4853,29 @@
 
 +00335a 6157: de 20 1f     L6157               dec   $1f20,x
 +00335d 615a: 10 f7                            bpl   L6153
-+00335f 615c: 86 00                            stx   $00
++00335f 615c: 86 00                            stx   _spriteEntryPtr
 +003361 615e: ad 60 0c                         lda   L0C60
 +003364 6161: 9d 20 1f                         sta   $1f20,x
 +003367 6164: bd 30 1f                         lda   $1f30,x
 +00336a 6167: 29 03                            and   #$03
 +00336c 6169: a8                               tay
 +00336d 616a: b9 50 09                         lda   L0950,y
-+003370 616d: 85 06                            sta   PixelLine
++003370 616d: 85 06                            sta   _strobePtr
 +003372 616f: b9 58 09                         lda   L0958,y
-+003375 6172: 85 07                            sta   PixelLine+1
++003375 6172: 85 07                            sta   _strobePtr+1
 +003377 6174: bc 10 1f                         ldy   $1f10,x
 +00337a 6177: bd 00 1f                         lda   $1f00,x
 +00337d 617a: aa                               tax
 +00337e 617b: 20 ac 4c                         jsr   drawFamily
-+003381 617e: a6 00                            ldx   $00
++003381 617e: a6 00                            ldx   _spriteEntryPtr
 +003383 6180: de 30 1f                         dec   $1f30,x
 +003386 6183: 10 ce                            bpl   L6153
-+003388 6185: a4 00                            ldy   $00
++003388 6185: a4 00                            ldy   _spriteEntryPtr
 +00338a 6187: be 10 1f                         ldx   $1f10,y
 +00338d 618a: b9 00 1f                         lda   $1f00,y
 +003390 618d: a0 0c                            ldy   #$0c
 +003392 618f: 20 d0 4c                         jsr   eraseFamily
-+003395 6192: a6 00                            ldx   $00
++003395 6192: a6 00                            ldx   _spriteEntryPtr
 +003397 6194: ce 2d 14                         dec   $142d
 +00339a 6197: bd 01 1f     L6197               lda   $1f01,x
 +00339d 619a: 9d 00 1f                         sta   $1f00,x
@@ -4770,7 +4888,7 @@
 +0033b2 61af: e8                               inx
 +0033b3 61b0: ec 2d 14                         cpx   $142d
 +0033b6 61b3: 90 e2                            bcc   L6197
-+0033b8 61b5: a6 00                            ldx   $00
++0033b8 61b5: a6 00                            ldx   _spriteEntryPtr
 +0033ba 61b7: 10 9a                            bpl   L6153
 +0033bc 61b9: 48           L61B9               pha
 +0033bd 61ba: 8a                               txa
@@ -4822,17 +4940,17 @@
 +003427 6224: 7d 30 1a                         adc   $1a30,x
 +00342a 6227: 90 f8                            bcc   L6221
 +00342c 6229: 6d 0f 14     L6229               adc   $140f
-+00342f 622c: 85 00                            sta   $00
++00342f 622c: 85 00                            sta   _spriteEntryPtr
 +003431 622e: a2 00                            ldx   #$00
 +003433 6230: a0 05        L6230               ldy   #$05
-+003435 6232: a5 00                            lda   $00
++003435 6232: a5 00                            lda   _spriteEntryPtr
 +003437 6234: f0 12                            beq   L6248
 +003439 6236: 38                               sec
 +00343a 6237: e9 05                            sbc   #$05
 +00343c 6239: b0 04                            bcs   L623F
-+00343e 623b: a4 00                            ldy   $00
++00343e 623b: a4 00                            ldy   _spriteEntryPtr
 +003440 623d: a9 00                            lda   #$00
-+003442 623f: 85 00        L623F               sta   $00
++003442 623f: 85 00        L623F               sta   _spriteEntryPtr
 +003444 6241: 98                               tya
 +003445 6242: 9d 30 1a                         sta   $1a30,x
 +003448 6245: e8                               inx
@@ -4899,18 +5017,18 @@
 +0034cb 62c8: 10 f7                            bpl   L62C1
 +0034cd 62ca: ad 18 0c                         lda   L0C18
 +0034d0 62cd: 9d 00 1a                         sta   $1a00,x
-+0034d3 62d0: 86 00                            stx   $00
-+0034d5 62d2: a4 00                            ldy   $00
++0034d3 62d0: 86 00                            stx   _spriteEntryPtr
++0034d5 62d2: a4 00                            ldy   _spriteEntryPtr
 +0034d7 62d4: be d0 19                         ldx   $19d0,y
 +0034da 62d7: b9 c0 19                         lda   $19c0,y
 +0034dd 62da: a0 0d                            ldy   #$0d
 +0034df 62dc: 20 21 4d                         jsr   eraseHulk
-+0034e2 62df: a6 00                            ldx   $00
++0034e2 62df: a6 00                            ldx   _spriteEntryPtr
 +0034e4 62e1: de 10 1a                         dec   $1a10,x
 +0034e7 62e4: 10 3c                            bpl   L6322
 +0034e9 62e6: ad 1b 0c                         lda   L0C1B
 +0034ec 62e9: 20 4b 4c                         jsr   multiplyRndX
-+0034ef 62ec: a4 00                            ldy   $00
++0034ef 62ec: a4 00                            ldy   _spriteEntryPtr
 +0034f1 62ee: 99 10 1a                         sta   $1a10,y
 +0034f4 62f1: ad 17 0c                         lda   L0C17
 +0034f7 62f4: 0a                               asl   A
@@ -4925,13 +5043,13 @@
 +003509 6306: 38                               sec
 +00350a 6307: ed 17 0c                         sbc   L0C17
 +00350d 630a: 99 f0 19                         sta   $19f0,y
-+003510 630d: a6 00                            ldx   $00
++003510 630d: a6 00                            ldx   _spriteEntryPtr
 +003512 630f: de 20 1a                         dec   $1a20,x
 +003515 6312: 10 0e                            bpl   L6322
 +003517 6314: ad 13 0c                         lda   L0C13
 +00351a 6317: 20 4b 4c                         jsr   multiplyRndX
 +00351d 631a: 99 20 1a                         sta   $1a20,y
-+003520 631d: a6 00                            ldx   $00
++003520 631d: a6 00                            ldx   _spriteEntryPtr
 +003522 631f: 20 b3 63                         jsr   L63B3
 +003525 6322: bd 20 1a     L6322               lda   $1a20,x
 +003528 6325: d0 2c                            bne   L6353
@@ -4962,9 +5080,9 @@
 +00355d 635a: 9d 40 1a                         sta   $1a40,x
 +003560 635d: bc 40 1a     L635D               ldy   $1a40,x
 +003563 6360: b9 c0 08                         lda   L08C0,y
-+003566 6363: 85 06                            sta   PixelLine
++003566 6363: 85 06                            sta   _strobePtr
 +003568 6365: b9 c8 08                         lda   L08C8,y
-+00356b 6368: 85 07                            sta   PixelLine+1
++00356b 6368: 85 07                            sta   _strobePtr+1
 +00356d 636a: bd c0 19                         lda   $19c0,x
 +003570 636d: 18                               clc
 +003571 636e: 7d e0 19                         adc   $19e0,x
@@ -4997,7 +5115,7 @@
 +0035aa 63a7: bd c0 19                         lda   $19c0,x
 +0035ad 63aa: aa                               tax
 +0035ae 63ab: 20 f6 4c                         jsr   drawHulk
-+0035b1 63ae: a6 00                            ldx   $00
++0035b1 63ae: a6 00                            ldx   _spriteEntryPtr
 +0035b3 63b0: 4c c1 62                         jmp   L62C1
 
 +0035b6 63b3: ac 0f 14     L63B3               ldy   $140f
@@ -5011,11 +5129,11 @@
 +0035c7 63c4: 99 60 1a                         sta   $1a60,y
 +0035ca 63c7: a9 01                            lda   #$01
 +0035cc 63c9: 99 70 1a                         sta   $1a70,y
-+0035cf 63cc: 86 00                            stx   $00
++0035cf 63cc: 86 00                            stx   _spriteEntryPtr
 +0035d1 63ce: 98                               tya
 +0035d2 63cf: aa                               tax
 +0035d3 63d0: 20 b8 67                         jsr   L67B8
-+0035d6 63d3: a6 00                            ldx   $00
++0035d6 63d3: a6 00                            ldx   _spriteEntryPtr
 +0035d8 63d5: ad 1e 0c                         lda   L0C1E
 +0035db 63d8: 8d 12 14                         sta   $1412
 +0035de 63db: ad 1d 0c                         lda   L0C1D
@@ -5070,13 +5188,13 @@
 +003648 6445: 10 f5                            bpl   L643C
 +00364a 6447: ad 19 0c                         lda   L0C19
 +00364d 644a: 9d 70 1a                         sta   $1a70,x
-+003650 644d: 86 00                            stx   $00
-+003652 644f: a4 00                            ldy   $00
++003650 644d: 86 00                            stx   _spriteEntryPtr
++003652 644f: a4 00                            ldy   _spriteEntryPtr
 +003654 6451: be 60 1a                         ldx   $1a60,y
 +003657 6454: b9 50 1a                         lda   $1a50,y
 +00365a 6457: a0 0d                            ldy   #$0d
 +00365c 6459: 20 21 4d                         jsr   eraseHulk
-+00365f 645c: a6 00                            ldx   $00
++00365f 645c: a6 00                            ldx   _spriteEntryPtr
 +003661 645e: bd 50 1a                         lda   $1a50,x
 +003664 6461: 18                               clc
 +003665 6462: 7d 80 1a                         adc   $1a80,x
@@ -5105,11 +5223,11 @@
 +003696 6493: bd 50 1a                         lda   $1a50,x
 +003699 6496: aa                               tax
 +00369a 6497: ad d0 08                         lda   L08D0
-+00369d 649a: 85 06                            sta   PixelLine
++00369d 649a: 85 06                            sta   _strobePtr
 +00369f 649c: ad d4 08                         lda   L08D4
-+0036a2 649f: 85 07                            sta   PixelLine+1
++0036a2 649f: 85 07                            sta   _strobePtr+1
 +0036a4 64a1: 20 f6 4c                         jsr   drawHulk
-+0036a7 64a4: a6 00                            ldx   $00
++0036a7 64a4: a6 00                            ldx   _spriteEntryPtr
 +0036a9 64a6: 10 94                            bpl   L643C
 +0036ab 64a8: ac 10 14     L64A8               ldy   $1410
 +0036ae 64ab: c0 10                            cpy   #$10
@@ -5152,7 +5270,7 @@
 +003705 6502: 4a                               lsr   A
 +003706 6503: 4a                               lsr   A
 +003707 6504: 4a                               lsr   A
-+003708 6505: 85 06                            sta   PixelLine
++003708 6505: 85 06                            sta   _strobePtr
 +00370a 6507: 8a                               txa
 +00370b 6508: 4a                               lsr   A
 +00370c 6509: 4a                               lsr   A
@@ -5160,14 +5278,14 @@
 +00370e 650b: 4a                               lsr   A
 +00370f 650c: 4a                               lsr   A
 +003710 650d: 38                               sec
-+003711 650e: e5 06                            sbc   PixelLine
-+003713 6510: 85 06                            sta   PixelLine
++003711 650e: e5 06                            sbc   _strobePtr
++003713 6510: 85 06                            sta   _strobePtr
 +003715 6512: a9 05                            lda   #$05
 +003717 6514: 20 4b 4c                         jsr   multiplyRndX
 +00371a 6517: 38                               sec
 +00371b 6518: e9 02                            sbc   #$02
 +00371d 651a: 18                               clc
-+00371e 651b: 65 06                            adc   PixelLine
++00371e 651b: 65 06                            adc   _strobePtr
 +003720 651d: d0 03                            bne   L6522
 +003722 651f: 18                               clc
 +003723 6520: 69 01                            adc   #$01
@@ -5182,13 +5300,13 @@
 +003730 652d: 10 f7                            bpl   L6526
 +003732 652f: ad 1a 0c                         lda   L0C1A
 +003735 6532: 9d e0 1a                         sta   $1ae0,x
-+003738 6535: 86 00                            stx   $00
-+00373a 6537: a4 00                            ldy   $00
++003738 6535: 86 00                            stx   _spriteEntryPtr
++00373a 6537: a4 00                            ldy   _spriteEntryPtr
 +00373c 6539: be b0 1a                         ldx   $1ab0,y
 +00373f 653c: b9 a0 1a                         lda   $1aa0,y
 +003742 653f: a0 07                            ldy   #$07
 +003744 6541: 20 d0 4c                         jsr   eraseFamily
-+003747 6544: a6 00                            ldx   $00
++003747 6544: a6 00                            ldx   _spriteEntryPtr
 +003749 6546: de f0 1a                         dec   $1af0,x
 +00374c 6549: d0 06                            bne   L6551
 +00374e 654b: 20 d9 65                         jsr   L65D9
@@ -5196,12 +5314,12 @@
 
 +003754 6551: bd f0 1a     L6551               lda   $1af0,x
 +003757 6554: 29 01                            and   #$01
-+003759 6556: 85 08                            sta   AsciiLineByteAddr
++003759 6556: 85 08                            sta   _destPtr
 +00375b 6558: a8                               tay
 +00375c 6559: b9 d8 08                         lda   L08D8,y
-+00375f 655c: 85 06                            sta   PixelLine
++00375f 655c: 85 06                            sta   _strobePtr
 +003761 655e: b9 dc 08                         lda   L08DC,y
-+003764 6561: 85 07                            sta   PixelLine+1
++003764 6561: 85 07                            sta   _strobePtr+1
 +003766 6563: bd b0 1a                         lda   $1ab0,x
 +003769 6566: 18                               clc
 +00376a 6567: 7d d0 1a                         adc   $1ad0,x
@@ -5217,7 +5335,7 @@
 
 +003780 657d: 9d b0 1a     L657D               sta   $1ab0,x
 +003783 6580: 48                               pha
-+003784 6581: a5 08                            lda   AsciiLineByteAddr
++003784 6581: a5 08                            lda   _destPtr
 +003786 6583: f0 11                            beq   L6596
 +003788 6585: bd d0 1a                         lda   $1ad0,x
 +00378b 6588: 7d 10 1b                         adc   $1b10,x
@@ -5244,7 +5362,7 @@
 
 +0037b6 65b3: 9d a0 1a     L65B3               sta   $1aa0,x
 +0037b9 65b6: 48                               pha
-+0037ba 65b7: a5 08                            lda   AsciiLineByteAddr
++0037ba 65b7: a5 08                            lda   _destPtr
 +0037bc 65b9: f0 12                            beq   L65CD
 +0037be 65bb: bd c0 1a                         lda   $1ac0,x
 +0037c1 65be: 18                               clc
@@ -5259,7 +5377,7 @@
 +0037d2 65cf: 68                               pla
 +0037d3 65d0: a8                               tay
 +0037d4 65d1: 20 ac 4c                         jsr   drawFamily
-+0037d7 65d4: a6 00                            ldx   $00
++0037d7 65d4: a6 00                            ldx   _spriteEntryPtr
 +0037d9 65d6: 4c 26 65                         jmp   L6526
 
 +0037dc 65d9: 8a           L65D9               txa
@@ -5533,33 +5651,33 @@
 +0039f0 67ed: 60                               rts
 
 +0039f1 67ee: bd 50 1a     L67EE               lda   $1a50,x
-+0039f4 67f1: 85 02                            sta   $02
++0039f4 67f1: 85 02                            sta   _strobePtrOffs
 +0039f6 67f3: ad 60 1a                         lda   $1a60
 +0039f9 67f6: 85 03                            sta   $03
 +0039fb 67f8: ad 00 15                         lda   $1500
-+0039fe 67fb: 85 04                            sta   $04
++0039fe 67fb: 85 04                            sta   _length
 +003a00 67fd: ad 01 15                         lda   $1501
-+003a03 6800: 85 05                            sta   $05
-+003a05 6802: 46 02        L6802               lsr   $02
++003a03 6800: 85 05                            sta   _ix
++003a05 6802: 46 02        L6802               lsr   _strobePtrOffs
 +003a07 6804: 46 03                            lsr   $03
-+003a09 6806: 46 04                            lsr   $04
-+003a0b 6808: 46 05                            lsr   $05
-+003a0d 680a: a5 02                            lda   $02
-+003a0f 680c: e5 04                            sbc   $04
++003a09 6806: 46 04                            lsr   _length
++003a0b 6808: 46 05                            lsr   _ix
++003a0d 680a: a5 02                            lda   _strobePtrOffs
++003a0f 680c: e5 04                            sbc   _length
 +003a11 680e: a8                               tay
 +003a12 680f: b0 02                            bcs   L6813
 +003a14 6811: 49 ff                            eor   #$ff
 +003a16 6813: cd 15 0c     L6813               cmp   L0C15
 +003a19 6816: b0 ea                            bcs   L6802
-+003a1b 6818: 84 06                            sty   PixelLine
++003a1b 6818: 84 06                            sty   _strobePtr
 +003a1d 681a: a5 03                            lda   $03
-+003a1f 681c: e5 05                            sbc   $05
++003a1f 681c: e5 05                            sbc   _ix
 +003a21 681e: a8                               tay
 +003a22 681f: b0 02                            bcs   L6823
 +003a24 6821: 49 ff                            eor   #$ff
 +003a26 6823: cd 15 0c     L6823               cmp   L0C15
 +003a29 6826: b0 da                            bcs   L6802
-+003a2b 6828: a5 06                            lda   PixelLine
++003a2b 6828: a5 06                            lda   _strobePtr
 +003a2d 682a: 9d 80 1a                         sta   $1a80,x
 +003a30 682d: 98                               tya
 +003a31 682e: 9d 90 1a                         sta   $1a90,x
@@ -5571,14 +5689,14 @@
 +003a39 6836: 4a                               lsr   A
 +003a3a 6837: 4a                               lsr   A
 +003a3b 6838: 4a                               lsr   A
-+003a3c 6839: 85 02                            sta   $02
++003a3c 6839: 85 02                            sta   _strobePtrOffs
 +003a3e 683b: 98                               tya
 +003a3f 683c: 4a                               lsr   A
 +003a40 683d: 4a                               lsr   A
 +003a41 683e: 4a                               lsr   A
 +003a42 683f: 4a                               lsr   A
 +003a43 6840: 4a                               lsr   A
-+003a44 6841: e5 02                            sbc   $02
++003a44 6841: e5 02                            sbc   _strobePtrOffs
 +003a46 6843: d0 08                            bne   L684D
 +003a48 6845: a9 01                            lda   #$01
 +003a4a 6847: c4 03                            cpy   $03
@@ -5611,15 +5729,15 @@
 
 +003a7f 687c: a2 02                            ldx   #$02
 +003a81 687e: bd 32 14     L687E               lda   $1432,x
-+003a84 6881: 95 00                            sta   $00,x
++003a84 6881: 95 00                            sta   _spriteEntryPtr,x
 +003a86 6883: ca                               dex
 +003a87 6884: 10 f8                            bpl   L687E
 +003a89 6886: a0 00                            ldy   #$00
 +003a8b 6888: 20 c4 4e     L6888               jsr   stats04
 +003a8e 688b: c8                               iny
-+003a8f 688c: a5 00                            lda   $00
-+003a91 688e: 05 01                            ora   $01
-+003a93 6890: 05 02                            ora   $02
++003a8f 688c: a5 00                            lda   _spriteEntryPtr
++003a91 688e: 05 01                            ora   _spriteEntryPtr+1
++003a93 6890: 05 02                            ora   _strobePtrOffs
 +003a95 6892: d0 f4                            bne   L6888
 +003a97 6894: 98                               tya
 +003a98 6895: 18                               clc
@@ -5627,7 +5745,7 @@
 +003a9b 6898: 85 e0                            sta   TextCol
 +003a9d 689a: a2 02                            ldx   #$02
 +003a9f 689c: bd 32 14     L689C               lda   $1432,x
-+003aa2 689f: 95 00                            sta   $00,x
++003aa2 689f: 95 00                            sta   _spriteEntryPtr,x
 +003aa4 68a1: ca                               dex
 +003aa5 68a2: 10 f8                            bpl   L689C
 +003aa7 68a4: c6 e0        L68A4               dec   TextCol
@@ -5637,9 +5755,9 @@
 +003aaf 68ac: a6 e0                            ldx   TextCol
 +003ab1 68ae: a4 e1                            ldy   TextPixelLine
 +003ab3 68b0: 20 08 51                         jsr   printChar
-+003ab6 68b3: a5 00                            lda   $00
-+003ab8 68b5: 05 01                            ora   $01
-+003aba 68b7: 05 02                            ora   $02
++003ab6 68b3: a5 00                            lda   _spriteEntryPtr
++003ab8 68b5: 05 01                            ora   _spriteEntryPtr+1
++003aba 68b7: 05 02                            ora   _strobePtrOffs
 +003abc 68b9: d0 e9                            bne   L68A4
 +003abe 68bb: 60                               rts
 
@@ -5663,9 +5781,9 @@
 +003b1b 6918: e8                               inx
 +003b1c 6919: ad 21 14                         lda   $1421
 +003b1f 691c: 20 00 4c                         jsr   L4C00
-+003b22 691f: 85 08                            sta   AsciiLineByteAddr
++003b22 691f: 85 08                            sta   _destPtr
 +003b24 6921: ac 27 14                         ldy   $1427
-+003b27 6924: 88           L6924               dey
++003b27 6924: 88           @loop               dey
 +003b28 6925: 10 03                            bpl   L692A
 +003b2a 6927: 4c 7d 69                         jmp   L697D
 
@@ -5697,19 +5815,19 @@
 +003b66 6963: 98                               tya
 +003b67 6964: 29 01                            and   #$01
 +003b69 6966: 99 20 1d                         sta   $1d20,y
-+003b6c 6969: a5 08                            lda   AsciiLineByteAddr
++003b6c 6969: a5 08                            lda   _destPtr
 +003b6e 696b: 99 30 1d                         sta   $1d30,y
 +003b71 696e: ad 52 0c                         lda   L0C52
 +003b74 6971: 20 4b 4c                         jsr   multiplyRndX
 +003b77 6974: 18                               clc
 +003b78 6975: 6d 53 0c                         adc   L0C53
 +003b7b 6978: 99 50 1d                         sta   $1d50,y
-+003b7e 697b: 10 a7                            bpl   L6924
++003b7e 697b: 10 a7                            bpl   @loop
 +003b80 697d: ad 21 14     L697D               lda   $1421
 +003b83 6980: ae 4e 0c                         ldx   L0C4E
 +003b86 6983: e8                               inx
 +003b87 6984: 20 00 4c                         jsr   L4C00
-+003b8a 6987: 85 08                            sta   AsciiLineByteAddr
++003b8a 6987: 85 08                            sta   _destPtr
 +003b8c 6989: ac 28 14                         ldy   $1428
 +003b8f 698c: 88           L698C               dey
 +003b90 698d: 10 15                            bpl   L69A4
@@ -5729,11 +5847,11 @@
 +003bad 69aa: a9 10                            lda   #$10
 +003baf 69ac: 90 02                            bcc   L69B0
 +003bb1 69ae: a9 a0                            lda   #$a0
-+003bb3 69b0: 85 06        L69B0               sta   PixelLine
++003bb3 69b0: 85 06        L69B0               sta   _strobePtr
 +003bb5 69b2: a9 3e                            lda   #$3e
 +003bb7 69b4: 20 4b 4c                         jsr   multiplyRndX
 +003bba 69b7: 18                               clc
-+003bbb 69b8: 65 06                            adc   PixelLine
++003bbb 69b8: 65 06                            adc   _strobePtr
 +003bbd 69ba: 09 01                            ora   #$01
 +003bbf 69bc: 99 70 1d                         sta   $1d70,y
 +003bc2 69bf: a9 90                            lda   #$90
@@ -5745,11 +5863,11 @@
 +003bcf 69cc: a9 10        L69CC               lda   #$10
 +003bd1 69ce: 90 02                            bcc   L69D2
 +003bd3 69d0: a9 80                            lda   #$80
-+003bd5 69d2: 85 06        L69D2               sta   PixelLine
++003bd5 69d2: 85 06        L69D2               sta   _strobePtr
 +003bd7 69d4: a9 20                            lda   #$20
 +003bd9 69d6: 20 4b 4c                         jsr   multiplyRndX
 +003bdc 69d9: 18                               clc
-+003bdd 69da: 65 06                            adc   PixelLine
++003bdd 69da: 65 06                            adc   _strobePtr
 +003bdf 69dc: 99 90 1d                         sta   $1d90,y
 +003be2 69df: a9 ce                            lda   #$ce
 +003be4 69e1: 20 4b 4c                         jsr   multiplyRndX
@@ -5760,7 +5878,7 @@
 +003bef 69ec: a9 00        L69EC               lda   #$00
 +003bf1 69ee: 99 b0 1d                         sta   $1db0,y
 +003bf4 69f1: 99 d0 1d                         sta   $1dd0,y
-+003bf7 69f4: a5 08                            lda   AsciiLineByteAddr
++003bf7 69f4: a5 08                            lda   _destPtr
 +003bf9 69f6: 99 10 1e                         sta   $1e10,y
 +003bfc 69f9: a2 00                            ldx   #$00
 +003bfe 69fb: 20 36 4c                         jsr   randomA
@@ -5782,13 +5900,13 @@
 +003c1c 6a19: 10 f7                            bpl   L6A12
 +003c1e 6a1b: ad 4d 0c                         lda   L0C4D
 +003c21 6a1e: 9d 20 1d                         sta   $1d20,x
-+003c24 6a21: 86 00                            stx   $00
-+003c26 6a23: a4 00                            ldy   $00
++003c24 6a21: 86 00                            stx   _spriteEntryPtr
++003c26 6a23: a4 00                            ldy   _spriteEntryPtr
 +003c28 6a25: be f0 1c                         ldx   $1cf0,y
 +003c2b 6a28: b9 e0 1c                         lda   $1ce0,y
 +003c2e 6a2b: a0 0d                            ldy   #$0d
 +003c30 6a2d: 20 21 4d                         jsr   eraseHulk
-+003c33 6a30: a4 00                            ldy   $00
++003c33 6a30: a4 00                            ldy   _spriteEntryPtr
 +003c35 6a32: b9 e0 1c                         lda   $1ce0,y
 +003c38 6a35: 18                               clc
 +003c39 6a36: 79 00 1d                         adc   $1d00,y
@@ -5823,20 +5941,20 @@
 +003c78 6a75: 29 03                            and   #$03
 +003c7a 6a77: aa                               tax
 +003c7b 6a78: bd 10 09                         lda   L0910,x
-+003c7e 6a7b: 85 06                            sta   PixelLine
++003c7e 6a7b: 85 06                            sta   _strobePtr
 +003c80 6a7d: bd 18 09                         lda   L0918,x
-+003c83 6a80: 85 07                            sta   PixelLine+1
++003c83 6a80: 85 07                            sta   _strobePtr+1
 +003c85 6a82: be e0 1c                         ldx   $1ce0,y
 +003c88 6a85: b9 f0 1c                         lda   $1cf0,y
 +003c8b 6a88: a8                               tay
 +003c8c 6a89: 20 f6 4c                         jsr   drawHulk
-+003c8f 6a8c: a6 00                            ldx   $00
++003c8f 6a8c: a6 00                            ldx   _spriteEntryPtr
 +003c91 6a8e: de 30 1d                         dec   $1d30,x
 +003c94 6a91: 10 3f                            bpl   L6AD2
 +003c96 6a93: ad 4a 0c                         lda   L0C4A
 +003c99 6a96: 20 4b 4c                         jsr   multiplyRndX
 +003c9c 6a99: 09 03                            ora   #$03
-+003c9e 6a9b: a6 00                            ldx   $00
++003c9e 6a9b: a6 00                            ldx   _spriteEntryPtr
 +003ca0 6a9d: 9d 30 1d                         sta   $1d30,x
 +003ca3 6aa0: bd e0 1c                         lda   $1ce0,x
 +003ca6 6aa3: ac 00 15                         ldy   $1500
@@ -5852,7 +5970,7 @@
 +003cc3 6ac0: 10 10                            bpl   L6AD2
 +003cc5 6ac2: ad 52 0c                         lda   L0C52
 +003cc8 6ac5: 20 4b 4c                         jsr   multiplyRndX
-+003ccb 6ac8: a6 00                            ldx   $00
++003ccb 6ac8: a6 00                            ldx   _spriteEntryPtr
 +003ccd 6aca: 9d 50 1d                         sta   $1d50,x
 +003cd0 6acd: a9 01                            lda   #$01
 +003cd2 6acf: 9d 60 1d                         sta   $1d60,x
@@ -5890,18 +6008,18 @@
 +003d20 6b1d: ee 28 14                         inc   $1428
 +003d23 6b20: de 40 1d                         dec   $1d40,x
 +003d26 6b23: 10 12                            bpl   L6B37
-+003d28 6b25: a4 00                            ldy   $00
++003d28 6b25: a4 00                            ldy   _spriteEntryPtr
 +003d2a 6b27: be f0 1c                         ldx   $1cf0,y
 +003d2d 6b2a: b9 e0 1c                         lda   $1ce0,y
 +003d30 6b2d: a0 0d                            ldy   #$0d
 +003d32 6b2f: 20 21 4d                         jsr   eraseHulk
-+003d35 6b32: a6 00                            ldx   $00
++003d35 6b32: a6 00                            ldx   _spriteEntryPtr
 +003d37 6b34: 20 f0 6d                         jsr   L6DF0
 +003d3a 6b37: 4c 12 6a     L6B37               jmp   L6A12
 
-+003d3d 6b3a: 85 06        L6B3A               sta   PixelLine
-+003d3f 6b3c: 84 07                            sty   PixelLine+1
-+003d41 6b3e: e5 07                            sbc   PixelLine+1
++003d3d 6b3a: 85 06        L6B3A               sta   _strobePtr
++003d3f 6b3c: 84 07                            sty   _strobePtr+1
++003d41 6b3e: e5 07                            sbc   _strobePtr+1
 +003d43 6b40: b0 02                            bcs   L6B44
 +003d45 6b42: 49 ff                            eor   #$ff
 +003d47 6b44: cd 50 0c     L6B44               cmp   L0C50
@@ -5921,8 +6039,8 @@
 +003d64 6b61: a4 4f                            ldy   MON_RNDH
 +003d66 6b63: cc 56 0c                         cpy   L0C56
 +003d69 6b66: b0 12                            bcs   L6B7A
-+003d6b 6b68: a4 06                            ldy   PixelLine
-+003d6d 6b6a: c4 07                            cpy   PixelLine+1
++003d6b 6b68: a4 06                            ldy   _strobePtr
++003d6d 6b6a: c4 07                            cpy   _strobePtr+1
 +003d6f 6b6c: a8                               tay
 +003d70 6b6d: b0 04                            bcs   L6B73
 +003d72 6b6f: 10 09                            bpl   L6B7A
@@ -5941,15 +6059,15 @@
 
 +003d85 6b82: de f0 1d     L6B82               dec   $1df0,x
 +003d88 6b85: 10 f7                            bpl   L6B7E
-+003d8a 6b87: 86 00                            stx   $00
++003d8a 6b87: 86 00                            stx   _spriteEntryPtr
 +003d8c 6b89: ad 4e 0c                         lda   L0C4E
 +003d8f 6b8c: 9d f0 1d                         sta   $1df0,x
-+003d92 6b8f: a4 00                            ldy   $00
++003d92 6b8f: a4 00                            ldy   _spriteEntryPtr
 +003d94 6b91: be 90 1d                         ldx   $1d90,y
 +003d97 6b94: b9 70 1d                         lda   $1d70,y
 +003d9a 6b97: a0 0f                            ldy   #$0f
 +003d9c 6b99: 20 21 4d                         jsr   eraseHulk
-+003d9f 6b9c: a6 00                            ldx   $00
++003d9f 6b9c: a6 00                            ldx   _spriteEntryPtr
 +003da1 6b9e: bd 70 1d     L6B9E               lda   $1d70,x
 +003da4 6ba1: 18                               clc
 +003da5 6ba2: 7d b0 1d                         adc   $1db0,x
@@ -5985,19 +6103,19 @@
 +003dea 6be7: 5d 30 1e                         eor   $1e30,x
 +003ded 6bea: a8                               tay
 +003dee 6beb: b9 20 09                         lda   L0920,y
-+003df1 6bee: 85 06                            sta   PixelLine
++003df1 6bee: 85 06                            sta   _strobePtr
 +003df3 6bf0: b9 28 09                         lda   L0928,y
-+003df6 6bf3: 85 07                            sta   PixelLine+1
++003df6 6bf3: 85 07                            sta   _strobePtr+1
 +003df8 6bf5: bc 90 1d                         ldy   $1d90,x
 +003dfb 6bf8: bd 70 1d                         lda   $1d70,x
 +003dfe 6bfb: aa                               tax
 +003dff 6bfc: 20 f6 4c                         jsr   drawHulk
-+003e02 6bff: a6 00                            ldx   $00
++003e02 6bff: a6 00                            ldx   _spriteEntryPtr
 +003e04 6c01: de 10 1e                         dec   $1e10,x
 +003e07 6c04: 10 26                            bpl   L6C2C
 +003e09 6c06: ad 4b 0c                         lda   L0C4B
 +003e0c 6c09: 20 4b 4c                         jsr   multiplyRndX
-+003e0f 6c0c: a6 00                            ldx   $00
++003e0f 6c0c: a6 00                            ldx   _spriteEntryPtr
 +003e11 6c0e: 9d 10 1e                         sta   $1e10,x
 +003e14 6c11: bd 70 1d                         lda   $1d70,x
 +003e17 6c14: ac 00 15                         ldy   $1500
@@ -6015,8 +6133,8 @@
 +003e37 6c34: 9d 30 1e                         sta   $1e30,x
 +003e3a 6c37: 60                               rts
 
-+003e3b 6c38: 84 06        L6C38               sty   PixelLine
-+003e3d 6c3a: c5 06                            cmp   PixelLine
++003e3b 6c38: 84 06        L6C38               sty   _strobePtr
++003e3d 6c3a: c5 06                            cmp   _strobePtr
 +003e3f 6c3c: 08                               php
 +003e40 6c3d: ad 44 0c                         lda   L0C44
 +003e43 6c40: 0a                               asl   A
@@ -6025,7 +6143,7 @@
 +003e48 6c45: ed 44 0c                         sbc   L0C44
 +003e4b 6c48: 69 00                            adc   #$00
 +003e4d 6c4a: 29 fe                            and   #$fe
-+003e4f 6c4c: a6 00                            ldx   $00
++003e4f 6c4c: a6 00                            ldx   _spriteEntryPtr
 +003e51 6c4e: a4 4e                            ldy   MON_RNDL
 +003e53 6c50: cc 54 0c                         cpy   L0C54
 +003e56 6c53: b0 10                            bcs   L6C65
@@ -6051,15 +6169,15 @@
 
 +003e73 6c70: de 90 1e     L6C70               dec   $1e90,x
 +003e76 6c73: 10 f5                            bpl   L6C6A
-+003e78 6c75: 86 00                            stx   $00
++003e78 6c75: 86 00                            stx   _spriteEntryPtr
 +003e7a 6c77: ad 4f 0c                         lda   L0C4F
 +003e7d 6c7a: 9d 90 1e                         sta   $1e90,x
-+003e80 6c7d: a4 00                            ldy   $00
++003e80 6c7d: a4 00                            ldy   _spriteEntryPtr
 +003e82 6c7f: be 60 1e                         ldx   $1e60,y
 +003e85 6c82: b9 50 1e                         lda   $1e50,y
 +003e88 6c85: a0 07                            ldy   #$07
 +003e8a 6c87: 20 d0 4c                         jsr   eraseFamily
-+003e8d 6c8a: a6 00                            ldx   $00
++003e8d 6c8a: a6 00                            ldx   _spriteEntryPtr
 +003e8f 6c8c: bd 50 1e     L6C8C               lda   $1e50,x
 +003e92 6c8f: 18                               clc
 +003e93 6c90: 7d 70 1e                         adc   $1e70,x
@@ -6098,14 +6216,14 @@
 +003ed9 6cd6: 29 01                            and   #$01
 +003edb 6cd8: a8                               tay
 +003edc 6cd9: b9 30 09                         lda   L0930,y
-+003edf 6cdc: 85 06                            sta   PixelLine
++003edf 6cdc: 85 06                            sta   _strobePtr
 +003ee1 6cde: b9 34 09                         lda   L0934,y
-+003ee4 6ce1: 85 07                            sta   PixelLine+1
++003ee4 6ce1: 85 07                            sta   _strobePtr+1
 +003ee6 6ce3: bc 60 1e                         ldy   $1e60,x
 +003ee9 6ce6: bd 50 1e                         lda   $1e50,x
 +003eec 6ce9: aa                               tax
 +003eed 6cea: 20 ac 4c                         jsr   drawFamily
-+003ef0 6ced: a6 00                            ldx   $00
++003ef0 6ced: a6 00                            ldx   _spriteEntryPtr
 +003ef2 6cef: 4c 6a 6c                         jmp   L6C6A
 
 +003ef5 6cf2: 8a           L6CF2               txa
@@ -6164,23 +6282,23 @@
 +003f6f 6d6c: ad 00 15                         lda   $1500
 +003f72 6d6f: 4a                               lsr   A
 +003f73 6d70: 69 40                            adc   #$40
-+003f75 6d72: 85 02                            sta   $02
++003f75 6d72: 85 02                            sta   _strobePtrOffs
 +003f77 6d74: ad 01 15                         lda   $1501
 +003f7a 6d77: 4a                               lsr   A
 +003f7b 6d78: 69 50                            adc   #$50
 +003f7d 6d7a: 85 03                            sta   $03
 +003f7f 6d7c: a5 4e                            lda   MON_RNDL
 +003f81 6d7e: 10 12                            bpl   L6D92
-+003f83 6d80: a5 02                            lda   $02
++003f83 6d80: a5 02                            lda   _strobePtrOffs
 +003f85 6d82: 30 07                            bmi   L6D8B
 +003f87 6d84: a9 80                            lda   #$80
 +003f89 6d86: 38                               sec
-+003f8a 6d87: e5 02                            sbc   $02
++003f8a 6d87: e5 02                            sbc   _strobePtrOffs
 +003f8c 6d89: b0 05                            bcs   L6D90
 +003f8e 6d8b: 49 ff        L6D8B               eor   #$ff
 +003f90 6d8d: 18                               clc
 +003f91 6d8e: 69 80                            adc   #$80
-+003f93 6d90: 85 02        L6D90               sta   $02
++003f93 6d90: 85 02        L6D90               sta   _strobePtrOffs
 +003f95 6d92: a5 4f        L6D92               lda   MON_RNDH
 +003f97 6d94: 10 12                            bpl   L6DA8
 +003f99 6d96: a5 03                            lda   $03
@@ -6194,29 +6312,29 @@
 +003fa7 6da4: 69 60                            adc   #$60
 +003fa9 6da6: 85 03        L6DA6               sta   $03
 +003fab 6da8: b9 50 1e     L6DA8               lda   $1e50,y
-+003fae 6dab: 85 00                            sta   $00
++003fae 6dab: 85 00                            sta   _spriteEntryPtr
 +003fb0 6dad: b9 60 1e                         lda   $1e60,y
-+003fb3 6db0: 85 01                            sta   $01
-+003fb5 6db2: 46 00        L6DB2               lsr   $00
-+003fb7 6db4: 46 01                            lsr   $01
-+003fb9 6db6: 46 02                            lsr   $02
++003fb3 6db0: 85 01                            sta   _spriteEntryPtr+1
++003fb5 6db2: 46 00        L6DB2               lsr   _spriteEntryPtr
++003fb7 6db4: 46 01                            lsr   _spriteEntryPtr+1
++003fb9 6db6: 46 02                            lsr   _strobePtrOffs
 +003fbb 6db8: 46 03                            lsr   $03
-+003fbd 6dba: a5 02                            lda   $02
-+003fbf 6dbc: e5 00                            sbc   $00
++003fbd 6dba: a5 02                            lda   _strobePtrOffs
++003fbf 6dbc: e5 00                            sbc   _spriteEntryPtr
 +003fc1 6dbe: aa                               tax
 +003fc2 6dbf: b0 02                            bcs   L6DC3
 +003fc4 6dc1: 49 ff                            eor   #$ff
 +003fc6 6dc3: cd 45 0c     L6DC3               cmp   L0C45
 +003fc9 6dc6: b0 ea                            bcs   L6DB2
-+003fcb 6dc8: 86 06                            stx   PixelLine
++003fcb 6dc8: 86 06                            stx   _strobePtr
 +003fcd 6dca: a5 03                            lda   $03
-+003fcf 6dcc: e5 01                            sbc   $01
++003fcf 6dcc: e5 01                            sbc   _spriteEntryPtr+1
 +003fd1 6dce: aa                               tax
 +003fd2 6dcf: b0 02                            bcs   L6DD3
 +003fd4 6dd1: 49 ff                            eor   #$ff
 +003fd6 6dd3: cd 45 0c     L6DD3               cmp   L0C45
 +003fd9 6dd6: b0 da                            bcs   L6DB2
-+003fdb 6dd8: a5 06                            lda   PixelLine
++003fdb 6dd8: a5 06                            lda   _strobePtr
 +003fdd 6dda: 99 70 1e                         sta   $1e70,y
 +003fe0 6ddd: 8a                               txa
 +003fe1 6dde: 99 80 1e                         sta   $1e80,y
@@ -6503,12 +6621,12 @@
 +004256 7053: 29 fe                            and   #$fe
 +004258 7055: 99 20 1b                         sta   $1b20,y
 +00425b 7058: 20 36 4c                         jsr   randomA
-+00425e 705b: 85 00                            sta   $00
++00425e 705b: 85 00                            sta   _spriteEntryPtr
 +004260 705d: a9 20                            lda   #$20
 +004262 705f: 20 4b 4c                         jsr   multiplyRndX
 +004265 7062: 18                               clc
 +004266 7063: 69 0c                            adc   #$0c
-+004268 7065: a6 00                            ldx   $00
++004268 7065: a6 00                            ldx   _spriteEntryPtr
 +00426a 7067: 10 02                            bpl   L706B
 +00426c 7069: 69 7c                            adc   #$7c
 +00426e 706b: 99 30 1b     L706B               sta   $1b30,y
@@ -6519,12 +6637,12 @@
 +004279 7076: 69 0c                            adc   #$0c
 +00427b 7078: 99 30 1b                         sta   $1b30,y
 +00427e 707b: 20 36 4c                         jsr   randomA
-+004281 707e: 85 00                            sta   $00
++004281 707e: 85 00                            sta   _spriteEntryPtr
 +004283 7080: a9 37                            lda   #$37
 +004285 7082: 20 4b 4c                         jsr   multiplyRndX
 +004288 7085: 18                               clc
 +004289 7086: 69 0c                            adc   #$0c
-+00428b 7088: a6 00                            ldx   $00
++00428b 7088: a6 00                            ldx   _spriteEntryPtr
 +00428d 708a: 10 02                            bpl   L708E
 +00428f 708c: 69 a4                            adc   #$a4
 +004291 708e: 29 fe        L708E               and   #$fe
@@ -6563,14 +6681,14 @@
 
 +0042dc 70d9: bd 90 1b     L70D9               lda   $1b90,x
 +0042df 70dc: 30 05                            bmi   L70E3
-+0042e1 70de: 86 00                            stx   $00
++0042e1 70de: 86 00                            stx   _spriteEntryPtr
 +0042e3 70e0: 4c 78 72                         jmp   L7278
 
 +0042e6 70e3: de 60 1b     L70E3               dec   $1b60,x
 +0042e9 70e6: 10 ed                            bpl   L70D5
 +0042eb 70e8: ad 24 0c                         lda   L0C24
 +0042ee 70eb: 9d 60 1b                         sta   $1b60,x
-+0042f1 70ee: 86 00                            stx   $00
++0042f1 70ee: 86 00                            stx   _spriteEntryPtr
 +0042f3 70f0: de 70 1b                         dec   $1b70,x
 +0042f6 70f3: 10 0d                            bpl   L7102
 +0042f8 70f5: ad 25 0c                         lda   L0C25
@@ -6578,12 +6696,12 @@
 +0042fe 70fb: 20 d9 72                         jsr   L72D9
 +004301 70fe: 98                               tya
 +004302 70ff: 9d 50 1b                         sta   $1b50,x
-+004305 7102: a4 00        L7102               ldy   $00
++004305 7102: a4 00        L7102               ldy   _spriteEntryPtr
 +004307 7104: be 30 1b                         ldx   $1b30,y
 +00430a 7107: b9 20 1b                         lda   $1b20,y
 +00430d 710a: a0 0d                            ldy   #$0d
 +00430f 710c: 20 21 4d                         jsr   eraseHulk
-+004312 710f: a4 00                            ldy   $00
++004312 710f: a4 00                            ldy   _spriteEntryPtr
 +004314 7111: b9 40 1b                         lda   $1b40,y
 +004317 7114: 49 01                            eor   #$01
 +004319 7116: 99 40 1b                         sta   $1b40,y
@@ -6591,76 +6709,76 @@
 +00431f 711c: 30 13                            bmi   L7131
 +004321 711e: ec 0a 14                         cpx   $140a
 +004324 7121: 90 1a                            bcc   L713D
-+004326 7123: a6 00                            ldx   $00
++004326 7123: a6 00                            ldx   _spriteEntryPtr
 +004328 7125: 20 d9 72                         jsr   L72D9
 +00432b 7128: 98                               tya
 +00432c 7129: 9d 50 1b                         sta   $1b50,x
-+00432f 712c: a4 00                            ldy   $00
++00432f 712c: a4 00                            ldy   _spriteEntryPtr
 +004331 712e: aa                               tax
 +004332 712f: 10 0c                            bpl   L713D
 +004334 7131: ad 00 15     L7131               lda   $1500
-+004337 7134: 85 06                            sta   PixelLine
++004337 7134: 85 06                            sta   _strobePtr
 +004339 7136: ad 01 15                         lda   $1501
-+00433c 7139: 85 07                            sta   PixelLine+1
++00433c 7139: 85 07                            sta   _strobePtr+1
 +00433e 713b: d0 0a                            bne   L7147
 +004340 713d: bd 50 19     L713D               lda   $1950,x
-+004343 7140: 85 06                            sta   PixelLine
++004343 7140: 85 06                            sta   _strobePtr
 +004345 7142: bd 60 19                         lda   $1960,x
-+004348 7145: 85 07                            sta   PixelLine+1
++004348 7145: 85 07                            sta   _strobePtr+1
 +00434a 7147: b9 30 1b     L7147               lda   $1b30,y
 +00434d 714a: 38                               sec
-+00434e 714b: e5 07                            sbc   PixelLine+1
++00434e 714b: e5 07                            sbc   _strobePtr+1
 +004350 714d: b0 04                            bcs   L7153
 +004352 714f: 49 ff                            eor   #$ff
 +004354 7151: 69 01                            adc   #$01
 +004356 7153: c9 02        L7153               cmp   #$02
 +004358 7155: b0 04                            bcs   L715B
-+00435a 7157: a5 07                            lda   PixelLine+1
++00435a 7157: a5 07                            lda   _strobePtr+1
 +00435c 7159: d0 0d                            bne   L7168
 +00435e 715b: b9 30 1b     L715B               lda   $1b30,y
-+004361 715e: c5 07                            cmp   PixelLine+1
++004361 715e: c5 07                            cmp   _strobePtr+1
 +004363 7160: b0 04                            bcs   L7166
 +004365 7162: 69 02                            adc   #$02
 +004367 7164: 90 02                            bcc   L7168
 +004369 7166: e9 02        L7166               sbc   #$02
 +00436b 7168: 99 30 1b     L7168               sta   $1b30,y
 +00436e 716b: a9 00                            lda   #$00
-+004370 716d: 85 01                            sta   $01
++004370 716d: 85 01                            sta   _spriteEntryPtr+1
 +004372 716f: b9 20 1b                         lda   $1b20,y
-+004375 7172: c5 06                            cmp   PixelLine
++004375 7172: c5 06                            cmp   _strobePtr
 +004377 7174: b0 18                            bcs   L718E
 +004379 7176: 69 02                            adc   #$02
 +00437b 7178: 99 20 1b                         sta   $1b20,y
 +00437e 717b: 69 0f                            adc   #$0f
-+004380 717d: c5 06                            cmp   PixelLine
++004380 717d: c5 06                            cmp   _strobePtr
 +004382 717f: 90 1a                            bcc   L719B
 +004384 7181: b9 30 1b     L7181               lda   $1b30,y
-+004387 7184: c5 07                            cmp   PixelLine+1
++004387 7184: c5 07                            cmp   _strobePtr+1
 +004389 7186: d0 13                            bne   L719B
 +00438b 7188: 8a                               txa
 +00438c 7189: 30 10                            bmi   L719B
 +00438e 718b: 4c 14 73                         jmp   L7314
 
-+004391 718e: e6 01        L718E               inc   $01
++004391 718e: e6 01        L718E               inc   _spriteEntryPtr+1
 +004393 7190: e9 02                            sbc   #$02
 +004395 7192: 99 20 1b                         sta   $1b20,y
 +004398 7195: e9 09                            sbc   #$09
-+00439a 7197: c5 06                            cmp   PixelLine
++00439a 7197: c5 06                            cmp   _strobePtr
 +00439c 7199: 90 e6                            bcc   L7181
-+00439e 719b: a5 01        L719B               lda   $01
++00439e 719b: a5 01        L719B               lda   _spriteEntryPtr+1
 +0043a0 719d: 99 a0 1b                         sta   $1ba0,y
 +0043a3 71a0: 0a                               asl   A
 +0043a4 71a1: 19 40 1b                         ora   $1b40,y
 +0043a7 71a4: aa                               tax
 +0043a8 71a5: bd e0 08                         lda   L08E0,x
-+0043ab 71a8: 85 06                            sta   PixelLine
++0043ab 71a8: 85 06                            sta   _strobePtr
 +0043ad 71aa: bd e8 08                         lda   L08E8,x
-+0043b0 71ad: 85 07                            sta   PixelLine+1
++0043b0 71ad: 85 07                            sta   _strobePtr+1
 +0043b2 71af: be 20 1b                         ldx   $1b20,y
 +0043b5 71b2: b9 30 1b                         lda   $1b30,y
 +0043b8 71b5: a8                               tay
 +0043b9 71b6: 20 f6 4c                         jsr   drawHulk
-+0043bc 71b9: a6 00                            ldx   $00
++0043bc 71b9: a6 00                            ldx   _spriteEntryPtr
 +0043be 71bb: de 80 1b                         dec   $1b80,x
 +0043c1 71be: 10 4e                            bpl   L720E
 +0043c3 71c0: ad 1d 14                         lda   $141d
@@ -6678,7 +6796,7 @@
 +0043de 71db: 99 80 1c                         sta   $1c80,y
 +0043e1 71de: 99 81 1c                         sta   $1c81,y
 +0043e4 71e1: 20 8f 76                         jsr   L768F
-+0043e7 71e4: a5 02                            lda   $02
++0043e7 71e4: a5 02                            lda   _strobePtrOffs
 +0043e9 71e6: 99 90 1c                         sta   $1c90,y
 +0043ec 71e9: 99 91 1c                         sta   $1c91,y
 +0043ef 71ec: a5 03                            lda   $03
@@ -6691,13 +6809,13 @@
 +004403 7200: 99 c1 1c                         sta   $1cc1,y
 +004406 7203: ad 26 0c                         lda   L0C26
 +004409 7206: 20 4b 4c                         jsr   multiplyRndX
-+00440c 7209: a6 00                            ldx   $00
++00440c 7209: a6 00                            ldx   _spriteEntryPtr
 +00440e 720b: 9d 80 1b                         sta   $1b80,x
 +004411 720e: 4c d5 70     L720E               jmp   L70D5
 
 +004414 7211: 0a           L7211               asl   A
 +004415 7212: 0a                               asl   A
-+004416 7213: 85 0a                            sta   $0a
++004416 7213: 85 0a                            sta   _colorBit
 +004418 7215: a0 0d                            ldy   #$0d
 +00441a 7217: 20 a1 50                         jsr   roboNoise01
 +00441d 721a: ae 18 14                         ldx   $1418
@@ -6706,14 +6824,14 @@
 +004423 7220: ce 1c 14                         dec   $141c
 +004426 7223: 60                               rts
 
-+004427 7224: 86 00        L7224               stx   $00
++004427 7224: 86 00        L7224               stx   _spriteEntryPtr
 +004429 7226: bd a0 1b                         lda   $1ba0,x
 +00442c 7229: 0a                               asl   A
 +00442d 722a: a8                               tay
 +00442e 722b: b9 e0 08                         lda   L08E0,y
-+004431 722e: 85 06                            sta   PixelLine
++004431 722e: 85 06                            sta   _strobePtr
 +004433 7230: b9 e8 08                         lda   L08E8,y
-+004436 7233: 85 07                            sta   PixelLine+1
++004436 7233: 85 07                            sta   _strobePtr+1
 +004438 7235: bc 30 1b                         ldy   $1b30,x
 +00443b 7238: bd 20 1b                         lda   $1b20,x
 +00443e 723b: aa                               tax
@@ -6721,31 +6839,31 @@
 +004442 723f: a9 00                            lda   #$00
 +004444 7241: 85 20                            sta   MON_WNDLEFT
 +004446 7243: b1 fc        L7243               lda   (PixelLineBaseL),y
-+004448 7245: 85 06                            sta   PixelLine
++004448 7245: 85 06                            sta   _strobePtr
 +00444a 7247: b1 fe                            lda   (PixelLineBaseH),y
-+00444c 7249: 85 07                            sta   PixelLine+1
-+00444e 724b: 84 05                            sty   $05
-+004450 724d: a4 04                            ldy   $04
-+004452 724f: a1 08                            lda   (AsciiLineByteAddr,x)
++00444c 7249: 85 07                            sta   _strobePtr+1
++00444e 724b: 84 05                            sty   _ix
++004450 724d: a4 04                            ldy   _length
++004452 724f: a1 08                            lda   (_destPtr,x)
 +004454 7251: 21 20                            and   (MON_WNDLEFT,x)
-+004456 7253: 91 06                            sta   (PixelLine),y
-+004458 7255: e6 08                            inc   AsciiLineByteAddr
++004456 7253: 91 06                            sta   (_strobePtr),y
++004458 7255: e6 08                            inc   _destPtr
 +00445a 7257: c8                               iny
-+00445b 7258: a1 08                            lda   (AsciiLineByteAddr,x)
++00445b 7258: a1 08                            lda   (_destPtr,x)
 +00445d 725a: 21 20                            and   (MON_WNDLEFT,x)
-+00445f 725c: 91 06                            sta   (PixelLine),y
-+004461 725e: e6 08                            inc   AsciiLineByteAddr
++00445f 725c: 91 06                            sta   (_strobePtr),y
++004461 725e: e6 08                            inc   _destPtr
 +004463 7260: c8                               iny
-+004464 7261: a1 08                            lda   (AsciiLineByteAddr,x)
++004464 7261: a1 08                            lda   (_destPtr,x)
 +004466 7263: 21 20                            and   (MON_WNDLEFT,x)
-+004468 7265: 91 06                            sta   (PixelLine),y
-+00446a 7267: e6 08                            inc   AsciiLineByteAddr
++004468 7265: 91 06                            sta   (_strobePtr),y
++00446a 7267: e6 08                            inc   _destPtr
 +00446c 7269: e6 20                            inc   MON_WNDLEFT
-+00446e 726b: a4 05                            ldy   $05
++00446e 726b: a4 05                            ldy   _ix
 +004470 726d: 88                               dey
 +004471 726e: 10 d3                            bpl   L7243
 +004473 7270: 20 6e 4c                         jsr   doSpeaker
-+004476 7273: a6 00                            ldx   $00
++004476 7273: a6 00                            ldx   _spriteEntryPtr
 +004478 7275: 4c 1d 72                         jmp   L721D
 
 +00447b 7278: ac 3d 0c     L7278               ldy   L0C3D
@@ -6754,42 +6872,42 @@
 +004483 7280: 9d 40 1b                         sta   $1b40,x
 +004486 7283: f0 03                            beq   L7288
 +004488 7285: ac 3e 0c                         ldy   L0C3E
-+00448b 7288: 84 02        L7288               sty   $02
++00448b 7288: 84 02        L7288               sty   _strobePtrOffs
 +00448d 728a: bd a0 1b                         lda   $1ba0,x
 +004490 728d: 0a                               asl   A
 +004491 728e: a8                               tay
 +004492 728f: b9 e0 08                         lda   L08E0,y
-+004495 7292: 85 06                            sta   PixelLine
++004495 7292: 85 06                            sta   _strobePtr
 +004497 7294: b9 e8 08                         lda   L08E8,y
-+00449a 7297: 85 07                            sta   PixelLine+1
++00449a 7297: 85 07                            sta   _strobePtr+1
 +00449c 7299: bc 30 1b                         ldy   $1b30,x
 +00449f 729c: bd 20 1b                         lda   $1b20,x
 +0044a2 729f: aa                               tax
 +0044a3 72a0: 20 7c 4c                         jsr   fetchSprite
 +0044a6 72a3: b1 fc        L72A3               lda   (PixelLineBaseL),y
-+0044a8 72a5: 85 06                            sta   PixelLine
++0044a8 72a5: 85 06                            sta   _strobePtr
 +0044aa 72a7: b1 fe                            lda   (PixelLineBaseH),y
-+0044ac 72a9: 85 07                            sta   PixelLine+1
-+0044ae 72ab: 84 05                            sty   $05
-+0044b0 72ad: a4 04                            ldy   $04
-+0044b2 72af: a1 08                            lda   (AsciiLineByteAddr,x)
-+0044b4 72b1: 45 02                            eor   $02
-+0044b6 72b3: 91 06                            sta   (PixelLine),y
-+0044b8 72b5: e6 08                            inc   AsciiLineByteAddr
++0044ac 72a9: 85 07                            sta   _strobePtr+1
++0044ae 72ab: 84 05                            sty   _ix
++0044b0 72ad: a4 04                            ldy   _length
++0044b2 72af: a1 08                            lda   (_destPtr,x)
++0044b4 72b1: 45 02                            eor   _strobePtrOffs
++0044b6 72b3: 91 06                            sta   (_strobePtr),y
++0044b8 72b5: e6 08                            inc   _destPtr
 +0044ba 72b7: c8                               iny
-+0044bb 72b8: a1 08                            lda   (AsciiLineByteAddr,x)
-+0044bd 72ba: 45 02                            eor   $02
-+0044bf 72bc: 91 06                            sta   (PixelLine),y
-+0044c1 72be: e6 08                            inc   AsciiLineByteAddr
++0044bb 72b8: a1 08                            lda   (_destPtr,x)
++0044bd 72ba: 45 02                            eor   _strobePtrOffs
++0044bf 72bc: 91 06                            sta   (_strobePtr),y
++0044c1 72be: e6 08                            inc   _destPtr
 +0044c3 72c0: c8                               iny
-+0044c4 72c1: a1 08                            lda   (AsciiLineByteAddr,x)
-+0044c6 72c3: 45 02                            eor   $02
-+0044c8 72c5: 91 06                            sta   (PixelLine),y
-+0044ca 72c7: e6 08                            inc   AsciiLineByteAddr
-+0044cc 72c9: a4 05                            ldy   $05
++0044c4 72c1: a1 08                            lda   (_destPtr,x)
++0044c6 72c3: 45 02                            eor   _strobePtrOffs
++0044c8 72c5: 91 06                            sta   (_strobePtr),y
++0044ca 72c7: e6 08                            inc   _destPtr
++0044cc 72c9: a4 05                            ldy   _ix
 +0044ce 72cb: 88                               dey
 +0044cf 72cc: 10 d5                            bpl   L72A3
-+0044d1 72ce: a6 00                            ldx   $00
++0044d1 72ce: a6 00                            ldx   _spriteEntryPtr
 +0044d3 72d0: de 90 1b                         dec   $1b90,x
 +0044d6 72d3: 20 6e 4c                         jsr   doSpeaker
 +0044d9 72d6: 4c d5 70                         jmp   L70D5
@@ -6800,30 +6918,30 @@
 +0044e2 72df: 60                               rts
 
 +0044e3 72e0: a9 ff        L72E0               lda   #$ff
-+0044e5 72e2: 85 06                            sta   PixelLine
++0044e5 72e2: 85 06                            sta   _strobePtr
 +0044e7 72e4: a9 00                            lda   #$00
-+0044e9 72e6: 85 07                            sta   PixelLine+1
++0044e9 72e6: 85 07                            sta   _strobePtr+1
 +0044eb 72e8: 88           L72E8               dey
 +0044ec 72e9: 30 26                            bmi   L7311
 +0044ee 72eb: b9 50 19                         lda   $1950,y
 +0044f1 72ee: fd 20 1b                         sbc   $1b20,x
 +0044f4 72f1: b0 02                            bcs   L72F5
 +0044f6 72f3: 49 ff                            eor   #$ff
-+0044f8 72f5: 85 08        L72F5               sta   AsciiLineByteAddr
++0044f8 72f5: 85 08        L72F5               sta   _destPtr
 +0044fa 72f7: b9 60 19                         lda   $1960,y
 +0044fd 72fa: fd 30 1b                         sbc   $1b30,x
 +004500 72fd: b0 02                            bcs   L7301
 +004502 72ff: 49 ff                            eor   #$ff
-+004504 7301: 65 08        L7301               adc   AsciiLineByteAddr
++004504 7301: 65 08        L7301               adc   _destPtr
 +004506 7303: 90 02                            bcc   L7307
 +004508 7305: a9 ff                            lda   #$ff
-+00450a 7307: c5 06        L7307               cmp   PixelLine
++00450a 7307: c5 06        L7307               cmp   _strobePtr
 +00450c 7309: b0 dd                            bcs   L72E8
-+00450e 730b: 85 06                            sta   PixelLine
-+004510 730d: 84 07                            sty   PixelLine+1
++00450e 730b: 85 06                            sta   _strobePtr
++004510 730d: 84 07                            sty   _strobePtr+1
 +004512 730f: 90 d7                            bcc   L72E8
 
-+004514 7311: a4 07        L7311               ldy   PixelLine+1
++004514 7311: a4 07        L7311               ldy   _strobePtr+1
 +004516 7313: 60                               rts
 
 +004517 7314: bd 90 19     L7314               lda   $1990,x
@@ -6834,13 +6952,13 @@
 +004520 731d: b9 50 19                         lda   $1950,y
 +004523 7320: a0 0a                            ldy   #$0a
 +004525 7322: 20 d0 4c                         jsr   eraseFamily
-+004528 7325: a4 00                            ldy   $00
++004528 7325: a4 00                            ldy   _spriteEntryPtr
 +00452a 7327: be 50 1b                         ldx   $1b50,y
 +00452d 732a: 20 21 5a                         jsr   L5A21
-+004530 732d: a4 00                            ldy   $00
++004530 732d: a4 00                            ldy   _spriteEntryPtr
 +004532 732f: ad 1b 14                         lda   $141b
 +004535 7332: 0a                               asl   A
-+004536 7333: 85 01                            sta   $01
++004536 7333: 85 01                            sta   _spriteEntryPtr+1
 +004538 7335: b9 20 1b     L7335               lda   $1b20,y
 +00453b 7338: be a0 1b                         ldx   $1ba0,y
 +00453e 733b: d0 11                            bne   L734E
@@ -6858,7 +6976,7 @@
 +004554 7351: 90 f3                            bcc   L7346
 +004556 7353: c9 06                            cmp   #$06
 +004558 7355: 90 ef                            bcc   L7346
-+00455a 7357: a6 01        L7357               ldx   $01
++00455a 7357: a6 01        L7357               ldx   _spriteEntryPtr+1
 +00455c 7359: 9d b0 1b                         sta   $1bb0,x
 +00455f 735c: 9d b1 1b                         sta   $1bb1,x
 +004562 735f: b9 30 1b                         lda   $1b30,y
@@ -6884,7 +7002,7 @@
 +004598 7395: ad 23 0c                         lda   L0C23
 +00459b 7398: 8d 1a 14                         sta   $141a
 +00459e 739b: ee 1b 14                         inc   $141b
-+0045a1 739e: a6 00                            ldx   $00
++0045a1 739e: a6 00                            ldx   _spriteEntryPtr
 +0045a3 73a0: 4c d5 70                         jmp   L70D5
 
 +0045a6 73a3: ae 18 14     L73A3               ldx   $1418                                   ;called from jump table only
@@ -6917,13 +7035,13 @@
 +0045d9 73d6: 38                               sec
 +0045da 73d7: 60                               rts
 
-+0045db 73d8: 86 00        L73D8               stx   $00
-+0045dd 73da: a4 00                            ldy   $00
++0045db 73d8: 86 00        L73D8               stx   _spriteEntryPtr
++0045dd 73da: a4 00                            ldy   _spriteEntryPtr
 +0045df 73dc: be 30 1b                         ldx   $1b30,y
 +0045e2 73df: b9 20 1b                         lda   $1b20,y
 +0045e5 73e2: a0 0d                            ldy   #$0d
 +0045e7 73e4: 20 21 4d                         jsr   eraseHulk
-+0045ea 73e7: a6 00                            ldx   $00
++0045ea 73e7: a6 00                            ldx   _spriteEntryPtr
 +0045ec 73e9: bd 30 1b                         lda   $1b30,x
 +0045ef 73ec: 18                               clc
 +0045f0 73ed: 69 06                            adc   #$06
@@ -6933,7 +7051,7 @@
 +0045f8 73f5: aa                               tax
 +0045f9 73f6: a9 d5                            lda   #$d5
 +0045fb 73f8: 20 74 4f                         jsr   L4F74
-+0045fe 73fb: a6 00                            ldx   $00
++0045fe 73fb: a6 00                            ldx   _spriteEntryPtr
 +004600 73fd: bd 90 1b                         lda   $1b90,x
 +004603 7400: 30 3f                            bmi   L7441
 +004605 7402: ad 1b 14                         lda   $141b
@@ -6946,25 +7064,25 @@
 +004611 740e: 30 f7                            bmi   L7407
 +004613 7410: 20 79 79                         jsr   L7979
 +004616 7413: 90 f2                            bcc   L7407
-+004618 7415: 84 01                            sty   $01
++004618 7415: 84 01                            sty   _spriteEntryPtr+1
 +00461a 7417: be d0 1b                         ldx   $1bd0,y
 +00461d 741a: ca                               dex
 +00461e 741b: ca                               dex
 +00461f 741c: b9 b0 1b                         lda   $1bb0,y
 +004622 741f: a0 0e                            ldy   #$0e
 +004624 7421: 20 d0 4c                         jsr   eraseFamily
-+004627 7424: a6 01                            ldx   $01
++004627 7424: a6 01                            ldx   _spriteEntryPtr+1
 +004629 7426: bc d0 1b                         ldy   $1bd0,x
 +00462c 7429: bd b0 1b                         lda   $1bb0,x
 +00462f 742c: aa                               tax
 +004630 742d: 20 24 5a                         jsr   L5A24
-+004633 7430: a6 01                            ldx   $01
++004633 7430: a6 01                            ldx   _spriteEntryPtr+1
 +004635 7432: 20 42 79                         jsr   L7942
-+004638 7435: a6 00                            ldx   $00
++004638 7435: a6 00                            ldx   _spriteEntryPtr
 +00463a 7437: a9 ff                            lda   #$ff
 +00463c 7439: 9d 90 1b                         sta   $1b90,x
 +00463f 743c: 20 59 74                         jsr   L7459
-+004642 743f: a6 00        L743F               ldx   $00
++004642 743f: a6 00        L743F               ldx   _spriteEntryPtr
 +004644 7441: 20 79 74     L7441               jsr   L7479
 +004647 7444: a9 01                            lda   #$01
 +004649 7446: a2 f4                            ldx   #$f4
@@ -7030,47 +7148,47 @@
 +0046cd 74ca: 10 01                            bpl   L74CD
 +0046cf 74cc: 60                               rts
 
-+0046d0 74cd: 86 00        L74CD               stx   $00
++0046d0 74cd: 86 00        L74CD               stx   _spriteEntryPtr
 +0046d2 74cf: 20 28 76                         jsr   L7628
-+0046d5 74d2: a6 00                            ldx   $00
++0046d5 74d2: a6 00                            ldx   _spriteEntryPtr
 +0046d7 74d4: 20 46 75                         jsr   L7546
 +0046da 74d7: bc 80 1c                         ldy   $1c80,x
 +0046dd 74da: bd 70 1c                         lda   $1c70,x
 +0046e0 74dd: 20 1c 4c                         jsr   L4C1C
-+0046e3 74e0: 85 04                            sta   $04
++0046e3 74e0: 85 04                            sta   _length
 +0046e5 74e2: a9 00                            lda   #$00
 +0046e7 74e4: 38                               sec
 +0046e8 74e5: 2a           L74E5               rol   A
 +0046e9 74e6: ca                               dex
 +0046ea 74e7: 10 fc                            bpl   L74E5
-+0046ec 74e9: 85 0a                            sta   $0a
++0046ec 74e9: 85 0a                            sta   _colorBit
 +0046ee 74eb: a2 02                            ldx   #$02
 +0046f0 74ed: b1 fc        L74ED               lda   (PixelLineBaseL),y
-+0046f2 74ef: 85 06                            sta   PixelLine
++0046f2 74ef: 85 06                            sta   _strobePtr
 +0046f4 74f1: b1 fe                            lda   (PixelLineBaseH),y
-+0046f6 74f3: 85 07                            sta   PixelLine+1
-+0046f8 74f5: 84 05                            sty   $05
-+0046fa 74f7: a4 04                            ldy   $04
-+0046fc 74f9: a5 0a                            lda   $0a
-+0046fe 74fb: 11 06                            ora   (PixelLine),y
-+004700 74fd: 91 06                            sta   (PixelLine),y
-+004702 74ff: a5 0a                            lda   $0a
++0046f6 74f3: 85 07                            sta   _strobePtr+1
++0046f8 74f5: 84 05                            sty   _ix
++0046fa 74f7: a4 04                            ldy   _length
++0046fc 74f9: a5 0a                            lda   _colorBit
++0046fe 74fb: 11 06                            ora   (_strobePtr),y
++004700 74fd: 91 06                            sta   (_strobePtr),y
++004702 74ff: a5 0a                            lda   _colorBit
 +004704 7501: 0a                               asl   A
 +004705 7502: 10 03                            bpl   L7507
 +004707 7504: c8                               iny
 +004708 7505: a9 01                            lda   #$01
-+00470a 7507: 11 06        L7507               ora   (PixelLine),y
-+00470c 7509: 91 06                            sta   (PixelLine),y
-+00470e 750b: a4 05                            ldy   $05
++00470a 7507: 11 06        L7507               ora   (_strobePtr),y
++00470c 7509: 91 06                            sta   (_strobePtr),y
++00470e 750b: a4 05                            ldy   _ix
 +004710 750d: c8                               iny
 +004711 750e: ca                               dex
 +004712 750f: d0 dc                            bne   L74ED
-+004714 7511: a6 00                            ldx   $00
++004714 7511: a6 00                            ldx   _spriteEntryPtr
 +004716 7513: de b0 1c                         dec   $1cb0,x
 +004719 7516: 10 b0                            bpl   L74C8
-+00471b 7518: a4 00                            ldy   $00
++00471b 7518: a4 00                            ldy   _spriteEntryPtr
 +00471d 751a: 20 8f 76                         jsr   L768F
-+004720 751d: a5 02                            lda   $02
++004720 751d: a5 02                            lda   _strobePtrOffs
 +004722 751f: 99 90 1c                         sta   $1c90,y
 +004725 7522: 99 c0 1c                         sta   $1cc0,y
 +004728 7525: a5 03                            lda   $03
@@ -7084,7 +7202,7 @@
 +00473d 753a: c8                               iny
 +00473e 753b: ad 2e 0c                         lda   L0C2E
 +004741 753e: 99 b0 1c                         sta   $1cb0,y
-+004744 7541: a6 00                            ldx   $00
++004744 7541: a6 00                            ldx   _spriteEntryPtr
 +004746 7543: 4c c8 74                         jmp   L74C8
 
 +004749 7546: bd 70 1c     L7546               lda   $1c70,x
@@ -7154,16 +7272,16 @@
 +0047c6 75c3: 38                               sec
 +0047c7 75c4: 60                               rts
 
-+0047c8 75c5: 86 00        L75C5               stx   $00
++0047c8 75c5: 86 00        L75C5               stx   _spriteEntryPtr
 +0047ca 75c7: a9 00                            lda   #$00
 +0047cc 75c9: 85 fc                            sta   PixelLineBaseL
 +0047ce 75cb: 85 fe                            sta   PixelLineBaseH
 +0047d0 75cd: ad 2e 0c                         lda   L0C2E
-+0047d3 75d0: 85 02                            sta   $02
++0047d3 75d0: 85 02                            sta   _strobePtrOffs
 +0047d5 75d2: 20 28 76     L75D2               jsr   L7628
-+0047d8 75d5: c6 02                            dec   $02
++0047d8 75d5: c6 02                            dec   _strobePtrOffs
 +0047da 75d7: 10 f9                            bpl   L75D2
-+0047dc 75d9: a6 00                            ldx   $00
++0047dc 75d9: a6 00                            ldx   _spriteEntryPtr
 +0047de 75db: 20 eb 75                         jsr   L75EB
 +0047e1 75de: a9 00                            lda   #$00
 +0047e3 75e0: a2 64                            ldx   #$64
@@ -7178,7 +7296,7 @@
 +0047f0 75ed: ce 1d 14                         dec   $141d
 +0047f3 75f0: ad 1d 14                         lda   $141d
 +0047f6 75f3: 0a                               asl   A
-+0047f7 75f4: 85 06                            sta   PixelLine
++0047f7 75f4: 85 06                            sta   _strobePtr
 +0047f9 75f6: bd 72 1c     L75F6               lda   $1c72,x
 +0047fc 75f9: 9d 70 1c                         sta   $1c70,x
 +0047ff 75fc: bd 82 1c                         lda   $1c82,x
@@ -7194,13 +7312,13 @@
 +00481d 761a: bd d2 1c                         lda   $1cd2,x
 +004820 761d: 9d d0 1c                         sta   $1cd0,x
 +004823 7620: e8                               inx
-+004824 7621: e4 06                            cpx   PixelLine
++004824 7621: e4 06                            cpx   _strobePtr
 +004826 7623: 90 d1                            bcc   L75F6
 +004828 7625: 68                               pla
 +004829 7626: aa                               tax
 +00482a 7627: 60                               rts
 
-+00482b 7628: a6 00        L7628               ldx   $00
++00482b 7628: a6 00        L7628               ldx   _spriteEntryPtr
 +00482d 762a: e8                               inx
 +00482e 762b: bd c0 1c                         lda   $1cc0,x
 +004831 762e: f0 05                            beq   L7635
@@ -7209,43 +7327,43 @@
 +004838 7635: bc 80 1c     L7635               ldy   $1c80,x
 +00483b 7638: bd 70 1c                         lda   $1c70,x
 +00483e 763b: 20 1c 4c                         jsr   L4C1C
-+004841 763e: 85 04                            sta   $04
++004841 763e: 85 04                            sta   _length
 +004843 7640: a9 ff                            lda   #$ff
 +004845 7642: 18                               clc
 +004846 7643: 2a           L7643               rol   A
 +004847 7644: ca                               dex
 +004848 7645: 10 fc                            bpl   L7643
-+00484a 7647: 85 0a                            sta   $0a
++00484a 7647: 85 0a                            sta   _colorBit
 +00484c 7649: a2 02                            ldx   #$02
 +00484e 764b: b1 fc        L764B               lda   (PixelLineBaseL),y
-+004850 764d: 85 06                            sta   PixelLine
++004850 764d: 85 06                            sta   _strobePtr
 +004852 764f: b1 fe                            lda   (PixelLineBaseH),y
-+004854 7651: 85 07                            sta   PixelLine+1
-+004856 7653: 84 05                            sty   $05
-+004858 7655: a4 04                            ldy   $04
-+00485a 7657: a5 0a                            lda   $0a
-+00485c 7659: 31 06                            and   (PixelLine),y
-+00485e 765b: 91 06                            sta   (PixelLine),y
-+004860 765d: a5 0a                            lda   $0a
++004854 7651: 85 07                            sta   _strobePtr+1
++004856 7653: 84 05                            sty   _ix
++004858 7655: a4 04                            ldy   _length
++00485a 7657: a5 0a                            lda   _colorBit
++00485c 7659: 31 06                            and   (_strobePtr),y
++00485e 765b: 91 06                            sta   (_strobePtr),y
++004860 765d: a5 0a                            lda   _colorBit
 +004862 765f: 38                               sec
 +004863 7660: 2a                               rol   A
 +004864 7661: 30 03                            bmi   L7666
 +004866 7663: c8                               iny
 +004867 7664: a9 fe                            lda   #$fe
-+004869 7666: 31 06        L7666               and   (PixelLine),y
-+00486b 7668: 91 06                            sta   (PixelLine),y
-+00486d 766a: a4 05                            ldy   $05
++004869 7666: 31 06        L7666               and   (_strobePtr),y
++00486b 7668: 91 06                            sta   (_strobePtr),y
++00486d 766a: a4 05                            ldy   _ix
 +00486f 766c: c8                               iny
 +004870 766d: ca                               dex
 +004871 766e: d0 db                            bne   L764B
-+004873 7670: a6 00                            ldx   $00
++004873 7670: a6 00                            ldx   _spriteEntryPtr
 +004875 7672: e8                               inx
 +004876 7673: 20 46 75                         jsr   L7546
 +004879 7676: de b0 1c                         dec   $1cb0,x
 +00487c 7679: d0 13                            bne   L768E
 +00487e 767b: a9 40                            lda   #$40
 +004880 767d: 9d b0 1c                         sta   $1cb0,x
-+004883 7680: a4 00                            ldy   $00
++004883 7680: a4 00                            ldy   _spriteEntryPtr
 +004885 7682: b9 c0 1c                         lda   $1cc0,y
 +004888 7685: 9d 90 1c                         sta   $1c90,x
 +00488b 7688: b9 d0 1c                         lda   $1cd0,y
@@ -7269,17 +7387,17 @@
 +0048a8 76a5: 69 00                            adc   #$00
 +0048aa 76a7: 24 4f        L76A7               bit   MON_RNDH
 +0048ac 76a9: 10 05                            bpl   L76B0
-+0048ae 76ab: 86 02                            stx   $02
++0048ae 76ab: 86 02                            stx   _strobePtrOffs
 +0048b0 76ad: aa                               tax
-+0048b1 76ae: a5 02                            lda   $02
-+0048b3 76b0: 86 02        L76B0               stx   $02
++0048b1 76ae: a5 02                            lda   _strobePtrOffs
++0048b3 76b0: 86 02        L76B0               stx   _strobePtrOffs
 +0048b5 76b2: 85 03                            sta   $03
 +0048b7 76b4: 20 36 4c                         jsr   randomA
 +0048ba 76b7: cd 2f 0c                         cmp   L0C2F
 +0048bd 76ba: b0 34                            bcs   L76F0
 +0048bf 76bc: b9 70 1c                         lda   $1c70,y
 +0048c2 76bf: cd 00 15                         cmp   $1500
-+0048c5 76c2: a5 02                            lda   $02
++0048c5 76c2: a5 02                            lda   _strobePtrOffs
 +0048c7 76c4: b0 08                            bcs   L76CE
 +0048c9 76c6: 10 0c                            bpl   L76D4
 +0048cb 76c8: 49 ff                            eor   #$ff
@@ -7288,7 +7406,7 @@
 +0048d1 76ce: 30 04        L76CE               bmi   L76D4
 +0048d3 76d0: 49 ff                            eor   #$ff
 +0048d5 76d2: 69 00                            adc   #$00
-+0048d7 76d4: 85 02        L76D4               sta   $02
++0048d7 76d4: 85 02        L76D4               sta   _strobePtrOffs
 +0048d9 76d6: b9 80 1c                         lda   $1c80,y
 +0048dc 76d9: cd 01 15                         cmp   $1501
 +0048df 76dc: a5 03                            lda   $03
@@ -7313,20 +7431,20 @@
 
 +004900 76fd: bd 51 1c     L76FD               lda   $1c51,x
 +004903 7700: 30 09                            bmi   L770B
-+004905 7702: 86 00                            stx   $00
++004905 7702: 86 00                            stx   _spriteEntryPtr
 +004907 7704: 20 21 78                         jsr   L7821
-+00490a 7707: a6 00                            ldx   $00
++00490a 7707: a6 00                            ldx   _spriteEntryPtr
 +00490c 7709: 10 eb                            bpl   L76F6
 +00490e 770b: ad 08 15     L770B               lda   UsedPaddle?
 +004911 770e: d0 e6                            bne   L76F6
-+004913 7710: 86 00                            stx   $00
++004913 7710: 86 00                            stx   _spriteEntryPtr
 +004915 7712: bd 31 1c                         lda   $1c31,x
 +004918 7715: 30 06                            bmi   L771D
 +00491a 7717: de 31 1c                         dec   $1c31,x
 +00491d 771a: 4c 20 77                         jmp   L7720
 
 +004920 771d: 20 78 77     L771D               jsr   L7778
-+004923 7720: a6 00        L7720               ldx   $00
++004923 7720: a6 00        L7720               ldx   _spriteEntryPtr
 +004925 7722: 20 9e 77                         jsr   L779E
 +004928 7725: bd 50 1c                         lda   $1c50,x
 +00492b 7728: 0a                               asl   A
@@ -7334,14 +7452,14 @@
 +00492d 772a: 1d f0 1b                         ora   $1bf0,x
 +004930 772d: a8                               tay
 +004931 772e: b9 f0 08                         lda   L08F0,y
-+004934 7731: 85 06                            sta   PixelLine
++004934 7731: 85 06                            sta   _strobePtr
 +004936 7733: b9 00 09                         lda   L0900,y
-+004939 7736: 85 07                            sta   PixelLine+1
++004939 7736: 85 07                            sta   _strobePtr+1
 +00493b 7738: bc d0 1b                         ldy   $1bd0,x
 +00493e 773b: bd b0 1b                         lda   $1bb0,x
 +004941 773e: aa                               tax
 +004942 773f: 20 59 50                         jsr   drawYou
-+004945 7742: a6 00                            ldx   $00
++004945 7742: a6 00                            ldx   _spriteEntryPtr
 +004947 7744: de 10 1c                         dec   $1c10,x
 +00494a 7747: 10 ad                            bpl   L76F6
 +00494c 7749: a9 70                            lda   #$70
@@ -7349,12 +7467,12 @@
 +004951 774e: bd b0 1b                         lda   $1bb0,x
 +004954 7751: ac 00 15                         ldy   $1500
 +004957 7754: 20 12 78                         jsr   L7812
-+00495a 7757: 85 02                            sta   $02
++00495a 7757: 85 02                            sta   _strobePtrOffs
 +00495c 7759: 84 03                            sty   $03
 +00495e 775b: bd d0 1b                         lda   $1bd0,x
 +004961 775e: ac 01 15                         ldy   $1501
 +004964 7761: 20 12 78                         jsr   L7812
-+004967 7764: c5 02                            cmp   $02
++004967 7764: c5 02                            cmp   _strobePtrOffs
 +004969 7766: b0 04                            bcs   L776C
 +00496b 7768: a5 03                            lda   $03
 +00496d 776a: 10 03                            bpl   L776F
@@ -7364,7 +7482,7 @@
 +004975 7772: 9d 30 1c                         sta   $1c30,x
 +004978 7775: 4c f6 76                         jmp   L76F6
 
-+00497b 7778: a6 00        L7778               ldx   $00
++00497b 7778: a6 00        L7778               ldx   _spriteEntryPtr
 +00497d 777a: e8                               inx
 +00497e 777b: 20 9e 77                         jsr   L779E
 +004981 777e: 8a                               txa
@@ -7373,7 +7491,7 @@
 +004986 7783: b9 b0 1b                         lda   $1bb0,y
 +004989 7786: a0 0a                            ldy   #$0a
 +00498b 7788: 20 d0 4c                         jsr   eraseFamily
-+00498e 778b: a6 00                            ldx   $00
++00498e 778b: a6 00                            ldx   _spriteEntryPtr
 +004990 778d: de 11 1c                         dec   $1c11,x
 +004993 7790: 10 0b                            bpl   L779D
 +004995 7792: a9 70                            lda   #$70
@@ -7419,12 +7537,12 @@
 +0049e3 77e0: 10 2f                            bpl   L7811
 +0049e5 77e2: ad 2b 0c                         lda   L0C2B
 +0049e8 77e5: 20 4b 4c                         jsr   multiplyRndX
-+0049eb 77e8: 85 06                            sta   PixelLine
++0049eb 77e8: 85 06                            sta   _strobePtr
 +0049ed 77ea: ad 2a 0c                         lda   L0C2A
 +0049f0 77ed: 18                               clc
 +0049f1 77ee: 69 01                            adc   #$01
 +0049f3 77f0: 0a                               asl   A
-+0049f4 77f1: 65 06                            adc   PixelLine
++0049f4 77f1: 65 06                            adc   _strobePtr
 +0049f6 77f3: 8d 26 14                         sta   $1426
 +0049f9 77f6: ad 1b 14                         lda   $141b
 +0049fc 77f9: 0a                               asl   A
@@ -7441,10 +7559,10 @@
 +004a12 780f: 10 ea                            bpl   L77FB
 +004a14 7811: 60           L7811               rts
 
-+004a15 7812: 84 01        L7812               sty   $01
++004a15 7812: 84 01        L7812               sty   _spriteEntryPtr+1
 +004a17 7814: a0 01                            ldy   #$01
 +004a19 7816: 38                               sec
-+004a1a 7817: e5 01                            sbc   $01
++004a1a 7817: e5 01                            sbc   _spriteEntryPtr+1
 +004a1c 7819: b0 05                            bcs   L7820
 +004a1e 781b: 49 ff                            eor   #$ff
 +004a20 781d: 69 01                            adc   #$01
@@ -7453,7 +7571,7 @@
 
 +004a24 7821: ac 08 15     L7821               ldy   UsedPaddle?
 +004a27 7824: b9 41 0c                         lda   L0C41,y
-+004a2a 7827: 85 02                            sta   $02
++004a2a 7827: 85 02                            sta   _strobePtrOffs
 +004a2c 7829: de 51 1c                         dec   $1c51,x
 +004a2f 782c: 10 10                            bpl   L783E
 +004a31 782e: bd d0 1b                         lda   $1bd0,x
@@ -7471,9 +7589,9 @@
 +004a48 7845: 0a                               asl   A
 +004a49 7846: a8                               tay
 +004a4a 7847: b9 a0 08                         lda   L08A0,y
-+004a4d 784a: 85 06                            sta   PixelLine
++004a4d 784a: 85 06                            sta   _strobePtr
 +004a4f 784c: b9 b0 08                         lda   L08B0,y
-+004a52 784f: 85 07                            sta   PixelLine+1
++004a52 784f: 85 07                            sta   _strobePtr+1
 +004a54 7851: bd d0 1b                         lda   $1bd0,x
 +004a57 7854: 38                               sec
 +004a58 7855: e9 02                            sbc   #$02
@@ -7485,21 +7603,21 @@
 +004a64 7861: aa                               tax
 +004a65 7862: 20 7c 4c                         jsr   fetchSprite
 +004a68 7865: b1 fc        L7865               lda   (PixelLineBaseL),y
-+004a6a 7867: 85 06                            sta   PixelLine
++004a6a 7867: 85 06                            sta   _strobePtr
 +004a6c 7869: b1 fe                            lda   (PixelLineBaseH),y
-+004a6e 786b: 85 07                            sta   PixelLine+1
-+004a70 786d: 84 05                            sty   $05
-+004a72 786f: a4 04                            ldy   $04
-+004a74 7871: a1 08                            lda   (AsciiLineByteAddr,x)
-+004a76 7873: 45 02                            eor   $02
-+004a78 7875: 91 06                            sta   (PixelLine),y
-+004a7a 7877: e6 08                            inc   AsciiLineByteAddr
++004a6e 786b: 85 07                            sta   _strobePtr+1
++004a70 786d: 84 05                            sty   _ix
++004a72 786f: a4 04                            ldy   _length
++004a74 7871: a1 08                            lda   (_destPtr,x)
++004a76 7873: 45 02                            eor   _strobePtrOffs
++004a78 7875: 91 06                            sta   (_strobePtr),y
++004a7a 7877: e6 08                            inc   _destPtr
 +004a7c 7879: c8                               iny
-+004a7d 787a: a1 08                            lda   (AsciiLineByteAddr,x)
-+004a7f 787c: 45 02                            eor   $02
-+004a81 787e: 91 06                            sta   (PixelLine),y
-+004a83 7880: e6 08                            inc   AsciiLineByteAddr
-+004a85 7882: a4 05                            ldy   $05
++004a7d 787a: a1 08                            lda   (_destPtr,x)
++004a7f 787c: 45 02                            eor   _strobePtrOffs
++004a81 787e: 91 06                            sta   (_strobePtr),y
++004a83 7880: e6 08                            inc   _destPtr
++004a85 7882: a4 05                            ldy   _ix
 +004a87 7884: 88                               dey
 +004a88 7885: 10 de                            bpl   L7865
 +004a8a 7887: 4c 6e 4c                         jmp   doSpeaker                               ;speaker tail call
@@ -7537,13 +7655,13 @@
 +004ac3 78c0: 38                               sec
 +004ac4 78c1: 60                               rts
 
-+004ac5 78c2: 86 00        L78C2               stx   $00
++004ac5 78c2: 86 00        L78C2               stx   _spriteEntryPtr
 +004ac7 78c4: bd 51 1c                         lda   $1c51,x
 +004aca 78c7: 10 31                            bpl   L78FA
 +004acc 78c9: ad 2a 0c                         lda   L0C2A
-+004acf 78cc: 85 01                            sta   $01
++004acf 78cc: 85 01                            sta   _spriteEntryPtr+1
 +004ad1 78ce: 20 78 77     L78CE               jsr   L7778
-+004ad4 78d1: c6 01                            dec   $01
++004ad4 78d1: c6 01                            dec   _spriteEntryPtr+1
 +004ad6 78d3: 10 f9                            bpl   L78CE
 +004ad8 78d5: bd d0 1b                         lda   $1bd0,x
 +004adb 78d8: 18                               clc
@@ -7562,19 +7680,19 @@
 +004afa 78f7: 38                               sec
 +004afb 78f8: b0 36                            bcs   L7930
 
-+004afd 78fa: a4 00        L78FA               ldy   $00
++004afd 78fa: a4 00        L78FA               ldy   _spriteEntryPtr
 +004aff 78fc: be d0 1b                         ldx   $1bd0,y
 +004b02 78ff: ca                               dex
 +004b03 7900: ca                               dex
 +004b04 7901: b9 b0 1b                         lda   $1bb0,y
 +004b07 7904: a0 0e                            ldy   #$0e
 +004b09 7906: 20 d0 4c                         jsr   eraseFamily
-+004b0c 7909: a6 00                            ldx   $00
++004b0c 7909: a6 00                            ldx   _spriteEntryPtr
 +004b0e 790b: bc d0 1b                         ldy   $1bd0,x
 +004b11 790e: bd b0 1b                         lda   $1bb0,x
 +004b14 7911: aa                               tax
 +004b15 7912: 20 24 5a                         jsr   L5A24
-+004b18 7915: a4 00                            ldy   $00
++004b18 7915: a4 00                            ldy   _spriteEntryPtr
 +004b1a 7917: ae 18 14                         ldx   $1418
 +004b1d 791a: ca           L791A               dex
 +004b1e 791b: 30 12                            bmi   L792F
@@ -7587,7 +7705,7 @@
 +004b2f 792c: 20 59 74                         jsr   L7459
 +004b32 792f: 18           L792F               clc
 +004b33 7930: 08           L7930               php
-+004b34 7931: a6 00                            ldx   $00
++004b34 7931: a6 00                            ldx   _spriteEntryPtr
 +004b36 7933: 20 42 79                         jsr   L7942
 +004b39 7936: 28                               plp
 +004b3a 7937: 90 07                            bcc   L7940
@@ -7602,7 +7720,7 @@
 +004b47 7944: ce 1b 14                         dec   $141b
 +004b4a 7947: ad 1b 14                         lda   $141b
 +004b4d 794a: 0a                               asl   A
-+004b4e 794b: 85 06                            sta   PixelLine
++004b4e 794b: 85 06                            sta   _strobePtr
 +004b50 794d: bd b2 1b     L794D               lda   $1bb2,x
 +004b53 7950: 9d b0 1b                         sta   $1bb0,x
 +004b56 7953: bd d2 1b                         lda   $1bd2,x
@@ -7616,7 +7734,7 @@
 +004b6e 796b: bd 52 1c                         lda   $1c52,x
 +004b71 796e: 9d 50 1c                         sta   $1c50,x
 +004b74 7971: e8                               inx
-+004b75 7972: e4 06                            cpx   PixelLine
++004b75 7972: e4 06                            cpx   _strobePtr
 +004b77 7974: 90 d7                            bcc   L794D
 +004b79 7976: 68                               pla
 +004b7a 7977: aa                               tax

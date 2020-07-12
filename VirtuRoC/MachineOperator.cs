@@ -363,6 +363,15 @@ namespace Robotron {
                         // we probably paused on a breakpoint and unpaused; in this case the PC is still on the breakpoint
                         // => never break right away again on the same PC
                     } else {
+
+                        // flush events which would have been handled below in the main loop
+                        // obviously do *not* execute the op at PC
+                        Machine.Events.HandleEvents( 0 );
+
+                        // Virtu emulates beam, so we might not have everything from memory on the screen yet
+                        // dirty everything and flush to pixels
+                        Machine.Video.Reset();
+
                         WriteMessage( $"break @ PC ${CurrentRPC:X4}" );
                         e.Result = 666;
                         return;
