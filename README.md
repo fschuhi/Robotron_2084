@@ -6,7 +6,7 @@ As of now, everything in this repo is work in progress. The software (emulators 
 From the first post of a first [development blog on 6502.org](http://forum.6502.org/viewtopic.php?t=5517):
 > With the proliferation of really good emulators for the Apple II, I have recently been re-introduced to the games I played decades ago. Then, in school, there were 6502 wizards who not only cracked the copy protection on those games but were actually able to understand and change them. Awesome! Since then it has always bugged me that I shied away from learning 6502 and diving into 8bit game design. I don't know why I have finally decided to try this myself, maybe it was just a critical mass thing. Anyways, here I am, all set.
 
-I'm really a newbie when it comes to 6502 assembler (or any assembler, for that matter). Commenters on 6502.org are very helpful and have given me a lot of really good advice, for which I'm really grateful. 
+I'm really a newbie when it comes to 6502 assembler (or any assembler, for that matter). Commenters on 6502.org are very helpful and have given me a lot of [really good advice](pages/advice from 6502.org.md), for which I'm really grateful. 
 
 ## Papple2
 
@@ -41,14 +41,6 @@ My  current disassembly is **Robotron (Apple).asm**, in the _Disassemblies_ fold
 
 Right now I don't intend to work on [SourceGen]([https://github.com/fadden/6502bench/](https://github.com/fadden/6502bench/)), but that might change, depending on the course the project takes. I'm certainly interested in symbolic debugging, so I'll at least work with SourceGen's JSON configuration file for the Robotron source.
 
-## Some links
-[Beginner's Guide to Reverse Engineering (Retro Games)](https://www.retroreversing.com/tutorials/introduction)
 
-[The game on different platforms](https://www.youtube.com/watch?v=ejA0w-PmBZY)
 
-[Apple II gameplay](https://www.youtube.com/watch?v=8fgwpn17gDQ)
-
-[Review from 1984](https://archive.org/stream/Computer_Games_Vol_3_No_1_1984-04_Carnegie_Publications_US#page/n55/mode/1up)
-
-[Robotron 2084 Arcade Guidebook](http://www.robotron2084guidebook.com/)
 	
