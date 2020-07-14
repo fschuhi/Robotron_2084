@@ -9,8 +9,13 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms.VisualStyles;
 using Microsoft.VisualBasic.FileIO;
+using System.Text.RegularExpressions;
+using System.Reflection.Emit;
+
+// add tests for MemoryLocation
 
 namespace Robotron {
+
 
     class AsmLine {
 
@@ -41,6 +46,11 @@ namespace Robotron {
         public bool HasLabel { get { return Label != ""; } }
         public bool HasLocalLabel { get { return HasLabel && Label.StartsWith( "@" ); } }
         public bool HasGlobalLabel { get { return HasLabel && !HasLocalLabel; } }
+
+        string[] _branches = { "BPL", "BMI", "BVC", "BVS", "BCC", "BCS", "BNE", "BEQ" };
+
+        public bool IsBranch { get { return _branches.Contains( Opcode ); } }
+        public bool IsJump { get { return Opcode == "JSR" || Opcode == "JMP"; } }
 
         public LineTypeEnum LineType { get; private set; }
 
@@ -111,8 +121,8 @@ namespace Robotron {
 
         private void UpdateNormalOpcode() {
             // RawAddress doesn't have a leading $, add it because otherwise it is interpreted as decimal
-            Address = StringToDecimal( "$" + RawAddress );
-            Opcode = RawOpcode;
+            Address = StringToDecimal( "$" + RawAddress.ToUpper() );
+            Opcode = RawOpcode.ToUpper();
             Label = RawLabel;
             Operand = RawOperand;
         }
@@ -195,7 +205,42 @@ namespace Robotron {
         public Dictionary<int, AsmLine> AsmLinesByAddress = new Dictionary<int, AsmLine>();
         public Dictionary<string, AsmLine> AsmLinesByGlobalLabel = new Dictionary<string, AsmLine>();
 
+        public Dictionary<string, Regex> OperandRegexesByPattern = new Dictionary<string, Regex>();
+
+        private void AddRegex( string pattern ) {
+            Regex rx = new Regex( pattern, RegexOptions.Compiled | RegexOptions.IgnoreCase );
+            OperandRegexesByPattern.Add( pattern, rx );
+        }
+
+        private void AddRegexes() {
+            // indirekt JMP
+            AddRegex( @"^\$[A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9]$" );
+            AddRegex( @"^\$[A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9],x$" );
+            AddRegex( @"^\$[A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9],y$" );
+            AddRegex( @"^#\$[A-Za-z0-9][A-Za-z0-9]$" );
+            AddRegex( @"^\$[A-Za-z0-9][A-Za-z0-9]$" );
+            AddRegex( @"^A$" );
+            AddRegex( @"^\([^$]+\),y$" );
+            AddRegex( @"^\([^$]+,x\)$" );
+            AddRegex( @"^[^$]+,x$" );
+            AddRegex( @"^[^$]+,y$" );
+            AddRegex( @"^[^$]+[+-][0-9]+$" );
+            AddRegex( @"^#[^$]+$" );
+        }
+
+        private bool MatchesOperandRegex( string operand ) { 
+            foreach ( KeyValuePair<string,Regex> entry in OperandRegexesByPattern ) {
+                Regex rx = (Regex)entry.Value;
+                if (rx.IsMatch(operand)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
         public AsmReader( string filename ) {
+
+            AddRegexes();
 
             var fs = new FileStream( filename, FileMode.Open, FileAccess.Read );
             TextFieldParser parser = new TextFieldParser( fs );
@@ -212,16 +257,33 @@ namespace Robotron {
                     AsmLinesByAddress.Add( asmLine.Address, asmLine );
 
                 if (asmLine.HasGlobalLabel) {
-                    Trace.WriteLine( asmLine.Label );
+                    // Trace.WriteLine( asmLine.Label );
                     AsmLinesByGlobalLabel.Add( asmLine.Label, asmLine );
+                }
+
+                if (asmLine.Operand != "") {
+                    if ( !MatchesOperandRegex( asmLine.Operand )) {
+
+                        if (asmLine.IsBranch || asmLine.IsJump) {
+                            //
+                        } else {
+                            Trace.WriteLine( asmLine.Operand );
+                        }
+
+                        // uppercase opcode
+                    }
                 }
 
             }
             parser.Close();
 
+            // ResolveLocalLabels();
+
+            // link branches and jumps
+            // resolve operands
+
             Trace.WriteLine( AsmLine.DecimalToHexAddress( AsmLinesByGlobalLabel["roboNoises"].Address ) );
 
-            //ResolveLocalLabels();
         }
 
         private void ResolveLocalLabels() {
