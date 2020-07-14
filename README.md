@@ -6,7 +6,7 @@ As of now, everything in this repo is work in progress. The software (emulators 
 From the first post of a first [development blog on 6502.org](http://forum.6502.org/viewtopic.php?t=5517):
 > With the proliferation of really good emulators for the Apple II, I have recently been re-introduced to the games I played decades ago. Then, in school, there were 6502 wizards who not only cracked the copy protection on those games but were actually able to understand and change them. Awesome! Since then it has always bugged me that I shied away from learning 6502 and diving into 8bit game design. I don't know why I have finally decided to try this myself, maybe it was just a critical mass thing. Anyways, here I am, all set.
 
-I'm really a newbie when it comes to 6502 assembler (or any assembler, for that matter). Commenters on 6502.org are very helpful and have given me a lot of [really good advice](doc/pages/advice from 6502.org.md), for which I'm really grateful. 
+I'm really a newbie when it comes to 6502 assembler (or any assembler, for that matter). Commenters on 6502.org are very helpful and have given me a lot of [really good advice](docs/pages/advice from 6502.org.md), for which I'm really grateful. 
 
 ## Papple2
 
