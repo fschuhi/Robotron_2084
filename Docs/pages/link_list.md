@@ -1,4 +1,3 @@
-
 ## Robotron gameplay
 
 * [Apple II gameplay](https://www.youtube.com/watch?v=8fgwpn17gDQ)
