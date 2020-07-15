@@ -267,7 +267,7 @@ namespace Robotron {
                         if (asmLine.IsBranch || asmLine.IsJump) {
                             //
                         } else {
-                            Trace.WriteLine( asmLine.Operand );
+                            //Trace.WriteLine( asmLine.Operand );
                         }
 
                         // uppercase opcode
@@ -282,7 +282,7 @@ namespace Robotron {
             // link branches and jumps
             // resolve operands
 
-            Trace.WriteLine( AsmLine.DecimalToHexAddress( AsmLinesByGlobalLabel["roboNoises"].Address ) );
+            // Trace.WriteLine( AsmLine.DecimalToHexAddress( AsmLinesByGlobalLabel["roboNoises"].Address ) );
 
         }
 

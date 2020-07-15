@@ -16,8 +16,8 @@ namespace Robotron {
     }
 
     class RByte : RStretch {
-        private RMemory _memory;
-        private string _label;
+        //private RMemory _memory;
+        private string _label = null;
 
         public int Address { get; private set; }
 
@@ -28,7 +28,7 @@ namespace Robotron {
 
         public string Label { get { return _label; } }
         
-        public HashSet<string> Labels;
+        //public HashSet<string> Labels;
 
         public RByte( int address, int value = 0 ) {
             Address = address;

@@ -88,8 +88,8 @@ namespace Robotron {
 
         public Machine Machine;
 
-        private MainWindow _mainWindow;
-        private MainPage _mainPage;
+        public MainWindow MainWindow { get; private set; }
+        public MainPage MainPage { get; private set; }
 
         private AutoResetEvent _resumeEvent = new AutoResetEvent( false );
         private bool _suspending = false;
@@ -113,23 +113,23 @@ namespace Robotron {
 
         private void ConfigureWPF() {
             // setup window, including MainPage
-            _mainWindow = new MainWindow();
-            _mainPage = _mainWindow.GetMainPage();
+            MainWindow = new MainWindow();
+            MainPage = MainWindow.GetMainPage();
 
             // MainPage has created a Machine object, but hasn't done anything with it yet
-            Machine = _mainPage.Machine;
+            Machine = MainPage.Machine;
 
             // machine doesn't start to run on MainPage loaded, we'll do it in our own handler below
-            _mainPage.Loaded += MainPage_loaded;
+            MainPage.Loaded += MainPage_loaded;
 
-            _mainPage.MainWindow.Closing += MainWindow_Closing;
+            MainPage.MainWindow.Closing += MainWindow_Closing;
 
-            _mainPage._disk1Button.Click += ( sender, e ) => MainPage_OnDiskButtonClick( 0 );
-            _mainPage._disk2Button.Click += ( sender, e ) => MainPage_OnDiskButtonClick( 1 );
+            MainPage._disk1Button.Click += ( sender, e ) => MainPage_OnDiskButtonClick( 0 );
+            MainPage._disk2Button.Click += ( sender, e ) => MainPage_OnDiskButtonClick( 1 );
 
             // we can supply an own key handler which interfaces with our MachineOperator
-            VirtuRoCWpfKeyboardService keyboardService = new VirtuRoCWpfKeyboardService( this, Machine, _mainPage );
-            _mainPage.Init( keyboardService );
+            VirtuRoCWpfKeyboardService keyboardService = new VirtuRoCWpfKeyboardService( this, Machine, MainPage );
+            MainPage.Init( keyboardService );
         }
 
         private void ConfigureStatemachine() {
@@ -201,8 +201,8 @@ namespace Robotron {
 
         public void ShowDialog() {
             // start message pumping
-            _mainWindow.ShowActivated = true;
-            _mainWindow.ShowDialog();
+            MainWindow.ShowActivated = true;
+            MainWindow.ShowDialog();
             WriteMessage( "ShowDialog exited, shutting down" );
         }
 
@@ -268,7 +268,7 @@ namespace Robotron {
                 mo_Terminate();
             }
 
-            e.Cancel = !(_sm.IsInState( State.Terminated ));
+            e.Cancel = !(_sm.IsInState( State.Terminated ) || _sm.IsInState( State.Paused ));
         }
         #endregion
 
@@ -295,7 +295,7 @@ namespace Robotron {
         [OnEntry]
         private void sm_OnEntry_Paused( RunWorkerCompletedEventArgs e ) {
             // show on the MainPage where we paused (PC)
-            _mainPage.OnPause(); 
+            MainPage.OnPause(); 
 
             if ((int)e.Result == 666) {
                 OnBreakpoint( this, new BreakpointEventArgs( CurrentRPC ) );
@@ -303,12 +303,12 @@ namespace Robotron {
         }
 
         [OnExit]
-        private void sm_OnExit_Paused() { _mainPage.OnUnpause(); }
+        private void sm_OnExit_Paused() { MainPage.OnUnpause(); }
 
         [OnEntry]
         private void sm_OnEntry_Terminated( RunWorkerCompletedEventArgs e ) {
             ExecuteMachineTask<object>( Machine.Uninitialize, null );
-            _mainPage.MainWindow.Close();
+            MainPage.MainWindow.Close();
         }
         #endregion
 
@@ -424,7 +424,7 @@ namespace Robotron {
                     // https://stackoverflow.com/questions/6232867/com-exceptions-on-exit-with-wpf
                     Dispatcher.CurrentDispatcher.InvokeShutdown();
 
-                    _mainWindow = null;
+                    MainWindow = null;
                 }
 
                 // TODO: free unmanaged resources (unmanaged objects) and override finalizer
