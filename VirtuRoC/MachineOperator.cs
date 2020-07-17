@@ -61,6 +61,7 @@ namespace Robotron {
 
     public delegate void BreakpointEventHandler( MachineOperator mop, BreakpointEventArgs e );
     public delegate void LoadedEventHandler( MachineOperator mop );
+    public delegate void PausedEventHandler( MachineOperator mop );
 
     public class MachineOperator : IDisposable {
 
@@ -96,6 +97,7 @@ namespace Robotron {
 
         public event BreakpointEventHandler OnBreakpoint;
         public event LoadedEventHandler OnLoaded;
+        public event PausedEventHandler OnPaused;
 
         private enum State { Starting, Started, Running, Suspended, Pausing, Paused, Terminating, Terminated }
         private enum Trigger { Start, Suspend, Resume, Pause, Join, Unpause, Terminate }
@@ -160,6 +162,7 @@ namespace Robotron {
                     .Permit( Trigger.Join, State.Paused )
                     .Permit( Trigger.Suspend, State.Suspended )
                     .Permit( Trigger.Pause, State.Pausing )
+                    .Ignore( Trigger.Unpause )
                     .Permit( Trigger.Terminate, State.Terminating );
 
                     _sm.Configure( State.Suspended )
@@ -184,7 +187,7 @@ namespace Robotron {
             _sm.OnTransitioned( t => WriteMessage( $"OnTransitioned: {t.Source} -> {t.Destination} via {t.Trigger}({string.Join( ", ", t.Parameters )})" ) );
 
             string dotGraph = UmlDotGraph.Format( _sm.GetInfo() );
-            System.IO.File.WriteAllText( "tmp\\MachineOperator.dot", dotGraph);
+            System.IO.File.WriteAllText( @"s:\source\repos\Robotron_2084\VirtuRoC\tmp\MachineOperator.dot", dotGraph);
         }
 
 
@@ -243,7 +246,7 @@ namespace Robotron {
             mo_Start();
             Debug.Assert( _sm.IsInState( State.Paused ) );
 
-            OnLoaded( this );
+            OnLoaded?.Invoke( this );
 
             mo_Unpause();
         }
@@ -295,10 +298,12 @@ namespace Robotron {
         [OnEntry]
         private void sm_OnEntry_Paused( RunWorkerCompletedEventArgs e ) {
             // show on the MainPage where we paused (PC)
-            MainPage.OnPause(); 
+            MainPage.OnPause();
+
+            OnPaused?.Invoke( this );
 
             if ((int)e.Result == 666) {
-                OnBreakpoint( this, new BreakpointEventArgs( CurrentRPC ) );
+                OnBreakpoint?.Invoke( this, new BreakpointEventArgs( CurrentRPC ) );
             }
         }
 
@@ -394,7 +399,8 @@ namespace Robotron {
         #endregion
 
 
-        public string BlaBin { get { return Debugger.IsAttached ? "..\\..\\tmp\\bla.bin" : "tmp\\bla.bin"; } }
+        //public string BlaBin { get { return Debugger.IsAttached ? "..\\..\\tmp\\bla.bin" : "tmp\\bla.bin"; } }
+        public string BlaBin { get { return @"s:\source\repos\Robotron_2084\VirtuRoC\tmp\bla.bin"; } }
 
         private void SaveToBlaBinDuringPauseAfterBreakpoint() {
             ExecuteMachineTask( Machine.SaveStateToFile, BlaBin );

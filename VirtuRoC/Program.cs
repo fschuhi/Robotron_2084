@@ -1,43 +1,53 @@
 ﻿using System;
 using System.Diagnostics;
+using CommandLine;
+using VirtuRoC;
 
 namespace Robotron {
 
     class Program {
 
+        public class Options {
+            [Option( 'b', "Breakpoints", Required = false, HelpText = "Run with breakpoints." )]
+            public bool Breakpoints { get; set; }
+        }
+
         [STAThread]
         static void Main( string[] args ) {
-
-            ConsoleTraceListener consoleTracer = new ConsoleTraceListener();
-            Trace.Listeners.Add( consoleTracer );
-
+            ConsoleTraceListener tracer = new ConsoleTraceListener();
+            Trace.Listeners.Add( tracer );
             Trace.WriteLine( "Main() start" );
 
-            // Flush any pending trace messages
-            Trace.Flush();
+            Form1 frm = new Form1();
+            frm.Populate();
+            frm.ShowDialog();
 
-            // TestWindow1();
+            //TestWindow2();
+            return;
 
-            using (MachineOperator _operator = new MachineOperator()) {
+            Parser.Default.ParseArguments<Options>( args )
+                .WithParsed<Options>( o => {
+                    Trace.WriteLine( $"Running workbench{(o.Breakpoints ? "with" : "without")} breakpoints: -b {o.Breakpoints}" );
 
-                Workbench _workbench = new Workbench( _operator );
+                    using (MachineOperator _operator = new MachineOperator()) {
+                        Workbench _workbench = new Workbench( _operator, o.Breakpoints );
+                        _operator.ShowDialog();
+                    }
+                } );
 
-                _operator.ShowDialog();
-            }
-
-            // Write a final trace message to all trace listeners.
             Trace.WriteLine( "Main() end" );
-
-            // remove the console trace listener from the collection, and close the console trace listener.
-            Trace.Listeners.Remove( consoleTracer );
-            consoleTracer.Close();
-
-            // Close all other configured trace listeners.
+            Trace.Flush();
+            Trace.Listeners.Remove( tracer );
+            tracer.Close();
             Trace.Close();
         }
 
         static void TestWindow1() {
             Window1 win = new Window1();
+            win.ShowDialog();
+        }
+        static void TestWindow2() {
+            Window2 win = new Window2();
             win.ShowDialog();
         }
     }

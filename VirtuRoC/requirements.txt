@@ -2,3 +2,4 @@ https://github.com/dotnet-state-machine/stateless
 https://github.com/fschuhi/Virtu/tree/hex-ray
 https://github.com/pamidur/aspect-injector
 https://github.com/michaelnoonan/inputsimulator
+https://github.com/commandlineparser/commandline

@@ -9,6 +9,7 @@
 bin/
 obj/
 tmp/
+old/
 packages/
 
 # do not version testlogs
