@@ -16,6 +16,7 @@ using Microsoft.Win32;
 using AspectInjector.Broker;
 using Microsoft.SqlServer.Server;
 using System.Windows.Threading;
+using System.Windows.Controls;
 
 namespace Robotron {
 
@@ -50,18 +51,28 @@ namespace Robotron {
 #endif
     #endregion
 
-    public class BreakpointEventArgs : EventArgs {
-        // was in namespace System.ComponentModel(.ProgressChangedEventArgs)
-        public BreakpointEventArgs( int breakpointRPC ) {
-            BreakpointRCP = breakpointRPC;
+    public class PausedEventArgs : EventArgs {
+
+        public PausedEventArgs( RunWorkerCompletedEventArgs e ) {
+            this.PausedReason = PausedReason.Keypress;
+            this.RunWorkerCompletedEventArgs = e;
         }
 
+        public PausedEventArgs( RunWorkerCompletedEventArgs e, int breakpointRPC ) {
+            this.PausedReason = PausedReason.Breakpoint;
+            this.RunWorkerCompletedEventArgs = e;
+            this.BreakpointRCP = breakpointRPC;
+        }
+
+        public PausedReason PausedReason { get; private set; }
+        public RunWorkerCompletedEventArgs RunWorkerCompletedEventArgs { get; private set; }
         public int BreakpointRCP { get; private set; }
     }
 
-    public delegate void BreakpointEventHandler( MachineOperator mop, BreakpointEventArgs e );
+    public enum PausedReason { Keypress, Breakpoint };
+
     public delegate void LoadedEventHandler( MachineOperator mop );
-    public delegate void PausedEventHandler( MachineOperator mop );
+    public delegate void PausedEventHandler( MachineOperator mop, PausedEventArgs e );
 
     public class MachineOperator : IDisposable {
 
@@ -95,7 +106,6 @@ namespace Robotron {
         private AutoResetEvent _resumeEvent = new AutoResetEvent( false );
         private bool _suspending = false;
 
-        public event BreakpointEventHandler OnBreakpoint;
         public event LoadedEventHandler OnLoaded;
         public event PausedEventHandler OnPaused;
 
@@ -297,18 +307,21 @@ namespace Robotron {
 
         [OnEntry]
         private void sm_OnEntry_Paused( RunWorkerCompletedEventArgs e ) {
-            // show on the MainPage where we paused (PC)
-            MainPage.OnPause();
+            switch ((PausedReason)(e.Result)) {
 
-            OnPaused?.Invoke( this );
-
-            if ((int)e.Result == 666) {
-                OnBreakpoint?.Invoke( this, new BreakpointEventArgs( CurrentRPC ) );
+                case PausedReason.Breakpoint:
+                    OnPaused?.Invoke( this, new PausedEventArgs( e, CurrentRPC ) );
+                    break;
+                case PausedReason.Keypress:
+                    OnPaused?.Invoke( this, new PausedEventArgs( e ) );
+                    break;
             }
         }
 
         [OnExit]
-        private void sm_OnExit_Paused() { MainPage.OnUnpause(); }
+        public void sm_OnExit_Paused() {
+            MainPage.StateText = "running";
+        }
 
         [OnEntry]
         private void sm_OnEntry_Terminated( RunWorkerCompletedEventArgs e ) {
@@ -378,7 +391,7 @@ namespace Robotron {
                         Machine.Video.Reset();
 
                         WriteMessage( $"break @ PC ${CurrentRPC:X4}" );
-                        e.Result = 666;
+                        e.Result = PausedReason.Breakpoint;
                         return;
                     }
                 }
@@ -393,8 +406,9 @@ namespace Robotron {
                 }
             } while (!_bw.CancellationPending);
 
-            // This gets passed to RunWorkerCompleted
-            e.Result = 123;
+
+            // pausing = cancelling, as of now always initated by user via keypress
+            e.Result = PausedReason.Keypress;
         }
         #endregion
 

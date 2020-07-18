@@ -57,7 +57,7 @@ namespace VirtuRoC {
 
         private System.Windows.Forms.ListBox listBox1;
 
-        public void Populate() {
+        public void Populate( ) {
             listBox1.DrawMode = DrawMode.OwnerDrawVariable;
             listBox1.DrawItem += new DrawItemEventHandler( DrawItem );
             listBox1.MeasureItem += new MeasureItemEventHandler( MeasureItem );

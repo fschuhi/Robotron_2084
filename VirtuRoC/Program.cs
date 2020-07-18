@@ -18,12 +18,7 @@ namespace Robotron {
             Trace.Listeners.Add( tracer );
             Trace.WriteLine( "Main() start" );
 
-            Form1 frm = new Form1();
-            frm.Populate();
-            frm.ShowDialog();
-
             //TestWindow2();
-            return;
 
             Parser.Default.ParseArguments<Options>( args )
                 .WithParsed<Options>( o => {
@@ -31,6 +26,11 @@ namespace Robotron {
 
                     using (MachineOperator _operator = new MachineOperator()) {
                         Workbench _workbench = new Workbench( _operator, o.Breakpoints );
+
+                        //Form1 frm = new Form1();
+                        //frm.Populate();
+                        //frm.Show();
+
                         _operator.ShowDialog();
                     }
                 } );

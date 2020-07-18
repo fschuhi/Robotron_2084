@@ -579,8 +579,10 @@
 "5898":"save first byte of doSpeaker (lda?)",
 "5901":"why save the byte instead of just assuming LDA? (see STX below)",
 "5905":"disable doSpeaker by putting an rts as first byte",
+"5908":"disable collision detection",
 "5914":"restore doSpeaker functionality",
 "5919":"restore STX",
+"5946":"explains controls",
 "5952":"high bit set if key pressed (negative), NW: key pressed?",
 "5955":"if not pressed (positive) then exit",
 "5957":"strobe, i.e. clear buffer",
@@ -596,7 +598,13 @@
 "6129":"NW: colour pairs for Robotron logo flash routine",
 "6176":"NW: return after flashing Robotron logo",
 "6177":"NW: colour pairs for Robotron logo flash routine",
+"6409":"__FA stores something between invocations of saveDirections",
+"6419":"encountered #0 in stash, exit to (which?) intro screen",
 "6589":"NW: does this ever fall through?",
+"6708":"X -\u003e $150[02]",
+"6714":"Y -\u003e $150[13]",
+"6734":"stash address",
+"6744":"looks like a page, inside the sprite table, but unused",
 "7633":"returns ASCII w/ high-bit cleared",
 "7636":"ASCII_SPACE ($A0) w/o high bit",
 "7638":"SPACE = use default (i.e. ControllerType unchanged), then game starts, NW: yes, start game last used controls (default is keyboard)",
@@ -1381,11 +1389,53 @@
 "Text":"generate random number\r\n\r\nA: random number\r\nMON_RND[LH]: 16bit random number (TOCHECK)\r\nMON_RNDL := A\r\n\r\nMON_RND usually changed by KEYIN (see Peeled), but we don\u0027t call KEYIN anywhere in Robotron.\r\n",
 "BoxMode":true,
 "MaxWidth":80,
+"BackgroundColor":0},
+
+"6533":{
+"Text":"==========",
+"BoxMode":false,
+"MaxWidth":80,
+"BackgroundColor":0},
+
+"6695":{
+"Text":"==========",
+"BoxMode":false,
+"MaxWidth":80,
+"BackgroundColor":0},
+
+"6708":{
+"Text":"==========",
+"BoxMode":false,
+"MaxWidth":80,
+"BackgroundColor":0},
+
+"8488":{
+"Text":"==========",
+"BoxMode":false,
+"MaxWidth":80,
+"BackgroundColor":0},
+
+"8567":{
+"Text":"==========",
+"BoxMode":false,
+"MaxWidth":80,
+"BackgroundColor":0},
+
+"6214":{
+"Text":"==========",
+"BoxMode":false,
+"MaxWidth":80,
+"BackgroundColor":0},
+
+"6409":{
+"Text":"==========",
+"BoxMode":false,
+"MaxWidth":80,
 "BackgroundColor":0}},
 
 "Notes":{
 "4783":{
-"Text":"ideas: \"box jsr stretch\"\r\n* here: the consecutive JSRs until (and not including) the bcc\r\n* assumption (from the disassembler tracing): the JSRs are executed consecutively\r\n=\u003e box should check this, probably by \r\n** tracking the SP (\"don\u0027t rts to outside the box\")\r\n** checking for reentry inside the box (\"don\u0027t jump into the box\")",
+"Text":"ideas: \"box jsr stretch\"\r\n* here: the consecutive JSRs until (and not including) the bcc\r\n* assumption (from the disassembler tracing): the JSRs are executed consecutively\r\n=\u003e box should check this, probably by \r\n** tracking the SP (\"don\u0027t rts to outside the box\")\r\n** checking for reentry inside the box (\"don\u0027t jump into the box\")\r\n\r\n* memory layout, as text, or in Excel\r\n* mark code areas which are executed together (using label crossings)",
 "BoxMode":false,
 "MaxWidth":80,
 "BackgroundColor":-7278960},
@@ -1463,7 +1513,7 @@
 "LabelAnno":"None"},
 
 "5895":{
-"Label":"startIntro",
+"Label":"startAttractMode",
 "Value":17668,
 "Source":"User",
 "Type":"GlobalAddr",
@@ -1505,14 +1555,14 @@
 "LabelAnno":"None"},
 
 "5925":{
-"Label":"titleScene",
+"Label":"attractModeLoop",
 "Value":17698,
 "Source":"User",
 "Type":"GlobalAddr",
 "LabelAnno":"None"},
 
 "8517":{
-"Label":"rightStats",
+"Label":"showRightStats",
 "Value":20290,
 "Source":"User",
 "Type":"GlobalAddr",
@@ -3217,6 +3267,83 @@
 "Value":17968,
 "Source":"User",
 "Type":"NonUniqueLocalAddr",
+"LabelAnno":"None"},
+
+"6409":{
+"Label":"saveDirections",
+"Value":18182,
+"Source":"User",
+"Type":"GlobalAddr",
+"LabelAnno":"None"},
+
+"6422":{
+"Label":"save",
+"Value":18195,
+"Source":"User",
+"Type":"NonUniqueLocalAddr",
+"LabelAnno":"None"},
+
+"6708":{
+"Label":"save_1500_1503",
+"Value":18481,
+"Source":"User",
+"Type":"GlobalAddr",
+"LabelAnno":"None"},
+
+"5946":{
+"Label":"introJustControls",
+"Value":17719,
+"Source":"User",
+"Type":"GlobalAddr",
+"LabelAnno":"None"},
+
+"5985":{
+"Label":"runIntro",
+"Value":17758,
+"Source":"User",
+"Type":"GlobalAddr",
+"LabelAnno":"None"},
+
+"8542":{
+"Label":"loop",
+"Value":20315,
+"Source":"User",
+"Type":"NonUniqueLocalAddr",
+"LabelAnno":"None"},
+
+"6695":{
+"Label":"init_stash_FA_FB",
+"Value":18468,
+"Source":"User",
+"Type":"GlobalAddr",
+"LabelAnno":"None"},
+
+"6436":{
+"Label":"saveMovementDir",
+"Value":18209,
+"Source":"User",
+"Type":"NonUniqueLocalAddr",
+"LabelAnno":"None"},
+
+"6439":{
+"Label":"nextOffs",
+"Value":18212,
+"Source":"User",
+"Type":"NonUniqueLocalAddr",
+"LabelAnno":"None"},
+
+"5829":{
+"Label":"displayYou",
+"Value":17602,
+"Source":"User",
+"Type":"GlobalAddr",
+"LabelAnno":"None"},
+
+"6751":{
+"Label":"BP_YouDrawn",
+"Value":18524,
+"Source":"User",
+"Type":"GlobalAddr",
 "LabelAnno":"None"}},
 
 "OperandFormats":{
@@ -6095,25 +6222,73 @@
 "SymbolRef":null},
 
 "6483":{
-"Length":50,
+"Length":16,
+"Format":"Dense",
+"SubFormat":"None",
+"SymbolRef":null},
+
+"6499":{
+"Length":16,
+"Format":"Dense",
+"SubFormat":"None",
+"SymbolRef":null},
+
+"6515":{
+"Length":16,
+"Format":"Dense",
+"SubFormat":"None",
+"SymbolRef":null},
+
+"6531":{
+"Length":2,
 "Format":"Dense",
 "SubFormat":"None",
 "SymbolRef":null},
 
 "6657":{
-"Length":38,
+"Length":16,
+"Format":"Dense",
+"SubFormat":"None",
+"SymbolRef":null},
+
+"6673":{
+"Length":16,
+"Format":"Dense",
+"SubFormat":"None",
+"SymbolRef":null},
+
+"6689":{
+"Length":6,
 "Format":"Dense",
 "SubFormat":"None",
 "SymbolRef":null},
 
 "6754":{
-"Length":41,
+"Length":16,
+"Format":"Dense",
+"SubFormat":"None",
+"SymbolRef":null},
+
+"6770":{
+"Length":16,
+"Format":"Dense",
+"SubFormat":"None",
+"SymbolRef":null},
+
+"6786":{
+"Length":9,
 "Format":"Dense",
 "SubFormat":"None",
 "SymbolRef":null},
 
 "6931":{
-"Length":32,
+"Length":16,
+"Format":"Dense",
+"SubFormat":"None",
+"SymbolRef":null},
+
+"6947":{
+"Length":16,
 "Format":"Dense",
 "SubFormat":"None",
 "SymbolRef":null},
@@ -6575,7 +6750,19 @@
 "SymbolRef":null},
 
 "7493":{
-"Length":37,
+"Length":16,
+"Format":"Dense",
+"SubFormat":"None",
+"SymbolRef":null},
+
+"7509":{
+"Length":16,
+"Format":"Dense",
+"SubFormat":"None",
+"SymbolRef":null},
+
+"7525":{
+"Length":5,
 "Format":"Dense",
 "SubFormat":"None",
 "SymbolRef":null},
@@ -9286,6 +9473,59 @@
 "MultiMask":null,
 "Label":"PixelLineBaseH",
 "Value":254,
+"Source":"Variable",
+"Type":"ExternalAddr",
+"LabelAnno":"None"}],
+"ClearPrevious":false},
+
+"6409":{
+"Variables":[{
+"DataDescriptor":{
+"Length":2,
+"Format":"NumericLE",
+"SubFormat":"Hex",
+"SymbolRef":null},
+
+"Comment":"",
+"HasWidth":true,
+"Direction":"ReadWrite",
+"MultiMask":null,
+"Label":"_stashIntroStoryPtr",
+"Value":34,
+"Source":"Variable",
+"Type":"ExternalAddr",
+"LabelAnno":"None"},
+
+{
+"DataDescriptor":{
+"Length":1,
+"Format":"NumericLE",
+"SubFormat":"Hex",
+"SymbolRef":null},
+
+"Comment":"",
+"HasWidth":true,
+"Direction":"ReadWrite",
+"MultiMask":null,
+"Label":"__FA",
+"Value":250,
+"Source":"Variable",
+"Type":"ExternalAddr",
+"LabelAnno":"None"},
+
+{
+"DataDescriptor":{
+"Length":1,
+"Format":"NumericLE",
+"SubFormat":"Hex",
+"SymbolRef":null},
+
+"Comment":"",
+"HasWidth":true,
+"Direction":"ReadWrite",
+"MultiMask":null,
+"Label":"_stashOffs",
+"Value":251,
 "Source":"Variable",
 "Type":"ExternalAddr",
 "LabelAnno":"None"}],
