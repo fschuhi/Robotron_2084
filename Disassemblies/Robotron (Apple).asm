@@ -7,8 +7,6 @@
                            NOP                 .eq   $ea    {const}
                            MON_WNDLEFT         .eq   $20                                     ;left column of scroll window
                            MON_WNDWDTH         .eq   $21                                     ;width of scroll window
-                           MON_WNDTOP          .eq   $22                                     ;top of scroll window
-                           MON_WNDBTM          .eq   $23                                     ;bottom of scroll window
                            MON_BASL            .eq   $28                                     ;base address for text output (lo)
                            MON_BASH            .eq   $29                                     ;base address for text output (hi)
                            MON_H2              .eq   $2c                                     ;right end of horizontal line drawn by HLINE
@@ -719,7 +717,7 @@
                            ********************************************************************************
 +001263 4060: a2 3f        startScreen         ldx   #STACK_PTR
 +001265 4062: 9a                               txs
-+001266 4063: 20 04 45                         jsr   startIntro                              ;NW: attract mode
++001266 4063: 20 04 45                         jsr   startAttractMode                        ;NW: attract mode
 +001269 4066: 20 67 4b                         jsr   chooseControls                          ;NW: print select controls screen
 +00126c 4069: ad 6a 0c                         lda   L0C6A                                   ;NW: (5), start w/ 5 lives
 +00126f 406c: 8d 09 15                         sta   Lives
@@ -757,6 +755,9 @@
                            => box should check this, probably by 
                            ** tracking the SP ("don't rts to outside the box")
                            ** checking for reentry inside the box ("don't jump into the box")
+
+                           * memory layout, as text, or in Excel
+                           * mark code areas which are executed together (using label crossings)
 +0012af 40ac: 20 0e 43     @stillInLevel       jsr   S430E
 +0012b2 40af: 20 10 41                         jsr   checkKbdAndBtn
 +0012b5 40b2: 20 5b 42                         jsr   speaker_1411?
@@ -1132,7 +1133,7 @@
 +0015be 43bb: 86 ca        B43BB               stx   $ca
 +0015c0 43bd: 4c 6e 4c                         jmp   doSpeaker                               ;speaker tail call
 
-+0015c3 43c0: 20 42 4f     S43C0               jsr   rightStats
++0015c3 43c0: 20 42 4f     S43C0               jsr   showRightStats
 +0015c6 43c3: a2 00                            ldx   #$00
 +0015c8 43c5: bc 80 0c     B43C5               ldy   L0C80,x
 +0015cb 43c8: 30 1b                            bmi   B43EB
@@ -1253,7 +1254,7 @@
 +0016c3 44c0: 48                               pha
 +0016c4 44c1: 60                               rts
 
-+0016c5 44c2: 20 6b 42     L44C2               jsr   checkLevelCompleted
++0016c5 44c2: 20 6b 42     displayYou          jsr   checkLevelCompleted
 +0016c8 44c5: 20 5b 42                         jsr   speaker_1411?
 +0016cb 44c8: 20 09 52                         jsr   L5209
 +0016ce 44cb: 20 1b 5a                         jsr   L5A1B
@@ -1283,13 +1284,13 @@
                            * NW: attract mode                                                             *
                            *                                                                              *
                            ********************************************************************************
-+001707 4504: 8d 10 c0     startIntro          sta   KBDSTRB
++001707 4504: 8d 10 c0     startAttractMode    sta   KBDSTRB
 +00170a 4507: ad 6e 4c                         lda   doSpeaker                               ;save first byte of doSpeaker (lda?)
 +00170d 450a: 85 2f                            sta   $2f                                     ;why save the byte instead of just assuming LDA? (see STX below)
 +00170f 450c: a9 60                            lda   #$60
 +001711 450e: 8d 6e 4c                         sta   doSpeaker                               ;disable doSpeaker by putting an rts as first byte
-+001714 4511: 8d d0 4d                         sta   detectCollision
-+001717 4514: 20 22 45                         jsr   titleScene
++001714 4511: 8d d0 4d                         sta   detectCollision                         ;disable collision detection
++001717 4514: 20 22 45                         jsr   attractModeLoop
 +00171a 4517: a5 2f                            lda   $2f                                     ;restore doSpeaker functionality
 +00171c 4519: 8d 6e 4c                         sta   doSpeaker
 +00171f 451c: a9 86                            lda   #$86                                    ;restore STX
@@ -1301,15 +1302,15 @@
                            * NW: attract mode loop                                                        *
                            *                                                                              *
                            ********************************************************************************
-+001725 4522: 20 5e 45     titleScene          jsr   L455E
++001725 4522: 20 5e 45     attractModeLoop     jsr   runIntro
 +001728 4525: 20 2a 46                         jsr   introStory1
 +00172b 4528: 20 28 47                         jsr   introStory2
 +00172e 452b: 20 7f 46                         jsr   introStory3
 +001731 452e: 20 bc 47                         jsr   introStory4
 +001734 4531: 20 88 48                         jsr   introStory5
 +001737 4534: 20 52 4a                         jsr   introStory6
-+00173a 4537: 20 3e 48     L4537               jsr   introStory7
-+00173d 453a: 4c 22 45                         jmp   titleScene
++00173a 4537: 20 3e 48     introJustControls   jsr   introStory7                             ;explains controls
++00173d 453a: 4c 22 45                         jmp   attractModeLoop
 
                            ; NW: attract mode check for keypress
 +001740 453d: ac 00 c0     peekKey             ldy   KBD                                     ;high bit set if key pressed (negative), NW: key pressed?
@@ -1329,13 +1330,13 @@
 
 +001756 4553: c0 9b        @notSpace           cpy   #ASCII2_ESCAPE                          ;escape?
 +001758 4555: d0 03                            bne   @notEscape
-+00175a 4557: 4c 37 45                         jmp   L4537                                   ;show help screen, or restart intro, NW: yes, skip to intro 7 - controls
++00175a 4557: 4c 37 45                         jmp   introJustControls                       ;show help screen, or restart intro, NW: yes, skip to intro 7 - controls
 
-+00175d 455a: 4c 22 45     @notEscape          jmp   titleScene
++00175d 455a: 4c 22 45     @notEscape          jmp   attractModeLoop
 
 +001760 455d: 60           @rts                rts
 
-+001761 455e: 20 42 4f     L455E               jsr   rightStats
++001761 455e: 20 42 4f     runIntro            jsr   showRightStats
 +001764 4561: ad 32 14                         lda   $1432
 +001767 4564: 0d 33 14                         ora   $1433
 +00176a 4567: f0 03                            beq   atariPresents
@@ -1440,6 +1441,7 @@
 +001845 4642: 60                               rts
 
                            NOTE: mark implicit target labels with leading B, S, J
+                           ; ==========
 +001846 4643: a9 00        S4643               lda   #$00
 +001848 4645: 8d 02 14                         sta   $1402
 +00184b 4648: 8d 09 14                         sta   $1409
@@ -1471,7 +1473,7 @@
 +001885 4682: 20 43 01                         jsr   storyPart3_jmp
 +001888 4685: a0 90                            ldy   #$90
 +00188a 4687: a2 06                            ldx   #$06
-+00188c 4689: 20 31 48                         jsr   L4831
++00188c 4689: 20 31 48                         jsr   save_1500_1503
 +00188f 468c: a0 14                            ldy   #$14
 +001891 468e: 8c 02 14                         sty   $1402
 +001894 4691: 8c 08 14                         sty   $1408
@@ -1500,9 +1502,9 @@
 
 +0018c8 46c5: a2 dc        L46C5               ldx   #$dc
 +0018ca 46c7: a9 46                            lda   #$46
-+0018cc 46c9: 20 24 48                         jsr   L4824
-+0018cf 46cc: 20 06 47     L46CC               jsr   L4706
-+0018d2 46cf: 20 c2 44                         jsr   L44C2
++0018cc 46c9: 20 24 48                         jsr   init_stash_FA_FB
++0018cf 46cc: 20 06 47     L46CC               jsr   saveDirections
++0018d2 46cf: 20 c2 44                         jsr   displayYou
 +0018d5 46d2: a9 68                            lda   #$68
 +0018d7 46d4: a2 c0                            ldx   #$c0
 +0018d9 46d6: 20 e9 46                         jsr   L46E9
@@ -1526,26 +1528,31 @@
 
 +001908 4705: 60           L4705               rts
 
-+001909 4706: c6 fa        L4706               dec   $fa
+                           ; ==========
+                           _stashIntroStoryPtr .var  $22    {addr/2}
+                           __FA                .var  $fa    {addr/1}
+                           _stashOffs          .var  $fb    {addr/1}
+
++001909 4706: c6 fa        saveDirections      dec   __FA                                    ;__FA stores something between invocations of saveDirections
 +00190b 4708: d0 1d                            bne   @rts
-+00190d 470a: a4 fb                            ldy   $fb
-+00190f 470c: b1 22                            lda   (MON_WNDTOP),y
-+001911 470e: d0 03                            bne   L4713
-+001913 4710: 68                               pla
++00190d 470a: a4 fb                            ldy   _stashOffs
++00190f 470c: b1 22                            lda   (_stashIntroStoryPtr),y
++001911 470e: d0 03                            bne   @save
++001913 4710: 68                               pla                                           ;encountered #0 in stash, exit to (which?) intro screen
 +001914 4711: 68                               pla
 +001915 4712: 60                               rts
 
-+001916 4713: 85 fa        L4713               sta   $fa
++001916 4713: 85 fa        @save               sta   __FA
 +001918 4715: c8                               iny
-+001919 4716: b1 22                            lda   (MON_WNDTOP),y
-+00191b 4718: 10 07                            bpl   L4721
++001919 4716: b1 22                            lda   (_stashIntroStoryPtr),y
++00191b 4718: 10 07                            bpl   @saveMovementDir
 +00191d 471a: 29 0f                            and   #$0f
 +00191f 471c: 8d 16 14                         sta   ShootingDir
-+001922 471f: 10 03                            bpl   L4724
++001922 471f: 10 03                            bpl   @nextOffs
 
-+001924 4721: 8d 06 15     L4721               sta   MovementDir
-+001927 4724: c8           L4724               iny
-+001928 4725: 84 fb                            sty   $fb
++001924 4721: 8d 06 15     @saveMovementDir    sta   MovementDir
++001927 4724: c8           @nextOffs           iny
++001928 4725: 84 fb                            sty   _stashOffs
 +00192a 4727: 60           @rts                rts
 
                            ********************************************************************************
@@ -1555,7 +1562,7 @@
 +00192e 472b: 20 46 01                         jsr   storyPart2_jmp
 +001931 472e: a0 a0                            ldy   #$a0
 +001933 4730: a2 78                            ldx   #$78
-+001935 4732: 20 31 48                         jsr   L4831
++001935 4732: 20 31 48                         jsr   save_1500_1503
 +001938 4735: a9 6d                            lda   #$6d
 +00193a 4737: 85 20                            sta   MON_WNDLEFT
 +00193c 4739: a9 47                            lda   #$47
@@ -1563,14 +1570,17 @@
 +001940 473d: 20 82 47                         jsr   L4782
 +001943 4740: a2 50                            ldx   #$50
 +001945 4742: a9 47                            lda   #$47
-+001947 4744: 20 24 48                         jsr   L4824
-+00194a 4747: 20 06 47     @loop               jsr   L4706
-+00194d 474a: 20 c2 44                         jsr   L44C2
++001947 4744: 20 24 48                         jsr   init_stash_FA_FB
++00194a 4747: 20 06 47     @loop               jsr   saveDirections
++00194d 474a: 20 c2 44                         jsr   displayYou
 +001950 474d: 4c 47 47                         jmp   @loop
 
-+001953 4750: 20 00 20 03+                     .bulk 2000200306070c0d2f010c051703060f0c00108110831081108320800010b000
-                                                +    01609001007c900002e0a00101f0b0010200
++001953 4750: 20 00 20 03+                     .bulk 2000200306070c0d2f010c051703060f
++001963 4760: 0c 00 10 81+                     .bulk 0c00108110831081108320800010b000
++001973 4770: 01 60 90 01+                     .bulk 01609001007c900002e0a00101f0b001
++001983 4780: 02 00                            .bulk 0200
 
+                           ; ==========
 +001985 4782: a2 00        L4782               ldx   #$00
 +001987 4784: a0 00                            ldy   #$00
 +001989 4786: a9 0a                            lda   #$0a
@@ -1607,7 +1617,7 @@
 +0019c2 47bf: 20 49 01                         jsr   storyPart4_jmp
 +0019c5 47c2: a2 f0                            ldx   #$f0
 +0019c7 47c4: a0 b0                            ldy   #$b0
-+0019c9 47c6: 20 31 48                         jsr   L4831
++0019c9 47c6: 20 31 48                         jsr   save_1500_1503
 +0019cc 47c9: a9 17                            lda   #$17
 +0019ce 47cb: 85 20                            sta   MON_WNDLEFT
 +0019d0 47cd: a9 48                            lda   #$48
@@ -1615,7 +1625,7 @@
 +0019d4 47d1: 20 82 47                         jsr   L4782
 +0019d7 47d4: a2 fe                            ldx   #$fe
 +0019d9 47d6: a9 47                            lda   #$47
-+0019db 47d8: 20 24 48                         jsr   L4824
++0019db 47d8: 20 24 48                         jsr   init_stash_FA_FB
 +0019de 47db: a9 09                            lda   #$09
 +0019e0 47dd: 8d 00 19                         sta   $1900
 +0019e3 47e0: a9 90                            lda   #$90
@@ -1626,24 +1636,27 @@
 +0019f0 47ed: a9 7f                            lda   #$7f
 +0019f2 47ef: 8d 40 19                         sta   $1940
 +0019f5 47f2: ee 09 14                         inc   $1409
-+0019f8 47f5: 20 06 47     @loop               jsr   L4706
-+0019fb 47f8: 20 c2 44                         jsr   L44C2
++0019f8 47f5: 20 06 47     @loop               jsr   saveDirections
++0019fb 47f8: 20 c2 44                         jsr   displayYou
 +0019fe 47fb: 4c f5 47                         jmp   @loop
 
-+001a01 47fe: 58 00 10 0f+                     .bulk 5800100f0100708308030104098010030a0c0100108120800030900001509000
-                                                +    007090000200
++001a01 47fe: 58 00 10 0f+                     .bulk 5800100f010070830803010409801003
++001a11 480e: 0a 0c 01 00+                     .bulk 0a0c0100108120800030900001509000
++001a21 481e: 00 70 90 00+                     .bulk 007090000200
 
-+001a27 4824: 86 22        L4824               stx   MON_WNDTOP
-+001a29 4826: 85 23                            sta   MON_WNDBTM
+                           ; ==========
++001a27 4824: 86 22        init_stash_FA_FB    stx   _stashIntroStoryPtr
++001a29 4826: 85 23                            sta   _stashIntroStoryPtr+1
 +001a2b 4828: a9 01                            lda   #$01
-+001a2d 482a: 85 fa                            sta   $fa
++001a2d 482a: 85 fa                            sta   __FA
 +001a2f 482c: a9 00                            lda   #$00
-+001a31 482e: 85 fb                            sta   $fb
++001a31 482e: 85 fb                            sta   _stashOffs
 +001a33 4830: 60                               rts
 
-+001a34 4831: 8e 00 15     L4831               stx   $1500
+                           ; ==========
++001a34 4831: 8e 00 15     save_1500_1503      stx   $1500                                   ;X -> $150[02]
 +001a37 4834: 8e 02 15                         stx   $1502
-+001a3a 4837: 8c 01 15                         sty   $1501
++001a3a 4837: 8c 01 15                         sty   $1501                                   ;Y -> $150[13]
 +001a3d 483a: 8c 03 15                         sty   $1503
 +001a40 483d: 60                               rts
 
@@ -1654,18 +1667,19 @@
 +001a44 4841: 20 30 49                         jsr   explainControls
 +001a47 4844: a2 08                            ldx   #$08
 +001a49 4846: a0 08                            ldy   #$08
-+001a4b 4848: 20 31 48                         jsr   L4831
-+001a4e 484b: a2 5f                            ldx   #$5f
++001a4b 4848: 20 31 48                         jsr   save_1500_1503
++001a4e 484b: a2 5f                            ldx   #$5f                                    ;stash address
 +001a50 484d: a9 48                            lda   #$48
-+001a52 484f: 20 24 48                         jsr   L4824
-+001a55 4852: 20 06 47     @loop               jsr   L4706
-+001a58 4855: a9 7f                            lda   #$7f
++001a52 484f: 20 24 48                         jsr   init_stash_FA_FB
++001a55 4852: 20 06 47     @loop               jsr   saveDirections
++001a58 4855: a9 7f                            lda   #$7f                                    ;looks like a page, inside the sprite table, but unused
 +001a5a 4857: 85 2a                            sta   $2a
-+001a5c 4859: 20 c2 44                         jsr   L44C2
-+001a5f 485c: 4c 52 48                         jmp   @loop
++001a5c 4859: 20 c2 44                         jsr   displayYou
++001a5f 485c: 4c 52 48     BP_YouDrawn         jmp   @loop
 
-+001a62 485f: 19 01 19 04+                     .bulk 190119041a01120c09010800108110831081108302800a0112041c01180c1001
-                                                +    18047203190c200000
++001a62 485f: 19 01 19 04+                     .bulk 190119041a01120c0901080010811083
++001a72 486f: 10 81 10 83+                     .bulk 1081108302800a0112041c01180c1001
++001a82 487f: 18 04 72 03+                     .bulk 18047203190c200000
 
                            ********************************************************************************
                            * NW: intro 5 - BRAINS, PROGS                                                  *
@@ -1674,7 +1688,7 @@
 +001a8e 488b: 20 4c 01                         jsr   storyPart5_jmp
 +001a91 488e: a2 f0                            ldx   #$f0
 +001a93 4890: a0 a0                            ldy   #$a0
-+001a95 4892: 20 31 48                         jsr   L4831
++001a95 4892: 20 31 48                         jsr   save_1500_1503
 +001a98 4895: a9 2b                            lda   #$2b
 +001a9a 4897: 85 20                            sta   MON_WNDLEFT
 +001a9c 4899: a9 49                            lda   #$49
@@ -1682,7 +1696,7 @@
 +001aa0 489d: 20 82 47                         jsr   L4782
 +001aa3 48a0: a2 10                            ldx   #$10
 +001aa5 48a2: a9 49                            lda   #$49
-+001aa7 48a4: 20 24 48                         jsr   L4824
++001aa7 48a4: 20 24 48                         jsr   init_stash_FA_FB
 +001aaa 48a7: a9 08                            lda   #$08
 +001aac 48a9: 8d 20 1b                         sta   $1b20
 +001aaf 48ac: a9 a0                            lda   #$a0
@@ -1696,14 +1710,14 @@
 +001ac4 48c1: a9 ff                            lda   #$ff
 +001ac6 48c3: 8d 90 1b                         sta   $1b90
 +001ac9 48c6: ee 18 14                         inc   $1418
-+001acc 48c9: 20 06 47     L48C9               jsr   L4706
-+001acf 48cc: 20 c2 44                         jsr   L44C2
++001acc 48c9: 20 06 47     L48C9               jsr   saveDirections
++001acf 48cc: 20 c2 44                         jsr   displayYou
 +001ad2 48cf: a9 80                            lda   #$80
 +001ad4 48d1: a2 c0                            ldx   #$c0
 +001ad6 48d3: 20 e9 46                         jsr   L46E9
 +001ad9 48d6: ad 1d 14                         lda   $141d
 +001adc 48d9: d0 32                            bne   L490D
-+001ade 48db: a5 fb                            lda   $fb
++001ade 48db: a5 fb                            lda   _stashOffs
 +001ae0 48dd: c9 0a                            cmp   #$0a
 +001ae2 48df: d0 2c                            bne   L490D
 +001ae4 48e1: a2 01                            ldx   #$01
@@ -1726,7 +1740,8 @@
 +001b0d 490a: ee 1d 14                         inc   $141d
 +001b10 490d: 4c c9 48     L490D               jmp   L48C9
 
-+001b13 4910: 80 00 60 00+                     .bulk 80006000018320801000020f0500018310802a0301830b8020000022a0000100
++001b13 4910: 80 00 60 00+                     .bulk 80006000018320801000020f05000183
++001b23 4920: 10 80 2a 03+                     .bulk 10802a0301830b8020000022a0000100
 
                            ********************************************************************************
                            * NW: print the controls screen                                                *
@@ -1819,10 +1834,10 @@
 +001c58 4a55: 20 4f 01                         jsr   storyPart6_jmp
 +001c5b 4a58: a2 08                            ldx   #$08
 +001c5d 4a5a: a0 08                            ldy   #$08
-+001c5f 4a5c: 20 31 48                         jsr   L4831
++001c5f 4a5c: 20 31 48                         jsr   save_1500_1503
 +001c62 4a5f: a2 42                            ldx   #$42
 +001c64 4a61: a9 4b                            lda   #$4b
-+001c66 4a63: 20 24 48                         jsr   L4824
++001c66 4a63: 20 24 48                         jsr   init_stash_FA_FB
 +001c69 4a66: a9 f1                            lda   #$f1
 +001c6b 4a68: 8d c0 19                         sta   $19c0
 +001c6e 4a6b: a9 f0                            lda   #$f0
@@ -1848,7 +1863,7 @@
 +001ca5 4aa2: 8d 30 1d                         sta   $1d30
 +001ca8 4aa5: ee 0e 14                         inc   $140e
 +001cab 4aa8: ee 27 14                         inc   $1427
-+001cae 4aab: 20 06 47     L4AAB               jsr   L4706
++001cae 4aab: 20 06 47     L4AAB               jsr   saveDirections
 +001cb1 4aae: ad 30 1d                         lda   $1d30
 +001cb4 4ab1: c9 10                            cmp   #$10
 +001cb6 4ab3: b0 05                            bcs   L4ABA
@@ -1858,7 +1873,7 @@
 +001cbf 4abc: 8d 10 1a                         sta   $1a10
 +001cc2 4abf: 8d 24 14                         sta   $1424
 +001cc5 4ac2: 8d 2a 14                         sta   $142a
-+001cc8 4ac5: a5 fb                            lda   $fb
++001cc8 4ac5: a5 fb                            lda   _stashOffs
 +001cca 4ac7: c9 06                            cmp   #$06
 +001ccc 4ac9: d0 05                            bne   L4AD0
 +001cce 4acb: a9 fc                            lda   #$fc
@@ -1879,7 +1894,7 @@
 +001cf3 4af0: a9 fe                            lda   #$fe
 +001cf5 4af2: 8d 80 1a                         sta   $1a80
 +001cf8 4af5: ee 0f 14                         inc   $140f
-+001cfb 4af8: a5 fb        L4AF8               lda   $fb
++001cfb 4af8: a5 fb        L4AF8               lda   _stashOffs
 +001cfd 4afa: c9 18                            cmp   #$18
 +001cff 4afc: d0 05                            bne   L4B03
 +001d01 4afe: a9 fc                            lda   #$fc
@@ -1904,14 +1919,15 @@
 +001d30 4b2d: a9 7f                            lda   #$7f
 +001d32 4b2f: 8d 10 1e                         sta   $1e10
 +001d35 4b32: ee 28 14                         inc   $1428
-+001d38 4b35: 20 c2 44     L4B35               jsr   L44C2
++001d38 4b35: 20 c2 44     L4B35               jsr   displayYou
 +001d3b 4b38: a9 80                            lda   #$80
 +001d3d 4b3a: a2 b0                            ldx   #$b0
 +001d3f 4b3c: 20 e9 46                         jsr   L46E9
 +001d42 4b3f: 4c ab 4a                         jmp   L4AAB
 
-+001d45 4b42: 44 04 01 00+                     .bulk 440401005000040101810f8001810b8020030c0401005000040101811f800181
-                                                +    1480200000
++001d45 4b42: 44 04 01 00+                     .bulk 440401005000040101810f8001810b80
++001d55 4b52: 20 03 0c 04+                     .bulk 20030c0401005000040101811f800181
++001d65 4b62: 14 80 20 00+                     .bulk 1480200000
 
                            ********************************************************************************
                            * NW: print select controls screen                                             *
@@ -2459,6 +2475,7 @@
 +002125 4f22: d0 dc                            bne   L4F00
 +002127 4f24: 60                               rts
 
+                           ; ==========
 +002128 4f25: a0 00        clearScreen         ldy   #$00
 +00212a 4f27: 84 fc                            sty   PixelLineBaseL
 +00212c 4f29: 84 fe                            sty   PixelLineBaseH
@@ -2476,7 +2493,7 @@
 +002142 4f3f: d0 f6                            bne   @nextHorizontalByte
 +002144 4f41: 60                               rts
 
-+002145 4f42: 20 25 4f     rightStats          jsr   clearScreen
++002145 4f42: 20 25 4f     showRightStats      jsr   clearScreen
 +002148 4f45: 20 1f 4e                         jsr   showScore
 +00214b 4f48: 20 4f 4e                         jsr   showLives
 +00214e 4f4b: ae 07 14                         ldx   Level                                   ;Level ist stored 0-based, shown 1-based
@@ -2487,7 +2504,7 @@
 +002158 4f55: 85 02                            sta   $02
 +00215a 4f57: a9 b8                            lda   #$b8
 +00215c 4f59: 85 fc                            sta   PixelLineBaseL
-+00215e 4f5b: 20 c4 4e     L4F5B               jsr   stats04
++00215e 4f5b: 20 c4 4e     @loop               jsr   stats04
 +002161 4f5e: 18                               clc
 +002162 4f5f: 69 b0                            adc   #$b0
 +002164 4f61: a4 fc                            ldy   PixelLineBaseL
@@ -2498,9 +2515,10 @@
 +00216e 4f6b: e9 08                            sbc   #$08
 +002170 4f6d: 85 fc                            sta   PixelLineBaseL
 +002172 4f6f: a5 00                            lda   $00                                     ;something has happened to $00, doesn't look like a level anymore
-+002174 4f71: d0 e8                            bne   L4F5B
++002174 4f71: d0 e8                            bne   @loop
 +002176 4f73: 60                               rts
 
+                           ; ==========
 +002177 4f74: 48           L4F74               pha
 +002178 4f75: ad 03 0c                         lda   L0C03
 +00217b 4f78: 38                               sec

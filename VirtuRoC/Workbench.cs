@@ -5,7 +5,6 @@ using System.Diagnostics;
 using WindowsInput.Native;
 using WindowsInput;
 using Stateless;
-using System.Globalization;
 
 namespace Robotron {
 
@@ -37,7 +36,7 @@ namespace Robotron {
         }
 
         private void _operator_OnPaused( MachineOperator mop, PausedEventArgs e ) {
-            _operator.MainPage.StateText = string.Format( CultureInfo.InvariantCulture, "paused @ PC ${0:X4}", _operator.Machine.Cpu.RPC );
+            _operator.MainPage.StateText = GetLabel( e.BreakpointRCP );
 
             switch (e.PausedReason) {
                 case PausedReason.Breakpoint:
@@ -49,6 +48,11 @@ namespace Robotron {
                     // it doesn't help to see a partial log, better execute until next breakpoint
                     break;
             }
+        }
+
+        private string GetLabel( int address ) {
+            AsmLine line = _asmReader.AsmLinesByAddress[address];
+            return line.HasLabel ? line.Label : $"${address:X4}";
         }
 
         private int GetAddress( string label ) {
@@ -109,7 +113,7 @@ namespace Robotron {
 
                 switch (opcode) {
                     case "JSR":
-                        Trace.WriteLine( $"${opcodeRPC:X04}: JSR ${rpc:X04}" );
+                        Trace.WriteLine( $"{GetLabel(opcodeRPC)}: JSR {GetLabel(rpc)}" );
                         Trace.Indent();
 
                         counts[rpc] = (counts.ContainsKey( rpc ) ? counts[rpc] : 0) + 1;
