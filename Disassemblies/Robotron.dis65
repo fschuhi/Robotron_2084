@@ -870,7 +870,7 @@
 "BackgroundColor":0},
 
 "7762":{
-"Text":"multiply\r\n\r\nThe two 8-bit operands are provided in A and X\r\nX: result\r\nA: workspace (?)\r\nY: untouched",
+"Text":"multiplyAX\r\n\r\nThe two 8-bit operands are provided in A and X\r\nX: result\r\nA: workspace (?)\r\nY: untouched",
 "BoxMode":true,
 "MaxWidth":80,
 "BackgroundColor":0},
@@ -1434,7 +1434,7 @@
 "BackgroundColor":0},
 
 "7683":{
-"Text":"L4c00\r\n\r\nA -\u003e __E0\r\nX -\u003e __E1\r\n\r\nreturns: A, X",
+"Text":"divideAX - 8-bit division (?)\r\n\r\nA -\u003e __E0\r\nX -\u003e __E1\r\n\r\nreturns: A (Quotient?), X (Rest)\r\n\r\nhttp://6502org.wikidot.com/software-math-intdiv\r\nhttps://wiki.nesdev.com/w/index.php/8-bit_Divide\r\nhttp://forum.6502.org/viewtopic.php?t=1249\r\nhttp://forum.6502.org/viewtopic.php?f=2\u0026t=5322\r\nhttp://forum.6502.org/viewtopic.php?f=9\u0026t=1652\r\nhttp://wilsonminesco.com/16bitMathTables/index.html\r\nhttp://nparker.llx.com/a2/mult.html\r\nhttps://codebase64.org/doku.php?id=base:6502_6510_maths",
 "BoxMode":true,
 "MaxWidth":80,
 "BackgroundColor":0},
@@ -2063,7 +2063,7 @@
 "LabelAnno":"None"},
 
 "7772":{
-"Label":"loop",
+"Label":"nextBit",
 "Value":19545,
 "Source":"User",
 "Type":"NonUniqueLocalAddr",
@@ -3365,7 +3365,7 @@
 "LabelAnno":"None"},
 
 "7693":{
-"Label":"loop",
+"Label":"nextBit",
 "Value":19466,
 "Source":"User",
 "Type":"NonUniqueLocalAddr",
@@ -3376,6 +3376,48 @@
 "Value":19475,
 "Source":"User",
 "Type":"NonUniqueLocalAddr",
+"LabelAnno":"None"},
+
+"7683":{
+"Label":"divideAX",
+"Value":19456,
+"Source":"User",
+"Type":"GlobalAddr",
+"LabelAnno":"None"},
+
+"7711":{
+"Label":"divdeA7",
+"Value":19484,
+"Source":"User",
+"Type":"GlobalAddr",
+"LabelAnno":"None"},
+
+"7728":{
+"Label":"lessThan",
+"Value":19501,
+"Source":"User",
+"Type":"NonUniqueLocalAddr",
+"LabelAnno":"None"},
+
+"7719":{
+"Label":"nextBit",
+"Value":19492,
+"Source":"User",
+"Type":"NonUniqueLocalAddr",
+"LabelAnno":"None"},
+
+"7786":{
+"Label":"noOverflow",
+"Value":19559,
+"Source":"User",
+"Type":"NonUniqueLocalAddr",
+"LabelAnno":"None"},
+
+"7710":{
+"Label":"divideAX_RTS",
+"Value":19483,
+"Source":"User",
+"Type":"GlobalAddr",
 "LabelAnno":"None"}},
 
 "OperandFormats":{
@@ -9575,7 +9617,7 @@
 "HasWidth":true,
 "Direction":"ReadWrite",
 "MultiMask":null,
-"Label":"__E0",
+"Label":"_Dividend",
 "Value":224,
 "Source":"Variable",
 "Type":"ExternalAddr",
@@ -9592,7 +9634,7 @@
 "HasWidth":true,
 "Direction":"ReadWrite",
 "MultiMask":null,
-"Label":"__E1",
+"Label":"_Divisor",
 "Value":225,
 "Source":"Variable",
 "Type":"ExternalAddr",
@@ -9609,7 +9651,7 @@
 "HasWidth":true,
 "Direction":"ReadWrite",
 "MultiMask":null,
-"Label":"__E2",
+"Label":"_Quotient",
 "Value":226,
 "Source":"Variable",
 "Type":"ExternalAddr",

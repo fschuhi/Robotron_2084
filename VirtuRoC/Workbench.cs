@@ -5,12 +5,14 @@ using System.Diagnostics;
 using WindowsInput.Native;
 using WindowsInput;
 using Stateless;
+using System.IO;
+using CommandLine;
 
 namespace Robotron {
 
     class Workbench {
 
-        private MachineOperator _operator;
+        private MachineOperator _mo;
         private AsmReader _asmReader = new AsmReader( @"s:\source\repos\Robotron_2084\VirtuRoC\tmp\Robotron.csv" );
 
         private enum State { Idle, WaitForDoneAtari, DoneAtari, IntroStory7, YouDrawn }
@@ -18,25 +20,35 @@ namespace Robotron {
         private StateMachine<State, Trigger>.TriggerWithParameters<PausedEventArgs> _breakpointTrigger;
         private StateMachine<State, Trigger> _sm;
 
-        bool _runWithBreakpoints;
+        private Options _options;
+        private int _logIndent = 0;
+        private StreamWriter _logOutput;
 
-        public Workbench( MachineOperator mop, bool runWithBreakpoints ) {
-            _operator = mop;
-            _runWithBreakpoints = runWithBreakpoints;
-            _operator.OnLoaded += _operator_OnLoaded;
+        public Workbench( MachineOperator mo, Options options ) {
+            _mo = mo;
+            _mo.OnLoaded += mo_OnLoaded;
+            _mo.OnClosing += mo_OnClosing;
+            _options = options;
         }
 
-        private void _operator_OnLoaded( MachineOperator mop ) {
-            _operator.LoadStateFromFile( _operator.BlaBin );
-            if (_runWithBreakpoints) {
-                _operator.OnPaused += _operator_OnPaused;
-                ConfigureStatemachine();
-                _sm.Fire( Trigger.Start );
-            }
+        private void mo_OnLoaded( MachineOperator mo ) {
+            MachineOperator.WriteMessage( "Workbench: mo_OnLoaded" );
+            _logOutput = File.AppendText( @"s:\source\repos\Robotron_2084\VirtuRoC\tmp\out.log" );
+            _mo.LoadStateFromFile( _mo.BlaBin );
+            _mo.OnPaused += mo_OnPause;
+            ConfigureStatemachine();
+            _sm.Fire( Trigger.Start );
         }
 
-        private void _operator_OnPaused( MachineOperator mop, PausedEventArgs e ) {
-            _operator.MainPage.StateText = GetLabel( e.BreakpointRCP );
+        private void mo_OnClosing( MachineOperator mo ) {
+            MachineOperator.WriteMessage( "Workbench: mo_OnClosing" );
+            _logOutput.Close();
+        }
+
+        private void mo_OnPause( MachineOperator mo, PausedEventArgs e ) {
+            _logOutput.Flush();
+
+            _mo.MainPage.StateText = GetLabel( e.BreakpointRCP );
 
             switch (e.PausedReason) {
                 case PausedReason.Breakpoint:
@@ -50,12 +62,24 @@ namespace Robotron {
             }
         }
 
+        private void WriteLog( string message ) {
+            _logOutput.WriteLine( new String( ' ', _logIndent*4 ) + message );
+        }
+
+        private void IndentLog() {
+            _logIndent++;
+        }
+
+        private void UnindentLog() {
+            _logIndent = _logIndent == 0 ? 0 : _logIndent - 1;
+        }
+
         private string GetLabel( int address ) {
             AsmLine line = _asmReader.AsmLinesByAddress[address];
             return line.HasLabel ? line.Label : $"${address:X4}";
         }
 
-        private int GetAddress( string label ) {
+        public int GetAddress( string label ) {
             return _asmReader.AsmLinesByGlobalLabel[label].Address;
         }
 
@@ -77,26 +101,30 @@ namespace Robotron {
             _sm.Configure( State.WaitForDoneAtari )
                 .Permit( Trigger.Breakpoint, State.DoneAtari )
                 .OnEntry( () => {
-                    _operator.SetBreakpoint( GetAddress( "doneAtari" ) );
-                    _operator.Machine.Cpu.IsThrottled = false;
+                    _mo.SetBreakpoint( GetAddress( "doneAtari" ) );
+                    _mo.Machine.Cpu.IsThrottled = ! _options.Fast;
                 } );
 
             _sm.Configure( State.DoneAtari )
                 .Permit( Trigger.Breakpoint, State.IntroStory7 )
                 .OnEntryFrom( _breakpointTrigger, ( PausedEventArgs e ) => {
-                    _operator.SetBreakpoint( GetAddress( "introStory7" ) );
                     _sim = new InputSimulator();
-                    _sim.Keyboard.KeyPress( VirtualKeyCode.ESCAPE );
-                    _operator.mo_Unpause();
+                    if (_options.CloseOnFirstBreakpoint) {
+                        _sim.Keyboard.ModifiedKeyStroke( VirtualKeyCode.LMENU, VirtualKeyCode.F4 );
+                    } else {
+                        _mo.SetBreakpoint( GetAddress( "introStory7" ) );
+                        _sim.Keyboard.KeyPress( VirtualKeyCode.ESCAPE );
+                        _mo.mo_Unpause();
+                    }
                 } );
 
             _sm.Configure( State.IntroStory7 )
                .Permit( Trigger.Breakpoint, State.YouDrawn )
                 .OnEntryFrom( _breakpointTrigger, ( PausedEventArgs e ) => {
-                    _operator.Machine.Cpu.OnJSR = ( Cpu cpu ) => AddCall( "JSR", cpu );
-                    _operator.Machine.Cpu.OnRTS = ( Cpu cpu ) => AddCall( "RTS", cpu );
-                    _operator.SetBreakpoint( GetAddress( "BP_YouDrawn" ) );
-                    _operator.mo_Unpause();
+                    _mo.Machine.Cpu.OnJSR = ( Cpu cpu ) => AddCall( "JSR", cpu );
+                    _mo.Machine.Cpu.OnRTS = ( Cpu cpu ) => AddCall( "RTS", cpu );
+                    _mo.SetBreakpoint( GetAddress( "BP_YouDrawn" ) );
+                    _mo.mo_Unpause();
                 } );
  
             _sm.Configure( State.YouDrawn )
@@ -113,14 +141,14 @@ namespace Robotron {
 
                 switch (opcode) {
                     case "JSR":
-                        Trace.WriteLine( $"{GetLabel(opcodeRPC)}: JSR {GetLabel(rpc)}" );
-                        Trace.Indent();
+                        WriteLog( $"{GetLabel(opcodeRPC)}: JSR {GetLabel(rpc)}" );
+                        IndentLog();
 
                         counts[rpc] = (counts.ContainsKey( rpc ) ? counts[rpc] : 0) + 1;
                         break;
 
                     case "RTS":
-                        Trace.Unindent();
+                        UnindentLog();
                         break;
                 }
             }

@@ -999,7 +999,7 @@
 +001477 4274: 8d 04 14                         sta   $1404
 +00147a 4277: ad 02 14                         lda   $1402
 +00147d 427a: ae 03 14                         ldx   $1403
-+001480 427d: 20 00 4c                         jsr   L4C00
++001480 427d: 20 00 4c                         jsr   divideAX
 +001483 4280: 0a                               asl   A
 +001484 4281: 85 00                            sta   $00
 +001486 4283: ad 0e 14                         lda   $140e
@@ -1042,12 +1042,12 @@
 +0014e0 42dd: ad 14 0c     B42DD               lda   L0C14
 +0014e3 42e0: ae 0f 14                         ldx   $140f
 +0014e6 42e3: e8                               inx
-+0014e7 42e4: 20 00 4c                         jsr   L4C00
++0014e7 42e4: 20 00 4c                         jsr   divideAX
 +0014ea 42e7: 8d 25 14                         sta   $1425
 +0014ed 42ea: ad 55 0c                         lda   L0C55
 +0014f0 42ed: ae 28 14                         ldx   $1428
 +0014f3 42f0: e8                               inx
-+0014f4 42f1: 20 00 4c                         jsr   L4C00
++0014f4 42f1: 20 00 4c                         jsr   divideAX
 +0014f7 42f4: 8d 2b 14                         sta   $142b
 +0014fa 42f7: 18                               clc
 +0014fb 42f8: ad 02 14                         lda   $1402
@@ -1990,37 +1990,64 @@
 +001e01 4bfe: a8                               .dd1  $a8
 +001e02 4bff: ff                               .dd1  $ff
 
-+001e03 4c00: 85 e0        L4C00               sta   $e0
-+001e05 4c02: 86 e1                            stx   $e1
-+001e07 4c04: a9 00                            lda   #$00
-+001e09 4c06: 85 e2                            sta   $e2
-+001e0b 4c08: a2 08                            ldx   #$08
-+001e0d 4c0a: 06 e0        L4C0A               asl   $e0
-+001e0f 4c0c: 2a                               rol   A
-+001e10 4c0d: c5 e1                            cmp   $e1
-+001e12 4c0f: 90 02                            bcc   L4C13
-+001e14 4c11: e5 e1                            sbc   $e1
-+001e16 4c13: 26 e2        L4C13               rol   $e2
-+001e18 4c15: ca                               dex
-+001e19 4c16: d0 f2                            bne   L4C0A
-+001e1b 4c18: aa                               tax
-+001e1c 4c19: a5 e2                            lda   $e2
-+001e1e 4c1b: 60                               rts
+                           NOTE: compact function, calculation only
+                           track input and output
+                           might need a BP @ entry and exit
+                           how to group those 2 breakpoints together? how to save the params?
+                           maybe have a function data object
+                           ********************************************************************************
+                           * divideAX - 8-bit division (?)                                                *
+                           *                                                                              *
+                           * A -> __E0                                                                    *
+                           * X -> __E1                                                                    *
+                           *                                                                              *
+                           * returns: A (Quotient?), X (Rest)                                             *
+                           *                                                                              *
+                           * http://6502org.wikidot.com/software-math-intdiv                              *
+                           * https://wiki.nesdev.com/w/index.php/8-bit_Divide                             *
+                           * http://forum.6502.org/viewtopic.php?t=1249                                   *
+                           * http://forum.6502.org/viewtopic.php?f=2&t=5322                               *
+                           * http://forum.6502.org/viewtopic.php?f=9&t=1652                               *
+                           * http://wilsonminesco.com/16bitMathTables/index.html                          *
+                           * http://nparker.llx.com/a2/mult.html                                          *
+                           * https://codebase64.org/doku.php?id=base:6502_6510_maths                      *
+                           ********************************************************************************
+                           _Dividend           .var  $e0    {addr/1}
+                           _Divisor            .var  $e1    {addr/1}
+                           _Quotient           .var  $e2    {addr/1}
 
-+001e1f 4c1c: 85 e0        L4C1C               sta   $e0
++001e03 4c00: 85 e0        divideAX            sta   _Dividend
++001e05 4c02: 86 e1                            stx   _Divisor
++001e07 4c04: a9 00                            lda   #$00
++001e09 4c06: 85 e2                            sta   _Quotient
++001e0b 4c08: a2 08                            ldx   #$08
++001e0d 4c0a: 06 e0        @nextBit            asl   _Dividend
++001e0f 4c0c: 2a                               rol   A
++001e10 4c0d: c5 e1                            cmp   _Divisor
++001e12 4c0f: 90 02                            bcc   @lessThan
++001e14 4c11: e5 e1                            sbc   _Divisor
++001e16 4c13: 26 e2        @lessThan           rol   _Quotient
++001e18 4c15: ca                               dex
++001e19 4c16: d0 f2                            bne   @nextBit
++001e1b 4c18: aa                               tax
++001e1c 4c19: a5 e2                            lda   _Quotient
++001e1e 4c1b: 60           divideAX_RTS        rts
+
+                           ; ==========
++001e1f 4c1c: 85 e0        divdeA7             sta   _Dividend
 +001e21 4c1e: a9 00                            lda   #$00
-+001e23 4c20: 85 e2                            sta   $e2
++001e23 4c20: 85 e2                            sta   _Quotient
 +001e25 4c22: a2 08                            ldx   #$08
-+001e27 4c24: 06 e0        L4C24               asl   $e0
++001e27 4c24: 06 e0        @nextBit            asl   _Dividend
 +001e29 4c26: 2a                               rol   A
 +001e2a 4c27: c9 07                            cmp   #$07
-+001e2c 4c29: 90 02                            bcc   L4C2D
++001e2c 4c29: 90 02                            bcc   @lessThan
 +001e2e 4c2b: e9 07                            sbc   #$07
-+001e30 4c2d: 26 e2        L4C2D               rol   $e2
++001e30 4c2d: 26 e2        @lessThan           rol   _Quotient
 +001e32 4c2f: ca                               dex
-+001e33 4c30: d0 f2                            bne   L4C24
++001e33 4c30: d0 f2                            bne   @nextBit
 +001e35 4c32: aa                               tax
-+001e36 4c33: a5 e2                            lda   $e2
++001e36 4c33: a5 e2                            lda   _Quotient
 +001e38 4c35: 60                               rts
 
                            NOTE: idea: fake result from random number generator
@@ -2053,7 +2080,7 @@
                            this generates a lot of cycles
                            hidden throttling of execution?
                            ********************************************************************************
-                           * multiply                                                                     *
+                           * multiplyAX                                                                   *
                            *                                                                              *
                            * The two 8-bit operands are provided in A and X                               *
                            * X: result                                                                    *
@@ -2070,18 +2097,18 @@
 +001e58 4c55: 85 e2                            sta   _workspace                              ;workspace, starts w/ 0
 +001e5a 4c57: a2 08                            ldx   #$08
                            ; 
-+001e5c 4c59: 0a           @loop               asl   A                                       ;The loop structure consists of the three instructions LDX #8 ; […] ; DEX ; BNE .L8 (backwards branch) and encompasses the majority of the subroutine body. This is an idiom that you should learn to recognise instantly.
++001e5c 4c59: 0a           @nextBit            asl   A                                       ;The loop structure consists of the three instructions LDX #8 ; […] ; DEX ; BNE .L8 (backwards branch) and encompasses the majority of the subroutine body. This is an idiom that you should learn to recognise instantly.
 +001e5d 4c5a: 26 e2                            rol   _workspace                              ;This is a two-byte multiprecision left shift, effectively transferring the top bit of A into the bottom bit of $E2 via the Carry flag, and the former top bit of $E2 ends up in the Carry flag. This is further confirmation that they're being treated as a single wide value. But on the first iteration both are still zero, and remain so for the time being.
 +001e5f 4c5c: 06 e0                            asl   _mult1                                  ;The following ASL $E0 is where the real action begins. Recall that $E0 contains the former value of A on entry; we've just popped out the top bit of it into the Carry. The very next instruction branches on the Carry, skipping all the rest of the loop body if it is cleared. Clearly the individual bits of the first operand, most-significant first, are crucial to the algorithm.
-+001e61 4c5e: 90 07                            bcc   L4C67
++001e61 4c5e: 90 07                            bcc   @noOverflow
                            ; 
 +001e63 4c60: 18                               clc
 +001e64 4c61: 65 e1                            adc   _mult2                                  ;So one operand is added to the shifted workspace for each set bit in the other operand; this is a classic multiplication algorithm!
-+001e66 4c63: 90 02                            bcc   L4C67                                   ;The Carry flag now indicates unsigned overflow from the addition, and there is a branch testing it immediately afterwards - which happens to be always-taken for the moment. But the sensible thing to do if the Carry is set is to propagate it into the high half of the workspace at $E2 ...
++001e66 4c63: 90 02                            bcc   @noOverflow                             ;The Carry flag now indicates unsigned overflow from the addition, and there is a branch testing it immediately afterwards - which happens to be always-taken for the moment. But the sensible thing to do if the Carry is set is to propagate it into the high half of the workspace at $E2 ...
                            ; 
 +001e68 4c65: e6 e2                            inc   _workspace                              ;... which can be done with INC $E2
-+001e6a 4c67: ca           L4C67               dex
-+001e6b 4c68: d0 ef                            bne   @loop
++001e6a 4c67: ca           @noOverflow         dex
++001e6b 4c68: d0 ef                            bne   @nextBit
                            ; 
 +001e6d 4c6a: aa                               tax
 +001e6e 4c6b: a5 e2                            lda   _workspace
@@ -2154,7 +2181,7 @@
                            ********************************************************************************
 +001ed3 4cd0: 86 fc        eraseFamily         stx   PixelLineBaseL
 +001ed5 4cd2: 86 fe                            stx   PixelLineBaseH
-+001ed7 4cd4: 20 1c 4c                         jsr   L4C1C
++001ed7 4cd4: 20 1c 4c                         jsr   divdeA7
 +001eda 4cd7: 85 04                            sta   $04
 +001edc 4cd9: 88                               dey
 +001edd 4cda: a2 00                            ldx   #$00
@@ -2204,7 +2231,7 @@
                            ********************************************************************************
 +001f24 4d21: 86 fc        eraseHulk           stx   PixelLineBaseL
 +001f26 4d23: 86 fe                            stx   PixelLineBaseH
-+001f28 4d25: 20 1c 4c                         jsr   L4C1C
++001f28 4d25: 20 1c 4c                         jsr   divdeA7
 +001f2b 4d28: 85 04                            sta   $04
 +001f2d 4d2a: 88                               dey
 +001f2e 4d2b: a2 00                            ldx   #$00
@@ -2529,7 +2556,7 @@
 +002185 4f82: 60                               rts
 
 +002186 4f83: 8a           L4F83               txa
-+002187 4f84: 20 1c 4c                         jsr   L4C1C
++002187 4f84: 20 1c 4c                         jsr   divdeA7
 +00218a 4f87: 85 04                            sta   $04
 +00218c 4f89: 4a                               lsr   A
 +00218d 4f8a: 68                               pla
@@ -2991,7 +3018,7 @@
 +002441 523e: a9 0b                            lda   #$0b
 +002443 5240: 85 00                            sta   _spriteEntryPtr
 +002445 5242: ad 00 15                         lda   $1500
-+002448 5245: 20 1c 4c                         jsr   L4C1C
++002448 5245: 20 1c 4c                         jsr   divdeA7
 +00244b 5248: 85 02                            sta   _strobePtrOffs
 +00244d 524a: a5 02        L524A               lda   _strobePtrOffs
 +00244f 524c: 99 c0 17                         sta   $17c0,y
@@ -3211,7 +3238,7 @@
 +00261f 541c: ad 00 15                         lda   $1500
 +002622 541f: 18                               clc
 +002623 5420: 69 0b                            adc   #$0b
-+002625 5422: 20 1c 4c                         jsr   L4C1C
++002625 5422: 20 1c 4c                         jsr   divdeA7
 +002628 5425: 99 20 15                         sta   $1520,y
 +00262b 5428: a9 ff                            lda   #$ff
 +00262d 542a: 0a           L542A               asl   A
@@ -3230,7 +3257,7 @@
 +002643 5440: ad 00 15                         lda   $1500
 +002646 5443: 38                               sec
 +002647 5444: e9 04                            sbc   #$04
-+002649 5446: 20 1c 4c                         jsr   L4C1C
++002649 5446: 20 1c 4c                         jsr   divdeA7
 +00264c 5449: 99 20 15                         sta   $1520,y
 +00264f 544c: 8a                               txa
 +002650 544d: f0 0c                            beq   L545B
@@ -3254,7 +3281,7 @@
 +002674 5471: 18                               clc
 +002675 5472: 69 0e                            adc   #$0e
 +002677 5474: 99 10 15                         sta   $1510,y
-+00267a 5477: 20 1c 4c                         jsr   L4C1C
++00267a 5477: 20 1c 4c                         jsr   divdeA7
 +00267d 547a: 86 00                            stx   _spriteEntryPtr
 +00267f 547c: a9 06                            lda   #$06
 +002681 547e: 38                               sec
@@ -3266,7 +3293,7 @@
 +00268d 548a: ad 01 15                         lda   $1501
 +002690 548d: 38                               sec
 +002691 548e: e9 04                            sbc   #$04
-+002693 5490: 20 1c 4c                         jsr   L4C1C
++002693 5490: 20 1c 4c                         jsr   divdeA7
 +002696 5493: 85 00                            sta   _spriteEntryPtr
 +002698 5495: 0a                               asl   A
 +002699 5496: 65 00                            adc   _spriteEntryPtr
@@ -3278,7 +3305,7 @@
 +0026a5 54a2: ad 00 15     L54A2               lda   $1500
 +0026a8 54a5: 18                               clc
 +0026a9 54a6: 69 03                            adc   #$03
-+0026ab 54a8: 20 1c 4c                         jsr   L4C1C
++0026ab 54a8: 20 1c 4c                         jsr   divdeA7
 +0026ae 54ab: 99 20 15                         sta   $1520,y
 +0026b1 54ae: a9 00                            lda   #$00
 +0026b3 54b0: 38                               sec
@@ -3319,7 +3346,7 @@
 +0026f2 54ef: ad 00 15     L54EF               lda   $1500
 +0026f5 54f2: 18                               clc
 +0026f6 54f3: 69 09                            adc   #$09
-+0026f8 54f5: 20 1c 4c     L54F5               jsr   L4C1C
++0026f8 54f5: 20 1c 4c     L54F5               jsr   divdeA7
 +0026fb 54f8: 99 20 15                         sta   $1520,y
 +0026fe 54fb: a9 00                            lda   #$00
 +002700 54fd: 38                               sec
@@ -4014,7 +4041,7 @@
 +002c3c 5a39: 10 16                            bpl   L5A51
 +002c3e 5a3b: ad 07 14                         lda   Level
 +002c41 5a3e: a2 0a                            ldx   #$0a
-+002c43 5a40: 20 00 4c                         jsr   L4C00
++002c43 5a40: 20 00 4c                         jsr   divideAX
 +002c46 5a43: ad 0c 0c                         lda   L0C0C
 +002c49 5a46: e0 08                            cpx   #$08
 +002c4b 5a48: d0 03                            bne   L5A4D
@@ -4606,7 +4633,7 @@
 +00311b 5f18: 20 52 5f                         jsr   L5F52
 +00311e 5f1b: ad 0d 14                         lda   $140d
 +003121 5f1e: a2 0a                            ldx   #$0a
-+003123 5f20: 20 00 4c                         jsr   L4C00
++003123 5f20: 20 00 4c                         jsr   divideAX
 +003126 5f23: 38                               sec
 +003127 5f24: e9 01                            sbc   #$01
 +003129 5f26: 85 06                            sta   _strobePtr
@@ -4729,7 +4756,7 @@
 +003223 6020: b9 70 15                         lda   $1570,y
 +003226 6023: 18                               clc
 +003227 6024: 69 03                            adc   #$03
-+003229 6026: 20 1c 4c                         jsr   L4C1C
++003229 6026: 20 1c 4c                         jsr   divdeA7
 +00322c 6029: 85 04                            sta   _length
 +00322e 602b: ac 0b 0c                         ldy   L0C0B
 +003231 602e: 88                               dey
@@ -4850,7 +4877,7 @@
 +00332c 6129: ac 2d 14                         ldy   $142d
 +00332f 612c: 99 10 1f                         sta   $1f10,y
 +003332 612f: 8a                               txa
-+003333 6130: 20 1c 4c                         jsr   L4C1C
++003333 6130: 20 1c 4c                         jsr   divdeA7
 +003336 6133: a2 07                            ldx   #$07
 +003338 6135: 20 4f 4c                         jsr   multiplyAX
 +00333b 6138: 8a                               txa
@@ -4910,7 +4937,7 @@
 +0033ba 61b7: 10 9a                            bpl   L6153
 +0033bc 61b9: 48           L61B9               pha
 +0033bd 61ba: 8a                               txa
-+0033be 61bb: 20 1c 4c                         jsr   L4C1C
++0033be 61bb: 20 1c 4c                         jsr   divdeA7
 +0033c1 61be: a2 07                            ldx   #$07
 +0033c3 61c0: 20 4f 4c                         jsr   multiplyAX
 +0033c6 61c3: 8a                               txa
@@ -5016,7 +5043,7 @@
 +0034a4 62a1: ad 21 14                         lda   $1421
 +0034a7 62a4: ae 18 0c                         ldx   L0C18
 +0034aa 62a7: e8                               inx
-+0034ab 62a8: 20 00 4c                         jsr   L4C00
++0034ab 62a8: 20 00 4c                         jsr   divideAX
 +0034ae 62ab: 99 10 1a                         sta   $1a10,y
 +0034b1 62ae: ad 13 0c                         lda   L0C13
 +0034b4 62b1: 20 4b 4c                         jsr   multiplyRndX
@@ -5798,7 +5825,7 @@
 +003b18 6915: ae 4d 0c     L6915               ldx   L0C4D
 +003b1b 6918: e8                               inx
 +003b1c 6919: ad 21 14                         lda   $1421
-+003b1f 691c: 20 00 4c                         jsr   L4C00
++003b1f 691c: 20 00 4c                         jsr   divideAX
 +003b22 691f: 85 08                            sta   _destPtr
 +003b24 6921: ac 27 14                         ldy   $1427
 +003b27 6924: 88           @loop               dey
@@ -5844,7 +5871,7 @@
 +003b80 697d: ad 21 14     L697D               lda   $1421
 +003b83 6980: ae 4e 0c                         ldx   L0C4E
 +003b86 6983: e8                               inx
-+003b87 6984: 20 00 4c                         jsr   L4C00
++003b87 6984: 20 00 4c                         jsr   divideAX
 +003b8a 6987: 85 08                            sta   _destPtr
 +003b8c 6989: ac 28 14                         ldy   $1428
 +003b8f 698c: 88           L698C               dey
@@ -7172,7 +7199,7 @@
 +0046d7 74d4: 20 46 75                         jsr   L7546
 +0046da 74d7: bc 80 1c                         ldy   $1c80,x
 +0046dd 74da: bd 70 1c                         lda   $1c70,x
-+0046e0 74dd: 20 1c 4c                         jsr   L4C1C
++0046e0 74dd: 20 1c 4c                         jsr   divdeA7
 +0046e3 74e0: 85 04                            sta   _length
 +0046e5 74e2: a9 00                            lda   #$00
 +0046e7 74e4: 38                               sec
@@ -7344,7 +7371,7 @@
 +004836 7633: 10 59                            bpl   L768E
 +004838 7635: bc 80 1c     L7635               ldy   $1c80,x
 +00483b 7638: bd 70 1c                         lda   $1c70,x
-+00483e 763b: 20 1c 4c                         jsr   L4C1C
++00483e 763b: 20 1c 4c                         jsr   divdeA7
 +004841 763e: 85 04                            sta   _length
 +004843 7640: a9 ff                            lda   #$ff
 +004845 7642: 18                               clc

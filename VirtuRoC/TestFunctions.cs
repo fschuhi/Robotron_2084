@@ -5,6 +5,7 @@ using System.IO;
 using System.Text;
 using System.Globalization;
 using System.Threading;
+using CommandLine;
 
 namespace Robotron {
 
@@ -38,7 +39,7 @@ namespace Robotron {
         }
 
         // append to the log, or create it
-        FileStream _logFileStream = new FileStream( FilePath( @"tmp\log.log" ), FileMode.Append, FileAccess.Write );
+        FileStream _logFileStream = new FileStream( FilePath( @"tmp\tests.log" ), FileMode.Append, FileAccess.Write );
 
         [TestInitialize]
         public void Initialize() {
@@ -61,9 +62,19 @@ namespace Robotron {
 
         [TestMethod]
         public void SampleTest() {
-            //WriteToLog( "reiert" );
             Trace.Indent();
-            AsmReader asmReader = new AsmReader( FilePath( @"tmp\\Robotron.csv" ));
+
+            Parser.Default.ParseArguments<Options>( new string[] { "-b -c -f" } )
+                .WithParsed<Options>( o => {
+
+                    using (MachineOperator machineOperator = new MachineOperator()) {
+
+                        Workbench workbench = new Workbench( machineOperator, o );
+                        machineOperator.ShowDialog();
+
+                    }
+                });
+
             Trace.Unindent();
         }
 

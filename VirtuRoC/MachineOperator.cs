@@ -1,9 +1,7 @@
 ﻿using System;
 using System.ComponentModel;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
-using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -11,12 +9,9 @@ using Stateless;
 using Stateless.Graph;
 using Jellyfish.Virtu;
 using Jellyfish.Virtu.Services;
-using System.Reflection;
 using Microsoft.Win32;
 using AspectInjector.Broker;
-using Microsoft.SqlServer.Server;
 using System.Windows.Threading;
-using System.Windows.Controls;
 
 namespace Robotron {
 
@@ -71,8 +66,9 @@ namespace Robotron {
 
     public enum PausedReason { Keypress, Breakpoint };
 
-    public delegate void LoadedEventHandler( MachineOperator mop );
-    public delegate void PausedEventHandler( MachineOperator mop, PausedEventArgs e );
+    public delegate void LoadedEventHandler( MachineOperator mo );
+    public delegate void UnloadedEventHandler( MachineOperator mo );
+    public delegate void PausedEventHandler( MachineOperator mo, PausedEventArgs e );
 
     public class MachineOperator : IDisposable {
 
@@ -107,6 +103,7 @@ namespace Robotron {
         private bool _suspending = false;
 
         public event LoadedEventHandler OnLoaded;
+        public event UnloadedEventHandler OnClosing;
         public event PausedEventHandler OnPaused;
 
         private enum State { Starting, Started, Running, Suspended, Pausing, Paused, Terminating, Terminated }
@@ -132,7 +129,7 @@ namespace Robotron {
             Machine = MainPage.Machine;
 
             // machine doesn't start to run on MainPage loaded, we'll do it in our own handler below
-            MainPage.Loaded += MainPage_loaded;
+            MainPage.Loaded += MainPage_Loaded;
 
             MainPage.MainWindow.Closing += MainWindow_Closing;
 
@@ -246,7 +243,7 @@ namespace Robotron {
 
 
         #region MainWindow / MainPage events
-        private void MainPage_loaded( object sender, System.Windows.RoutedEventArgs e ) {
+        private void MainPage_Loaded( object sender, System.Windows.RoutedEventArgs e ) {
 
             // We now have a WPF message pump in place.
 
@@ -267,7 +264,6 @@ namespace Robotron {
             if (result.HasValue && result.Value) {
                 // Machine.Pause();
                 mo_Suspend();
-
                 StorageService.LoadFile( dialog.FileName, stream => Machine.BootDiskII.Drives[drive].InsertDisk( dialog.FileName, stream, false ) );
                 // Machine.Unpause();
                 mo_Resume();
@@ -276,12 +272,18 @@ namespace Robotron {
         
         private void MainWindow_Closing( object sender, CancelEventArgs e ) {
             // do not close the window if we are still terminating
-            WriteMessage( "MainWindow_Closing" );
+            WriteMessage( "MainWindow_Closing, check if really close" );
             if (!(_sm.IsInState( State.Terminating ) || _sm.IsInState( State.Terminated ))) {
                 mo_Terminate();
             }
-
             e.Cancel = !(_sm.IsInState( State.Terminated ) || _sm.IsInState( State.Paused ));
+
+            if (!e.Cancel) {
+                WriteMessage( "really close MainWindow" );
+                OnClosing?.Invoke( this );
+            } else {
+                WriteMessage( "don't close MainWindow yet" );
+            }
         }
         #endregion
 
@@ -405,7 +407,6 @@ namespace Robotron {
                     _suspending = false;
                 }
             } while (!_bw.CancellationPending);
-
 
             // pausing = cancelling, as of now always initated by user via keypress
             e.Result = PausedReason.Keypress;
