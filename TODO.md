@@ -1,5 +1,8 @@
 see also [README](README.md)
 
+https://github.com/Dwedit/DW1NsfInjector/blob/master/Assembler.cs
+https://github.com/informedcitizenry/6502.Net
+
 https://github.com/jacobslusser/ScintillaNET
 https://github.com/robinrodricks/ScintillaNET.Demo
 
