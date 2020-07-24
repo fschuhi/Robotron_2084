@@ -13,7 +13,6 @@ namespace Robotron {
     class Workbench {
 
         private MachineOperator _mo;
-        private AsmReader _asmReader = new AsmReader( @"s:\source\repos\Robotron_2084\VirtuRoC\tmp\Robotron.csv" );
 
         private enum State { Idle, WaitForDoneAtari, DoneAtari, IntroStory7, YouDrawn }
         private enum Trigger { Start, Breakpoint }
@@ -30,6 +29,26 @@ namespace Robotron {
             _mo.OnClosing += mo_OnClosing;
             _options = options;
         }
+
+        #region AsmReader
+        AsmReader _asmReader;
+        Dictionary<string, int> _addressesByLabel;
+        Dictionary<int, string> _labelsByAddress;
+
+        private void ReadAsm() {
+            _asmReader = new AsmReader( @"s:\source\repos\Robotron_2084\Disassemblies\Robotron (Apple).asm" );
+            _addressesByLabel = _asmReader.CollectAddressesByLabel();
+            _labelsByAddress = _asmReader.CollectLabelsByAddress();
+        }
+
+        private string GetLabel( int address ) {
+            return _labelsByAddress.ContainsKey( address ) ? _labelsByAddress[address] : $"${address:X4}";
+        }
+
+        public int GetAddress( string label ) {
+            return _addressesByLabel[label];
+        }
+        #endregion
 
         private void mo_OnLoaded( MachineOperator mo ) {
             MachineOperator.WriteMessage( "Workbench: mo_OnLoaded" );
@@ -72,15 +91,6 @@ namespace Robotron {
 
         private void UnindentLog() {
             _logIndent = _logIndent == 0 ? 0 : _logIndent - 1;
-        }
-
-        private string GetLabel( int address ) {
-            AsmLine line = _asmReader.AsmLinesByAddress[address];
-            return line.HasLabel ? line.Label : $"${address:X4}";
-        }
-
-        public int GetAddress( string label ) {
-            return _asmReader.AsmLinesByGlobalLabel[label].Address;
         }
 
         InputSimulator _sim;

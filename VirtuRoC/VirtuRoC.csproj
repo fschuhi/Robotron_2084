@@ -70,7 +70,6 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AsmReader.cs" />
-    <Compile Include="AsmReader2.cs" />
     <Compile Include="Form1.cs">
       <SubType>Form</SubType>
     </Compile>

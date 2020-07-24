@@ -1,301 +1,383 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Data;
-using System.Diagnostics;
+using System.Globalization;
 using System.IO;
-using System.Linq;
-using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows.Forms.VisualStyles;
-using Microsoft.VisualBasic.FileIO;
+using System.Diagnostics;
 using System.Text.RegularExpressions;
-using System.Reflection.Emit;
-
-// add tests for MemoryLocation
+using Newtonsoft.Json;
+using System.Reflection;
+using System.Linq;
 
 namespace Robotron {
 
-
-    class AsmLine {
-
-        public enum LineTypeEnum { asm, EQ, ORG, BULK, BULK_CONT, DD1, DD2, STR, VAR, FILL, LongComment, BoxComment }
-
-        int _lineno;
-
-        public int Address = -1;
-        public int BaseAddr = -1;
-        public int ByteData = -1;
-        //public int WordData = -1;
-        public string WordData = "";
-
-        public string Label = "";
-        public string Identifier = "";
-        public string EqValue = "";  // TODO: convert to object
-        public string Opcode = "";
-        public string Operand = "";
-        public string BulkData = "";
-        public string StringData = "";
-        public string VariableName = "";
-        public string VariableValue = "";   // TODO: convert to decimal, or tuple
-        public string FillData = "";
-        public string LongComment = "";
-        public string BoxComment = "";
-
-        public bool HasAddress { get { return Address != -1; } }
-        public bool HasLabel { get { return Label != ""; } }
-        public bool HasLocalLabel { get { return HasLabel && Label.StartsWith( "@" ); } }
-        public bool HasGlobalLabel { get { return HasLabel && !HasLocalLabel; } }
-
-        string[] _branches = { "BPL", "BMI", "BVC", "BVS", "BCC", "BCS", "BNE", "BEQ" };
-
-        public bool IsBranch { get { return _branches.Contains( Opcode ); } }
-        public bool IsJump { get { return Opcode == "JSR" || Opcode == "JMP"; } }
-
-        public LineTypeEnum LineType { get; private set; }
-
-        public string RawOffset { get; private set; }
-        public string RawAddress { get; private set; }
-        public string RawBytes { get; private set; }
-        public string RawLabel { get; private set; }
-        public string RawOpcode { get; private set; }
-        public string RawOperand { get; private set; }
-        public string RawComment { get; private set; }
-
-        public AsmLine( int lineno, string[] fields ) {
-            _lineno = lineno;
-
-            this.RawOffset = fields[0].Trim();
-            this.RawAddress = fields[1].Trim();
-            this.RawBytes = fields[2].Trim();
-            this.RawLabel = fields[3].Trim();
-            this.RawOpcode = fields[4].Trim();
-            this.RawOperand = fields[5].Trim();
-            this.RawComment = fields[6].Trim();
-
-            Update();
-        }
-
-
+    static class Conversion {
         public static int StringToDecimal( string s ) {
             if (s == "") return -1;
             if (s.StartsWith( "$" ))
-                return int.Parse( s.Substring( 1 ), System.Globalization.NumberStyles.HexNumber );
+                return HexToDecimal( s );
             else if (s.StartsWith( "#$" ))
-                return int.Parse( s.Substring( 2 ), System.Globalization.NumberStyles.HexNumber );
+                return HexToDecimal( s.Substring( 2 ) );
             else if (s.StartsWith( "#" ))
                 return Int32.Parse( s.Substring( 1 ) );
             else
                 return Int32.Parse( s );
         }
 
+        public static int HexToDecimal( string s ) {
+            if (s == "") return -1;
+            return int.Parse( s.StartsWith( "$" ) ? s.Substring( 2 ) : s, NumberStyles.HexNumber );
+        }
+
         public static string DecimalToHexAddress( int addr ) {
             return $"${addr:X04}";
-        }
-
-
-        private void Update() {
-            if (RawOpcode.StartsWith( "." ) || (RawOpcode == "+")) {
-                UpdateSpecialOpcode();
-                return;
-            }
-
-            if (RawOpcode == "") {
-                if (RawAddress == "") {
-                    if (RawLabel.StartsWith( ";" )) {
-                        LineType = LineTypeEnum.LongComment;
-                        LongComment = RawLabel;
-                    } else if (RawLabel.StartsWith( "*" )) {
-                        LineType = LineTypeEnum.BoxComment;
-                        BoxComment = RawLabel;
-                    }
-                } else {
-                    Debug.Assert( false );
-                }
-                return;
-            } 
-
-            UpdateNormalOpcode();
-        }
-
-
-        private void UpdateNormalOpcode() {
-            // RawAddress doesn't have a leading $, add it because otherwise it is interpreted as decimal
-            Address = StringToDecimal( "$" + RawAddress.ToUpper() );
-            Opcode = RawOpcode.ToUpper();
-            Label = RawLabel;
-            Operand = RawOperand;
-        }
-
-
-        private void UpdateSpecialOpcode() {
-            bool labelAllowed = true;
-
-            switch (RawOpcode) {
-                case "":
-                    break;
-
-                case ".eq":
-                    LineType = LineTypeEnum.EQ;
-                    Identifier = RawLabel;
-                    EqValue = RawOpcode;
-                    labelAllowed = false;
-                    break;
-
-                case ".org":
-                    LineType = LineTypeEnum.ORG;
-                    BaseAddr = StringToDecimal( RawOperand );
-                    labelAllowed = false;
-                    break;
-
-                case ".bulk":
-                    LineType = LineTypeEnum.BULK;
-                    BulkData = RawOperand;
-                    break;
-
-                case "+":
-                    LineType = LineTypeEnum.BULK_CONT;
-                    BulkData = RawOperand;
-                    labelAllowed = false;
-                    break;
-
-                case ".dd1":
-                    LineType = LineTypeEnum.DD1;
-                    ByteData = StringToDecimal( RawOperand );
-                    break;
-
-                case ".dd2":
-                    LineType = LineTypeEnum.DD2;
-                    // WordData = StringToDecimal( RawOperand );
-                    WordData = RawOperand;
-                    break;
-
-                case ".str":
-                    LineType = LineTypeEnum.STR;
-                    StringData = RawOperand;
-                    break;
-
-                case ".var":
-                    LineType = LineTypeEnum.VAR;
-                    VariableName = RawLabel;
-                    VariableValue = RawOperand;
-                    labelAllowed = false;
-                    break;
-
-                case ".fill":
-                    LineType = LineTypeEnum.FILL;
-                    FillData = RawOperand;
-                    break;
-
-                default:
-                    Debug.Assert( false, "unknown opcode " + RawOpcode );
-                    break;
-
-            }
-
-            if (labelAllowed) {
-                Label = RawLabel;
-            }
         }
     }
 
     class AsmReader {
 
-        public List<AsmLine> AsmLines = new List<AsmLine>();
-        public Dictionary<int, AsmLine> AsmLinesByAddress = new Dictionary<int, AsmLine>();
-        public Dictionary<string, AsmLine> AsmLinesByGlobalLabel = new Dictionary<string, AsmLine>();
-
-        public Dictionary<string, Regex> OperandRegexesByPattern = new Dictionary<string, Regex>();
-
-        private void AddRegex( string pattern ) {
-            Regex rx = new Regex( pattern, RegexOptions.Compiled | RegexOptions.IgnoreCase );
-            OperandRegexesByPattern.Add( pattern, rx );
-        }
-
-        private void AddRegexes() {
-            // indirekt JMP
-            AddRegex( @"^\$[A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9]$" );
-            AddRegex( @"^\$[A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9],x$" );
-            AddRegex( @"^\$[A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9],y$" );
-            AddRegex( @"^#\$[A-Za-z0-9][A-Za-z0-9]$" );
-            AddRegex( @"^\$[A-Za-z0-9][A-Za-z0-9]$" );
-            AddRegex( @"^A$" );
-            AddRegex( @"^\([^$]+\),y$" );
-            AddRegex( @"^\([^$]+,x\)$" );
-            AddRegex( @"^[^$]+,x$" );
-            AddRegex( @"^[^$]+,y$" );
-            AddRegex( @"^[^$]+[+-][0-9]+$" );
-            AddRegex( @"^#[^$]+$" );
-        }
-
-        private bool MatchesOperandRegex( string operand ) { 
-            foreach ( KeyValuePair<string,Regex> entry in OperandRegexesByPattern ) {
-                Regex rx = (Regex)entry.Value;
-                if (rx.IsMatch(operand)) {
-                    return true;
-                }
-            }
-            return false;
-        }
+        List<string> _inputLines;
+        List<AsmLine> _asmLines = new List<AsmLine>();
 
         public AsmReader( string filename ) {
+            _inputLines = new List<string>( File.ReadAllLines( filename ) );
 
-            AddRegexes();
-
-            var fs = new FileStream( filename, FileMode.Open, FileAccess.Read );
-            TextFieldParser parser = new TextFieldParser( fs );
-            parser.Delimiters = new string[] { "," };
-
-            int lineno = 0;
-
-            while (!parser.EndOfData) {
-                string[] fields = parser.ReadFields();
-                AsmLine asmLine = new AsmLine( ++lineno, fields );
-                AsmLines.Add( asmLine );
-
-                if (asmLine.HasAddress)
-                    AsmLinesByAddress.Add( asmLine.Address, asmLine );
-
-                if (asmLine.HasGlobalLabel) {
-                    // Trace.WriteLine( asmLine.Label );
-                    AsmLinesByGlobalLabel.Add( asmLine.Label, asmLine );
-                }
-
-                if (asmLine.Operand != "") {
-                    if ( !MatchesOperandRegex( asmLine.Operand )) {
-
-                        if (asmLine.IsBranch || asmLine.IsJump) {
-                            //
-                        } else {
-                            //Trace.WriteLine( asmLine.Operand );
-                        }
-
-                        // uppercase opcode
-                    }
-                }
-
+            foreach (string line in _inputLines) {
+                AsmLine asmLine = new AsmLine();
+                asmLine.MatchLine( line );
+                _asmLines.Add( asmLine );
             }
-            parser.Close();
 
-            // ResolveLocalLabels();
+            return;
 
-            // link branches and jumps
-            // resolve operands
+            IEnumerable<AsmLine> list = _asmLines
+                .Where( c => c.HasOperandArgument() && (c.OperandAsmArgument.MatchedOperandType == MatchedOperandType.AbsoluteY) );
+            Trace.WriteLine( list.Count() );
 
-            // Trace.WriteLine( AsmLine.DecimalToHexAddress( AsmLinesByGlobalLabel["roboNoises"].Address ) );
+            IEnumerable<string> list2 = _asmLines
+                .Where( c => c.IsMemoryMapped() && c.HasLabel() )
+                .Select( c => c.Label ).ToArray();
+            //Console.WriteLine( string.Join( ",", list2 ) );
 
+            Dictionary<string, int> labels = CollectAddressesByLabel();
+            var printout = labels.Select( pair => { Console.WriteLine( pair.Key + " " + pair.Value.ToString() ); return pair.Key; } ).ToList();
+
+            //Trace.WriteLine( list2.Count() );
         }
 
-        private void ResolveLocalLabels() {
-            Trace.WriteLine( AsmLines.Count );
-            int lineno = 0;
-            foreach (AsmLine asmLine in AsmLines) {
-                ++lineno;
-                if (asmLine.Label.StartsWith( "@" )) {
-                    Trace.WriteLine( lineno.ToString() + " " + asmLine.Label );
-                }
-            }
+        public Dictionary<string, int> CollectAddressesByLabel() {
+            return _asmLines
+                .Where( c => c.IsMemoryMapped() && c.HasLabel() )
+                .ToDictionary(
+                    c => c.IsLocalLabel() ? c.Label + "-" + c.Address : c.Label,
+                    c => Conversion.HexToDecimal( c.Address ) );
         }
 
+        public Dictionary<int, string> CollectLabelsByAddress() {
+            return _asmLines
+                .Where( c => c.IsMemoryMapped() && c.HasLabel() )
+                .ToDictionary(
+                    c => Conversion.HexToDecimal( c.Address ),
+                    c => c.IsLocalLabel() ? c.Label + "-" + c.Address : c.Label );
+        }
+
+        public void SaveToFile( string jsonfilename ) {
+            string output = JsonConvert.SerializeObject( _inputLines );
+            File.WriteAllText( @"s:\source\repos\Robotron_2084\VirtuRoC\tmp\asm.json", output );
+        }
     }
+
+
+    enum AsmLineType { CommentLine, AssignmentLine, DirectiveLine, OpcodeLine, OrgLine };
+
+    class AsmLineTemplate {
+        public AsmLineType LineType { get; set; }
+        public Regex Regex { get; set; }
+        public string[] Values { get; set; }
+    }
+
+    class AsmLine {
+
+        public AsmLineType LineType { get; set; }
+
+        public string Line { get; set; }
+        public bool Matched { get; set; }
+        public bool Empty { get; set; }
+
+        public string Offset { get; set; }
+        //public string Address4 { get; set; }
+        public string Address { get; set; }
+        public string Bytes { get; set; }
+        public string Label { get; set; }
+        public string Opcode { get; set; }
+        public string Directive { get; set; }
+        public string Type { get; set; }
+        public string Comment { get; set; }
+
+        public string Operation { get { return Opcode != "" ? Opcode : Directive; } }
+
+        public AsmArgument Argument { get; set; }
+        public bool HasArgument() { return Argument != null; }
+        public bool HasDirectiveArgument() { return HasArgument() && Argument is DirectiveAsmArgument; }
+        public bool HasOperandArgument() { return HasArgument() && Argument is OperandAsmArgument; }
+        public bool IsMemoryMapped() { return Offset != null; }
+        public bool HasLabel() { return Label != ""; }
+
+        public bool IsGlobalLabel() { return HasLabel() && Label.StartsWith( "@" ); }
+        public bool IsLocalLabel() { return HasLabel() && Label.StartsWith( "@" ); }
+
+        public DirectiveAsmArgument DirectiveAsmArgument { get { return HasDirectiveArgument() ? (DirectiveAsmArgument)Argument : null; } }
+        public OperandAsmArgument OperandAsmArgument { get { return HasOperandArgument() ? (OperandAsmArgument)Argument : null; } }
+
+        static string[] _dataDirectives = new string[] {
+            @"\.bulk", @"\.dd1", @"\.dd2", @"\.fill", @"\.str"
+        };
+
+        static string[] _opcodes = new string[] {
+            "lda", "ldx", "ldy",
+            "sta", "stx", "sty",
+            "cmp", "cpx", "cpy",
+            "asl", "lsr", "rol", "ror",
+            "and", "ora", "eor", "bit",
+            "adc", "sbc",
+            "clc", "sec",
+            "beq", "bne", "bcc", "bcs", "bmi", "bpl",
+            "inc", "inx", "iny", "dec", "dex", "dey",
+            "pha", "pla", "php", "plp",
+            "tax", "tay", "tya", "txa", "txs",
+            "jmp", "jsr", "rts"
+        };
+
+        static string commentLine = @"(?<Comment>[;*].*)";
+        static string directive = $@"(?<Directive>{string.Join( "|", _dataDirectives )})";
+        static string opcode = $@"(?<Opcode>{ string.Join( "|", _opcodes )})";
+        static string offset = @"(?<Offset>[0-9a-f]{6})";
+        static string address4 = @"(?<Address>[0-9a-f]{4})";  // intentionally also "Address"
+        static string address = @"(?<Address>[0-9a-f]{1,4})"; // intentionally also "Address"
+        static string bytes = @"(?<Bytes>([0-9a-f][0-9a-f][ +]){1,4})";
+        static string label = @"(?<Label>@?_?[A-Za-z0-9_]+\??)";
+        static string org = @"(?<Directive>\.org)";
+        static string assignment = @"(?<Directive>\.(eq|var))";
+
+        protected static List<AsmLineTemplate> _templates = new List<AsmLineTemplate>();
+
+        static Regex CommentRegex = new Regex( @"(?<Comment>;.*)", RegexOptions.Compiled );
+
+        public static AsmLineTemplate AddTemplate( AsmLineType lineType, string pattern, params string[] values ) {
+            AsmLineTemplate template = new AsmLineTemplate {
+                LineType = lineType,
+                Regex = new Regex( pattern, RegexOptions.Compiled ),
+                Values = values
+            };
+            _templates.Add( template );
+            return template;
+        }
+
+        static AsmLine() {
+            AddTemplate( AsmLineType.OpcodeLine, $@"^\+{offset} {address4}: {bytes} *(\s{label})?\s *{opcode}($|\s+)", "Offset", "Address", "Bytes", "Label", "Opcode" );
+            AddTemplate( AsmLineType.CommentLine, $@"^ *{commentLine}$", "Comment" );
+            AddTemplate( AsmLineType.OrgLine, $@"^ *{org} +\${address}", "Address" );
+            AddTemplate( AsmLineType.AssignmentLine, $@"^ *{label} +{assignment} +\${address}", "Label", "Directive", "Address" );
+            AddTemplate( AsmLineType.DirectiveLine, $@"^\+{offset} {address4}: {bytes} *(\s{label})?\s *{directive}($|\s+)", "Offset", "Address", "Bytes", "Label", "Directive" );
+        }
+
+        public void MatchLine( string line ) {
+            Debug.Assert( Line == null );
+            Line = line;
+            Empty = line.Trim() == "";
+            if (Empty) {
+                Matched = false;
+                return;
+            }
+
+            bool success = false;
+
+            foreach (AsmLineTemplate template in _templates) {
+
+                Match match = template.Regex.Match( line );
+                success = match.Success;
+                if (success) {
+
+                    // step 1: save information about line (up to opcode/directive)
+                    LineType = template.LineType;
+                    RegexHelpers.Transfer( this, match, template.Values );
+
+                    // step 2: save argument of opcode/directive
+                    string rest = Line.Substring( match.Length ).Trim();
+                    switch (LineType) {
+                        case AsmLineType.DirectiveLine:
+                            Argument = new DirectiveAsmArgument( Directive, ref rest );
+                            Dump();
+                            break;
+                        case AsmLineType.OpcodeLine:
+                            Argument = new OperandAsmArgument( Opcode, ref rest );
+                            break;
+                    }
+
+                    Comment = RegexHelpers.MatchValue( CommentRegex, rest, "Comment" );
+                    break;
+                }
+
+            }
+            Matched = success;
+        }
+
+        public void Dump() {
+            switch (LineType) {
+                case AsmLineType.AssignmentLine:
+                    Trace.Write( $"{Label} {Directive} ${Address}" );
+                    if (Type != "") Trace.Write( " " + Type );
+                    if (Comment != "") Trace.Write( " " + Comment );
+                    Trace.WriteLine( "" );
+                    break;
+
+                case AsmLineType.DirectiveLine:
+                    DirectiveAsmArgument arg = (DirectiveAsmArgument)Argument;
+                    if (Directive == ".fill") {
+                        //Trace.WriteLine( $"${this.Address4} .fill {arg.FillCount},{arg.FillValue}" );
+                    }
+                    break;
+            }
+        }
+    }
+
+
+    abstract class AsmArgument { }
+
+    public enum MatchedDirectiveType { dd1, dd2, str, bulk, fill }
+
+    class DirectiveAsmArgument : AsmArgument {
+        public string Number { get; set; }
+        public string String { get; set; }
+        public string Bytes { get; set; }
+        public string Label { get; set; }
+        public string FillCount { get; set; }
+        public string FillValue { get; set; }
+
+        public MatchedDirectiveType MatchedDirectiveType;
+
+        protected static Dictionary<string, (MatchedDirectiveType, Regex, string[])> _regexes = new Dictionary<string, (MatchedDirectiveType, Regex, string[])>();
+
+        public static void AddRegex( MatchedDirectiveType type, string operation, string pattern, params string[] values ) {
+            _regexes.Add( operation, (
+                type,
+                new Regex( $@"{pattern}(\s|$)", RegexOptions.Compiled ),
+                values ));
+        }
+
+        static string hexNumber = @"(\$[0-9a-f]+)";
+        static string decimalNumber = @"([0-9]+)";
+        static string number = $@"{hexNumber}|{decimalNumber}";
+        static string label = @"(?<Label>@?_?[A-Za-z0-9_]+\??)";
+        static string stringArgument = @"“(?<String>[^”]*)”";
+        static string bytes = @"(?<Bytes>[0-9a-f]+)";
+        static string fillArgument = $@"(?<FillCount>{decimalNumber}),(?<FillValue>{number})";
+
+        static DirectiveAsmArgument() {
+            AddRegex( MatchedDirectiveType.dd1, ".dd1", number, "Number" );
+            AddRegex( MatchedDirectiveType.dd2, ".dd2", $@"{number}|{label}", "Number", "Label" );
+            AddRegex( MatchedDirectiveType.str, ".str", stringArgument, "String" );
+            AddRegex( MatchedDirectiveType.bulk, ".bulk", bytes, "Bytes" );
+            AddRegex( MatchedDirectiveType.fill, ".fill", fillArgument, "FillCount", "FillValue" );
+        }
+
+        public DirectiveAsmArgument( string operation, ref string rest ) {
+            (MatchedDirectiveType type, Regex re, string[] values) = _regexes[operation];
+            Match match = re.Match( rest );
+            if (match.Success) {
+                MatchedDirectiveType = type;
+                RegexHelpers.Transfer( this, match, values );
+                rest = rest.Substring( match.Length ).Trim();
+            }
+        }
+    }
+
+    public enum MatchedOperandType { Immediate, IndirectX, IndirectY, AbsoluteX, AbsoluteY, Absolute, Accumulator }
+
+    class OperandAsmArgument : AsmArgument {
+
+        public string Operand { get; set; }
+        public string Hexnum { get; set; }
+        public string Decnum { get; set; }
+        public string Label { get; set; }
+        public string Address { get; set; }
+        public string Immediate { get; set; }
+        public string Index { get; set; }
+        public string IndirectX { get; set; }
+        public string IndirectY { get; set; }
+        public string AbsoluteX { get; set; }
+        public string AbsoluteY { get; set; }
+        public string Absolute { get; set; }
+        public string Accumulator { get; set; }
+        public string Offset { get; set; }
+
+        public MatchedOperandType MatchedOperandType;
+        protected static List<(MatchedOperandType, Regex,string[])> _regexes = new List<(MatchedOperandType, Regex,string[])>();
+
+        public static void AddRegex( MatchedOperandType type, string pattern, params string[] values ) {
+            _regexes.Add( (
+                type,
+                new Regex( $@"{pattern}(\s|$)", RegexOptions.Compiled ), 
+                values));
+        }
+
+        static string hexNumber = @"(?<Hexnum>\$[0-9a-f]+)";
+        static string decimalNumber = @"(?<Decnum>[0-9]+)";
+        static string label = @"(?<Label>@?_?[A-Za-z0-9_]+\??)";
+        static string address = @"(?<Address>[0-9a-f]{1,4})";
+        static string labelOraddress = $@"({label}|{address})(?<Offset>[+-][0-9$]+)";
+
+        static string immediate = $@"(?<Immediate>#({hexNumber}|{decimalNumber}))";  // lda #$00
+        static string indirectX = $@"(?<IndirectX>\({labelOraddress},x\))";
+        static string indirectY = $@"(?<IndirectY>\({labelOraddress}\),y)";
+        static string absoluteX = $@"(?<AbsoluteX>{labelOraddress},x)";
+        static string absoluteY = $@"(?<AbsoluteY>({label}|{address}),y)";
+        static string absolute = $@"(?<Absolute>{label}|{address})";
+        static string accumulator = @"(?<Accumulator>A)";
+
+        static OperandAsmArgument() {
+            AddRegex( MatchedOperandType.Immediate, immediate, "Immediate", "Hexnum", "Decnum" );
+            AddRegex( MatchedOperandType.IndirectX, indirectX, "IndirectX", "Label", "Address", "Offset" );
+            AddRegex( MatchedOperandType.IndirectY, indirectY, "IndirectY", "Label", "Address", "Offset" );
+            AddRegex( MatchedOperandType.AbsoluteX, absoluteX, "AbsoluteX", "Label", "Address", "Offset" );
+            AddRegex( MatchedOperandType.AbsoluteY, absoluteY, "AbsoluteY", "Label", "Address", "Offset" );
+            AddRegex( MatchedOperandType.Absolute, absolute, "Absolute", "Label", "Address", "Offset" );
+            AddRegex( MatchedOperandType.Accumulator, accumulator, "Accumulator" );
+        }
+
+        public OperandAsmArgument( string opcode, ref string rest ) {
+            for (int index = 0; index < _regexes.Count; index++ ) {
+                (MatchedOperandType type, Regex re, string[] values) = _regexes[index];
+                Match match = re.Match( rest );
+                if (match.Success) {
+                    Operand = match.Value.Trim();
+                    MatchedOperandType = type;
+                    RegexHelpers.Transfer( this, match, values );
+                    if (rest.StartsWith( "kbdMovementDir,y" )) {
+                        Trace.WriteLine( "yes" );
+                    }
+                    rest = rest.Substring( match.Length ).Trim();
+                    return;
+                }
+            }
+        }
+    }
+
+
+    class RegexHelpers {
+        public static void Transfer( object obj, Match match, params string[] values ) {
+            Type type = obj.GetType();
+            foreach (string value in values) {
+                PropertyInfo prop = type.GetProperty( value );
+                Debug.Assert( prop != null, $"unknown property {value}" );
+                Debug.Assert( prop.GetValue( obj ) == null );
+                prop.SetValue( obj, match.Groups[value].Value, null );
+            }
+        }
+
+        public static string MatchValue( Regex regex, string target, string value ) {
+            Match match = regex.Match( target );
+            return match.Groups[value].Value;
+        }
+    }
+
 }
