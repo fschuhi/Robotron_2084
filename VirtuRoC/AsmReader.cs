@@ -7,77 +7,95 @@ using System.Text.RegularExpressions;
 using Newtonsoft.Json;
 using System.Reflection;
 using System.Linq;
+using System.Windows.Navigation;
+using System.Security.AccessControl;
 
 namespace Robotron {
 
-    static class Conversion {
-        public static int StringToDecimal( string s ) {
-            if (s == "") return -1;
-            if (s.StartsWith( "$" ))
-                return HexToDecimal( s );
-            else if (s.StartsWith( "#$" ))
-                return HexToDecimal( s.Substring( 2 ) );
-            else if (s.StartsWith( "#" ))
-                return Int32.Parse( s.Substring( 1 ) );
-            else
-                return Int32.Parse( s );
-        }
-
-        public static int HexToDecimal( string s ) {
-            if (s == "") return -1;
-            return int.Parse( s.StartsWith( "$" ) ? s.Substring( 2 ) : s, NumberStyles.HexNumber );
-        }
-
-        public static string DecimalToHexAddress( int addr ) {
-            return $"${addr:X04}";
-        }
-    }
-
-    class AsmReader {
+    class AsmReader : RobotronObject {
 
         List<string> _inputLines;
         List<AsmLine> _asmLines = new List<AsmLine>();
+
+        Dictionary<string, int> _addressByLabel;
+        Dictionary<int, string> _labelByAddress;
 
         public AsmReader( string filename ) {
             _inputLines = new List<string>( File.ReadAllLines( filename ) );
 
             foreach (string line in _inputLines) {
-                AsmLine asmLine = new AsmLine();
-                asmLine.MatchLine( line );
+                AsmLine asmLine = new AsmLine( line, _asmLines.Count );
                 _asmLines.Add( asmLine );
             }
 
-            return;
+            _addressByLabel = AddressByLabelDictionary();
+            _labelByAddress = LabelByAddressDictionary();
 
-            IEnumerable<AsmLine> list = _asmLines
-                .Where( c => c.HasOperandArgument() && (c.OperandAsmArgument.MatchedOperandType == MatchedOperandType.AbsoluteY) );
-            Trace.WriteLine( list.Count() );
-
-            IEnumerable<string> list2 = _asmLines
-                .Where( c => c.IsMemoryMapped() && c.HasLabel() )
-                .Select( c => c.Label ).ToArray();
-            //Console.WriteLine( string.Join( ",", list2 ) );
-
-            Dictionary<string, int> labels = CollectAddressesByLabel();
-            var printout = labels.Select( pair => { Console.WriteLine( pair.Key + " " + pair.Value.ToString() ); return pair.Key; } ).ToList();
-
-            //Trace.WriteLine( list2.Count() );
+            // all JSR have labels as subroutine address
+            ValidateJsrCalls();
         }
 
-        public Dictionary<string, int> CollectAddressesByLabel() {
+        public void Test () {
+            var targets = UniqueJsrTargets();
+            TraceNewLine( targets.Count(), string.Join( ", ", targets.ToArray() ));
+
+            var calls = JsrCalls();
+            TraceNewLine( calls.Count() );
+
+            var lookup = JsrCallersLookup();
+            var lookupResult = lookup["eraseHulk"];
+            TraceNewLine( "eraseHulk:", string.Join( ", ", lookupResult.ToArray() ) );
+        }
+
+        public string CanonicalAddress( string address ) {
+            int decimalAddress = HexToDecimal( address );
+            if (_labelByAddress.ContainsKey( decimalAddress )) {
+                return _labelByAddress[decimalAddress];
+            } else {
+                return "$" + address;
+            }
+        }
+
+        public Dictionary<string, int> AddressByLabelDictionary() {
             return _asmLines
                 .Where( c => c.IsMemoryMapped() && c.HasLabel() )
                 .ToDictionary(
                     c => c.IsLocalLabel() ? c.Label + "-" + c.Address : c.Label,
-                    c => Conversion.HexToDecimal( c.Address ) );
+                    c => HexToDecimal( c.Address ) );
         }
 
-        public Dictionary<int, string> CollectLabelsByAddress() {
+        public Dictionary<int, string> LabelByAddressDictionary() {
             return _asmLines
                 .Where( c => c.IsMemoryMapped() && c.HasLabel() )
                 .ToDictionary(
-                    c => Conversion.HexToDecimal( c.Address ),
+                    c => HexToDecimal( c.Address ),
                     c => c.IsLocalLabel() ? c.Label + "-" + c.Address : c.Label );
+        }
+
+        public void ValidateJsrCalls() {
+            IEnumerable<AsmLine> nullLines = _asmLines.Where( l => l.Opcode == "jsr" && l.OperandArgument.Label == null );
+            Debug.Assert( nullLines.Count() == 0 );
+        }
+
+        public IEnumerable<(string, string)> JsrCalls() {
+            IEnumerable<(string, string)> jsrList = _asmLines
+                .Where( c => c.Opcode == "jsr" )
+                .Select( c => (c.Address, c.OperandArgument.Label) );
+            return jsrList;
+        }
+
+        public List<string> UniqueJsrTargets() {
+            return JsrCalls().Select( c => c.Item2 == null ? "<null - shouldn't happen>" : c.Item2 ).Distinct().ToList();
+        }
+
+        public ILookup<string, string> JsrCallersLookup() {
+             return JsrCalls().ToLookup( c => c.Item2, c => c.Item1 );
+        }
+
+        public Dictionary<string, List<string>> JsrCallersByTargetDictionary() {
+            //Dictionary<string, List<string>> dict1 = calls.GroupBy( x => x.Item2 ).ToDictionary( g => g.Key, l => l.Select( j => j.Item1 ).ToList() );
+            Dictionary<string, List<string>> dict2 = JsrCallersLookup().ToDictionary( g => g.Key, l => l.ToList() );
+            return dict2;
         }
 
         public void SaveToFile( string jsonfilename ) {
@@ -99,6 +117,7 @@ namespace Robotron {
 
         public AsmLineType LineType { get; set; }
 
+        public int Index { get; set; }
         public string Line { get; set; }
         public bool Matched { get; set; }
         public bool Empty { get; set; }
@@ -117,16 +136,17 @@ namespace Robotron {
 
         public AsmArgument Argument { get; set; }
         public bool HasArgument() { return Argument != null; }
-        public bool HasDirectiveArgument() { return HasArgument() && Argument is DirectiveAsmArgument; }
-        public bool HasOperandArgument() { return HasArgument() && Argument is OperandAsmArgument; }
+        public bool HasDirectiveArgument() { return HasArgument() && Argument is DirectiveArgument; }
+        public bool HasOperandArgument() { return HasArgument() && Argument is OperandArgument; }
         public bool IsMemoryMapped() { return Offset != null; }
-        public bool HasLabel() { return Label != ""; }
+        public bool Is6502Operation() { return Opcode != null; }
 
+        public bool HasLabel() { return Label != ""; }
         public bool IsGlobalLabel() { return HasLabel() && Label.StartsWith( "@" ); }
         public bool IsLocalLabel() { return HasLabel() && Label.StartsWith( "@" ); }
 
-        public DirectiveAsmArgument DirectiveAsmArgument { get { return HasDirectiveArgument() ? (DirectiveAsmArgument)Argument : null; } }
-        public OperandAsmArgument OperandAsmArgument { get { return HasOperandArgument() ? (OperandAsmArgument)Argument : null; } }
+        public DirectiveArgument DirectiveArgument { get { return HasDirectiveArgument() ? (DirectiveArgument)Argument : null; } }
+        public OperandArgument OperandArgument { get { return HasOperandArgument() ? (OperandArgument)Argument : null; } }
 
         static string[] _dataDirectives = new string[] {
             @"\.bulk", @"\.dd1", @"\.dd2", @"\.fill", @"\.str"
@@ -180,10 +200,16 @@ namespace Robotron {
             AddTemplate( AsmLineType.DirectiveLine, $@"^\+{offset} {address4}: {bytes} *(\s{label})?\s *{directive}($|\s+)", "Offset", "Address", "Bytes", "Label", "Directive" );
         }
 
-        public void MatchLine( string line ) {
-            Debug.Assert( Line == null );
+        public AsmLine( string line, int index ) {
+            Index = index;
+            if (Index == 658) { 
+            };
             Line = line;
-            Empty = line.Trim() == "";
+            MatchLine();
+        }
+
+        private void MatchLine() {
+            Empty = Line.Trim() == "";
             if (Empty) {
                 Matched = false;
                 return;
@@ -193,7 +219,7 @@ namespace Robotron {
 
             foreach (AsmLineTemplate template in _templates) {
 
-                Match match = template.Regex.Match( line );
+                Match match = template.Regex.Match( Line );
                 success = match.Success;
                 if (success) {
 
@@ -205,11 +231,11 @@ namespace Robotron {
                     string rest = Line.Substring( match.Length ).Trim();
                     switch (LineType) {
                         case AsmLineType.DirectiveLine:
-                            Argument = new DirectiveAsmArgument( Directive, ref rest );
+                            Argument = new DirectiveArgument( Directive, ref rest );
                             Dump();
                             break;
                         case AsmLineType.OpcodeLine:
-                            Argument = new OperandAsmArgument( Opcode, ref rest );
+                            Argument = new OperandArgument( Opcode, ref rest );
                             break;
                     }
 
@@ -231,7 +257,7 @@ namespace Robotron {
                     break;
 
                 case AsmLineType.DirectiveLine:
-                    DirectiveAsmArgument arg = (DirectiveAsmArgument)Argument;
+                    DirectiveArgument arg = (DirectiveArgument)Argument;
                     if (Directive == ".fill") {
                         //Trace.WriteLine( $"${this.Address4} .fill {arg.FillCount},{arg.FillValue}" );
                     }
@@ -245,7 +271,7 @@ namespace Robotron {
 
     public enum MatchedDirectiveType { dd1, dd2, str, bulk, fill }
 
-    class DirectiveAsmArgument : AsmArgument {
+    class DirectiveArgument : AsmArgument {
         public string Number { get; set; }
         public string String { get; set; }
         public string Bytes { get; set; }
@@ -272,7 +298,7 @@ namespace Robotron {
         static string bytes = @"(?<Bytes>[0-9a-f]+)";
         static string fillArgument = $@"(?<FillCount>{decimalNumber}),(?<FillValue>{number})";
 
-        static DirectiveAsmArgument() {
+        static DirectiveArgument() {
             AddRegex( MatchedDirectiveType.dd1, ".dd1", number, "Number" );
             AddRegex( MatchedDirectiveType.dd2, ".dd2", $@"{number}|{label}", "Number", "Label" );
             AddRegex( MatchedDirectiveType.str, ".str", stringArgument, "String" );
@@ -280,7 +306,7 @@ namespace Robotron {
             AddRegex( MatchedDirectiveType.fill, ".fill", fillArgument, "FillCount", "FillValue" );
         }
 
-        public DirectiveAsmArgument( string operation, ref string rest ) {
+        public DirectiveArgument( string operation, ref string rest ) {
             (MatchedDirectiveType type, Regex re, string[] values) = _regexes[operation];
             Match match = re.Match( rest );
             if (match.Success) {
@@ -291,9 +317,10 @@ namespace Robotron {
         }
     }
 
+
     public enum MatchedOperandType { Immediate, IndirectX, IndirectY, AbsoluteX, AbsoluteY, Absolute, Accumulator }
 
-    class OperandAsmArgument : AsmArgument {
+    class OperandArgument : AsmArgument {
 
         public string Operand { get; set; }
         public string Hexnum { get; set; }
@@ -316,7 +343,7 @@ namespace Robotron {
         public static void AddRegex( MatchedOperandType type, string pattern, params string[] values ) {
             _regexes.Add( (
                 type,
-                new Regex( $@"{pattern}(\s|$)", RegexOptions.Compiled ), 
+                new Regex( $@"^{pattern}(\s|$)", RegexOptions.Compiled ), 
                 values));
         }
 
@@ -334,7 +361,7 @@ namespace Robotron {
         static string absolute = $@"(?<Absolute>{label}|{address})";
         static string accumulator = @"(?<Accumulator>A)";
 
-        static OperandAsmArgument() {
+        static OperandArgument() {
             AddRegex( MatchedOperandType.Immediate, immediate, "Immediate", "Hexnum", "Decnum" );
             AddRegex( MatchedOperandType.IndirectX, indirectX, "IndirectX", "Label", "Address", "Offset" );
             AddRegex( MatchedOperandType.IndirectY, indirectY, "IndirectY", "Label", "Address", "Offset" );
@@ -344,7 +371,7 @@ namespace Robotron {
             AddRegex( MatchedOperandType.Accumulator, accumulator, "Accumulator" );
         }
 
-        public OperandAsmArgument( string opcode, ref string rest ) {
+        public OperandArgument( string opcode, ref string rest ) {
             for (int index = 0; index < _regexes.Count; index++ ) {
                 (MatchedOperandType type, Regex re, string[] values) = _regexes[index];
                 Match match = re.Match( rest );
@@ -361,23 +388,4 @@ namespace Robotron {
             }
         }
     }
-
-
-    class RegexHelpers {
-        public static void Transfer( object obj, Match match, params string[] values ) {
-            Type type = obj.GetType();
-            foreach (string value in values) {
-                PropertyInfo prop = type.GetProperty( value );
-                Debug.Assert( prop != null, $"unknown property {value}" );
-                Debug.Assert( prop.GetValue( obj ) == null );
-                prop.SetValue( obj, match.Groups[value].Value, null );
-            }
-        }
-
-        public static string MatchValue( Regex regex, string target, string value ) {
-            Match match = regex.Match( target );
-            return match.Groups[value].Value;
-        }
-    }
-
 }

@@ -32,21 +32,21 @@ namespace Robotron {
 
         #region AsmReader
         AsmReader _asmReader;
-        Dictionary<string, int> _addressesByLabel;
-        Dictionary<int, string> _labelsByAddress;
+        Dictionary<string, int> _addressByLabel;
+        Dictionary<int, string> _labelByAddress;
 
         private void ReadAsm() {
             _asmReader = new AsmReader( @"s:\source\repos\Robotron_2084\Disassemblies\Robotron (Apple).asm" );
-            _addressesByLabel = _asmReader.CollectAddressesByLabel();
-            _labelsByAddress = _asmReader.CollectLabelsByAddress();
+            _addressByLabel = _asmReader.AddressByLabelDictionary();
+            _labelByAddress = _asmReader.LabelByAddressDictionary();
         }
 
         private string GetLabel( int address ) {
-            return _labelsByAddress.ContainsKey( address ) ? _labelsByAddress[address] : $"${address:X4}";
+            return _labelByAddress.ContainsKey( address ) ? _labelByAddress[address] : $"${address:X4}";
         }
 
         public int GetAddress( string label ) {
-            return _addressesByLabel[label];
+            return _addressByLabel[label];
         }
         #endregion
 
