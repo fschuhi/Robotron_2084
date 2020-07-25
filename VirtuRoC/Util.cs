@@ -32,6 +32,10 @@ namespace Robotron {
             return $"${addr:X04}";
         }
 
+        public void TraceLine() {
+            TraceLine( " " );
+        }
+
         public void TraceLine( params object[] objects ) {
             foreach (object obj in objects) {
                 Trace.Write( obj.ToString() );
@@ -43,6 +47,19 @@ namespace Robotron {
         public void TraceNewLine( params object[] objects ) {
             Trace.Write( "\n" );
             TraceLine( objects );
+        }
+
+        public void TraceObjectType( object obj ) {
+            TraceLine( obj.ToString() );
+        }
+    }
+
+    public static class RobotronExtensions {
+        public static int ToDecimal( this string hex ) {
+            return RobotronObject.HexToDecimal( hex );
+        }
+        public static string ToHex( this int dec ) {
+            return dec == -1 ? "N/A" : RobotronObject.DecimalToHexAddress( dec );
         }
     }
 

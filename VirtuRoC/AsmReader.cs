@@ -9,6 +9,8 @@ using System.Reflection;
 using System.Linq;
 using System.Windows.Navigation;
 using System.Security.AccessControl;
+using System.Threading;
+using System.Runtime.CompilerServices;
 
 namespace Robotron {
 
@@ -35,7 +37,37 @@ namespace Robotron {
             ValidateJsrCalls();
         }
 
-        public void Test () {
+        public void Test1() {
+            var list2 = AsmLineByAddressDictionary();
+            var line = list2[0x4610];
+            Debug.Assert( ! line.Bytes.Contains( "+" ) );
+            var bytes = line.Bytes.Trim();
+
+            //bytes.Split( ' ' ).Select( b => b.ToDecimal() ).ToList().ForEach( c => TraceLine( c ) );
+
+            line.BytesList.ForEach( c => TraceLine( c ) );
+            TraceLine();
+
+            line = list2[0x800];
+            line.BytesList.ForEach( c => TraceLine( c ) );
+
+            var branches = _asmLines.Where( l => l.IsBranchOperation() ).Select( c => (c.DecimalAddress, c.Opcode, c.BranchTarget()) );
+            var calls = _asmLines.Where( l => l.Opcode == "jsr" ).Select( c => (c.DecimalAddress, c.Opcode, c.JsrTarget()) );
+            var returns = _asmLines.Where( l => l.Opcode == "rts" ).Select( c => (c.DecimalAddress, c.Opcode, -1) );
+            var jumps = _asmLines.Where( l => l.Opcode == "jmp" ).Select( c => (c.DecimalAddress, c.Opcode, c.JmpTarget()) );
+
+            //jumps.ToList().ForEach( c => TraceLine( c.Item1.ToHex(), c.Item2, c.Item3.ToHex() ) );
+
+            var RPCchanges = branches.Concat( calls ).Concat( returns ).Concat( jumps ).ToList();
+            TraceLine( branches.Count(), calls.Count(), returns.Count(), jumps.Count(), RPCchanges.Count() );
+            RPCchanges.Sort();
+
+            RPCchanges.ToList().ForEach( c => TraceLine( c.Item1.ToHex(), c.Item2, c.Item3.ToHex() ) );
+
+            //Test2();
+        }
+
+        public void Test2 () {
             var targets = UniqueJsrTargets();
             TraceNewLine( targets.Count(), string.Join( ", ", targets.ToArray() ));
 
@@ -47,7 +79,7 @@ namespace Robotron {
             TraceNewLine( "eraseHulk:", string.Join( ", ", lookupResult.ToArray() ) );
         }
 
-        public string CanonicalAddress( string address ) {
+        public string CanonicalStringAddress( string address ) {
             int decimalAddress = HexToDecimal( address );
             if (_labelByAddress.ContainsKey( decimalAddress )) {
                 return _labelByAddress[decimalAddress];
@@ -56,19 +88,23 @@ namespace Robotron {
             }
         }
 
+        public Dictionary<int,AsmLine> AsmLineByAddressDictionary() {
+            return _asmLines.Where( c => c.IsMemoryMapped() ).ToDictionary( x => x.DecimalAddress, x => x );
+        }
+
         public Dictionary<string, int> AddressByLabelDictionary() {
             return _asmLines
                 .Where( c => c.IsMemoryMapped() && c.HasLabel() )
                 .ToDictionary(
                     c => c.IsLocalLabel() ? c.Label + "-" + c.Address : c.Label,
-                    c => HexToDecimal( c.Address ) );
+                    c => c.DecimalAddress );
         }
 
         public Dictionary<int, string> LabelByAddressDictionary() {
             return _asmLines
                 .Where( c => c.IsMemoryMapped() && c.HasLabel() )
                 .ToDictionary(
-                    c => HexToDecimal( c.Address ),
+                    c => c.DecimalAddress,
                     c => c.IsLocalLabel() ? c.Label + "-" + c.Address : c.Label );
         }
 
@@ -77,24 +113,21 @@ namespace Robotron {
             Debug.Assert( nullLines.Count() == 0 );
         }
 
-        public IEnumerable<(string, string)> JsrCalls() {
-            IEnumerable<(string, string)> jsrList = _asmLines
-                .Where( c => c.Opcode == "jsr" )
-                .Select( c => (c.Address, c.OperandArgument.Label) );
-            return jsrList;
+        public IEnumerable<(int, string)> JsrCalls() {
+            return _asmLines.Where( c => c.Opcode == "jsr" ).Select( c => (c.DecimalAddress, c.OperandArgument.Label) );
         }
 
         public List<string> UniqueJsrTargets() {
             return JsrCalls().Select( c => c.Item2 == null ? "<null - shouldn't happen>" : c.Item2 ).Distinct().ToList();
         }
 
-        public ILookup<string, string> JsrCallersLookup() {
+        public ILookup<string, int> JsrCallersLookup() {
              return JsrCalls().ToLookup( c => c.Item2, c => c.Item1 );
         }
 
-        public Dictionary<string, List<string>> JsrCallersByTargetDictionary() {
+        public Dictionary<string, List<int>> JsrCallersByTargetDictionary() {
             //Dictionary<string, List<string>> dict1 = calls.GroupBy( x => x.Item2 ).ToDictionary( g => g.Key, l => l.Select( j => j.Item1 ).ToList() );
-            Dictionary<string, List<string>> dict2 = JsrCallersLookup().ToDictionary( g => g.Key, l => l.ToList() );
+            Dictionary<string, List<int>> dict2 = JsrCallersLookup().ToDictionary( g => g.Key, l => l.ToList() );
             return dict2;
         }
 
@@ -134,16 +167,26 @@ namespace Robotron {
 
         public string Operation { get { return Opcode != "" ? Opcode : Directive; } }
 
+        private int _decimalAddress = -1;
+        public int DecimalAddress { get {
+                if (_decimalAddress == -1 ) {
+                    _decimalAddress = Address.ToDecimal();
+                }
+                return _decimalAddress;
+            } }
+
         public AsmArgument Argument { get; set; }
         public bool HasArgument() { return Argument != null; }
         public bool HasDirectiveArgument() { return HasArgument() && Argument is DirectiveArgument; }
         public bool HasOperandArgument() { return HasArgument() && Argument is OperandArgument; }
         public bool IsMemoryMapped() { return Offset != null; }
         public bool Is6502Operation() { return Opcode != null; }
+        public bool IsDirective() { return Directive != null; }
 
         public bool HasLabel() { return Label != ""; }
         public bool IsGlobalLabel() { return HasLabel() && Label.StartsWith( "@" ); }
         public bool IsLocalLabel() { return HasLabel() && Label.StartsWith( "@" ); }
+        public bool IsBranchOperation() { return Is6502Operation() && "beqbnebccbcsbmibpl".Contains( Opcode ); }
 
         public DirectiveArgument DirectiveArgument { get { return HasDirectiveArgument() ? (DirectiveArgument)Argument : null; } }
         public OperandArgument OperandArgument { get { return HasOperandArgument() ? (OperandArgument)Argument : null; } }
@@ -202,8 +245,6 @@ namespace Robotron {
 
         public AsmLine( string line, int index ) {
             Index = index;
-            if (Index == 658) { 
-            };
             Line = line;
             MatchLine();
         }
@@ -245,6 +286,51 @@ namespace Robotron {
 
             }
             Matched = success;
+        }
+
+        private List<int> _bytesList;
+
+        public List<int> BytesList {
+            get {
+                if (_bytesList == null) {
+                    List<int> bytesList;
+                    if (Is6502Operation()) {
+                        bytesList = Bytes.Trim().Split( ' ' ).Select( b => b.ToDecimal() ).ToList();
+                    } else {
+                        Debug.Assert( IsDirective() );
+                        switch (Directive) {
+                            case ".bulk":
+                                string str = DirectiveArgument.Bytes.Trim();
+                                int chunkSize = 2;
+                                IEnumerable<string> bulkBytes = Enumerable.Range( 0, str.Length / chunkSize ).Select( i => str.Substring( i * chunkSize, chunkSize ) );
+                                bytesList = bulkBytes.Select( b => b.ToDecimal() ).ToList();
+                                break;
+                            default:
+                                bytesList = null;
+                                break;
+                        }
+                        if (Directive == ".bulk") {
+                        } else {
+                        }
+                    }
+                    _bytesList = bytesList;
+                }
+                return _bytesList;
+            }
+        }
+
+        public int BranchTarget() {
+            if (!IsBranchOperation()) return -1;
+            int operandRPC = DecimalAddress + 1;
+            int operand = BytesList[1];
+            return (operandRPC + 1 + (sbyte)operand) & 0xFFFF;
+        }
+
+        public int JsrTarget() {
+            return BytesList[1] | (BytesList[2] << 8);
+        }
+        public int JmpTarget() {
+            return BytesList[1] | (BytesList[2] << 8);
         }
 
         public void Dump() {

@@ -34,7 +34,7 @@ namespace Robotron {
                     Trace.WriteLine( "Main() start" );
 
                     AsmReader reader = new AsmReader( @"s:\source\repos\Robotron_2084\Disassemblies\Robotron (Apple).asm" );
-                    reader.Test();
+                    reader.Test1();
 
                     /*                    
                     Trace.WriteLine( $"Running workbench{(o.Breakpoints ? "with" : "without")} breakpoints: -b {o.Breakpoints}" );
