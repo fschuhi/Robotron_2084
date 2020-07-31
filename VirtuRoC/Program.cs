@@ -34,16 +34,15 @@ namespace Robotron {
                     Trace.WriteLine( "Main() start" );
 
                     AsmReader reader = new AsmReader( @"s:\source\repos\Robotron_2084\Disassemblies\Robotron (Apple).asm" );
-                    reader.Test1();
-
-                    /*                    
+                    //reader.Test1();
+                                        
                     Trace.WriteLine( $"Running workbench{(o.Breakpoints ? "with" : "without")} breakpoints: -b {o.Breakpoints}" );
 
                     using (_machineOperator = new MachineOperator()) {
 
                         if (o.Breakpoints) {
 
-                            _machineOperator.OnPaused += MachineOperator_OnPaused;
+                            // _machineOperator.OnPaused += MachineOperator_OnPaused;
                             _workbench = new Workbench( _machineOperator, o );
 
                         } else {
@@ -57,7 +56,7 @@ namespace Robotron {
 
                         _machineOperator.ShowDialog();
                     }
-                    */
+                    
 
                     Trace.WriteLine( "Main() end" );
                     Trace.Flush();
@@ -119,6 +118,7 @@ namespace Robotron {
 
             //Trace.WriteLine( $"A={A}, X={X} => A={cpu.RA} X={cpu.RX}" );
         }
+
 
         static void TestWindow1() {
             Window1 win = new Window1();

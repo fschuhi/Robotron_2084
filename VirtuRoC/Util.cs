@@ -7,7 +7,8 @@ using System.Diagnostics;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using System.Globalization;
-    
+using Jellyfish.Library;
+
 namespace Robotron {
 
     public class RobotronObject {
@@ -28,24 +29,20 @@ namespace Robotron {
             return int.Parse( s.StartsWith( "$" ) ? s.Substring( 2 ) : s, NumberStyles.HexNumber );
         }
 
-        public static string DecimalToHexAddress( int addr ) {
-            return $"${addr:X04}";
+        public static string DecimalToHexAddress( int addr, bool zeroPage = false) {
+            return zeroPage? $"${addr:X02}"  : $"${addr:X04}";
         }
 
         public void TraceLine() {
-            TraceLine( " " );
+            TraceLine( "" );
         }
 
         public void TraceLine( params object[] objects ) {
-            foreach (object obj in objects) {
-                Trace.Write( obj.ToString() );
-                if (objects.Length > 1) Trace.Write( "\t" );
-            }
-            Trace.Write( "\n" );
+            Trace.WriteLine( string.Join( "\t", objects.Select( o => o.ToString() ).ToArray() ) );
         }
 
         public void TraceNewLine( params object[] objects ) {
-            Trace.Write( "\n" );
+            TraceLine();
             TraceLine( objects );
         }
 
@@ -54,12 +51,25 @@ namespace Robotron {
         }
     }
 
+    public enum AddressPart { NA, High, Low };
+
     public static class RobotronExtensions {
         public static int ToDecimal( this string hex ) {
             return RobotronObject.HexToDecimal( hex );
         }
         public static string ToHex( this int dec ) {
             return dec == -1 ? "N/A" : RobotronObject.DecimalToHexAddress( dec );
+        }
+        public static string ToHex( this int dec, bool zeroPage ) {
+            return dec == -1 ? "N/A" : RobotronObject.DecimalToHexAddress( dec, zeroPage );
+        }
+
+        public static int LowByte( this int address ) {
+            return address & 0x00ff;
+        }
+
+        public static int HighByte( this int address ) {
+            return address >> 8;
         }
     }
 

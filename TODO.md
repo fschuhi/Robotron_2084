@@ -39,7 +39,7 @@ https://github.com/robinrodricks/ScintillaNET.Demo
 		* always at certain level
 		* always called from certain ancestor(s) - - nur dynamisch
 * types of calls
-	* Monitor,  Applesoft
+	* Monitor, Applesoft
 	* JSR to compact
 	* JSR/JMP to JSR/JMP (4 combos)
 	* JMP to tail
@@ -60,25 +60,11 @@ https://github.com/robinrodricks/ScintillaNET.Demo
 * memory map
 	* code
 	* stashes
-	* 
 
 ## potential refactoring targets
 
 * make MachineOperator independent from WPF, which means possibly making it independent from Virtu itself
-* rewrite @loop and the @lessThan with macros
-	* http://wilsonminesco.com/StructureMacros/STRUCMAC.ASM
-
-## StackTracker
-
-* design objects
-	* stack memory bytes
-	* stack entry w/ varying length
-* can be used to switch off tracing for (compact only?) subroutines
-* determine entry into and exit from a subroutine
-* hook into OnJSR, OnRTS
-* hook into PLx, PHx
-* add OnTXS and pull off return addresses until we get to the new stack pointer
-* indent / unindent should also work w/ stack level
+* rewrite @loop and the @lessThan with macros, http://wilsonminesco.com/StructureMacros/STRUCMAC.ASM
 
 ## L4C00
 

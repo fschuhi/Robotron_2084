@@ -7,6 +7,7 @@ using WindowsInput;
 using Stateless;
 using System.IO;
 using CommandLine;
+using System.Runtime.InteropServices;
 
 namespace Robotron {
 
@@ -28,6 +29,7 @@ namespace Robotron {
             _mo.OnLoaded += mo_OnLoaded;
             _mo.OnClosing += mo_OnClosing;
             _options = options;
+            ReadAsm();
         }
 
         #region AsmReader
@@ -95,10 +97,7 @@ namespace Robotron {
 
         InputSimulator _sim;
         List<Tuple<string, int, int>> _calls = new List<Tuple<string, int, int>>();
-
-        private void AddCall( string opcode, Cpu cpu ) {
-            _calls.Add( new Tuple<string, int, int>( opcode, cpu.OpcodeRPC, cpu.RPC ) );
-        }
+        StackTracker _stackTracker;
 
         private void ConfigureStatemachine() {
             _sm = new StateMachine<State, Trigger>( State.Idle );
@@ -129,10 +128,11 @@ namespace Robotron {
                 } );
 
             _sm.Configure( State.IntroStory7 )
-               .Permit( Trigger.Breakpoint, State.YouDrawn )
+                .Permit( Trigger.Breakpoint, State.YouDrawn )
                 .OnEntryFrom( _breakpointTrigger, ( PausedEventArgs e ) => {
-                    _mo.Machine.Cpu.OnJSR = ( Cpu cpu ) => AddCall( "JSR", cpu );
-                    _mo.Machine.Cpu.OnRTS = ( Cpu cpu ) => AddCall( "RTS", cpu );
+                    _stackTracker = new StackTracker( _mo );
+                    _mo.Machine.Cpu.OnJSR += ( Cpu cpu ) => AddCall( "JSR", cpu );
+                    _mo.Machine.Cpu.OnRTS += ( Cpu cpu ) => AddCall( "RTS", cpu );
                     _mo.SetBreakpoint( GetAddress( "BP_YouDrawn" ) );
                     _mo.mo_Unpause();
                 } );
@@ -140,6 +140,11 @@ namespace Robotron {
             _sm.Configure( State.YouDrawn )
                 .PermitReentry( Trigger.Breakpoint )
                 .OnEntryFrom( _breakpointTrigger, sm_OnEntry_YouDrawn );                
+        }
+
+
+        private void AddCall( string opcode, Cpu cpu ) {
+            _calls.Add( new Tuple<string, int, int>( opcode, cpu.OpcodeRPC, cpu.RPC ) );
         }
 
 
