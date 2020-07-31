@@ -29,8 +29,11 @@ namespace Robotron {
             return int.Parse( s.StartsWith( "$" ) ? s.Substring( 2 ) : s, NumberStyles.HexNumber );
         }
 
-        public static string DecimalToHexAddress( int addr, bool zeroPage = false) {
-            return zeroPage? $"${addr:X02}"  : $"${addr:X04}";
+        public static string DecimalToHexAddress( int addr, bool zeroPage = false ) {
+            return zeroPage ? $"${addr:X02}" : $"${addr:X04}";
+        }
+        public static string DecimalToHexNum( int addr, bool zeroPage = false ) {
+            return zeroPage ? $"{addr:X02}" : $"{addr:X04}";
         }
 
         public void TraceLine() {
@@ -62,6 +65,10 @@ namespace Robotron {
         }
         public static string ToHex( this int dec, bool zeroPage ) {
             return dec == -1 ? "N/A" : RobotronObject.DecimalToHexAddress( dec, zeroPage );
+        }
+
+        public static string To8BitHex( this int dec ) {
+            return dec == -1 ? "N/A" : RobotronObject.DecimalToHexNum( dec, true );
         }
 
         public static int LowByte( this int address ) {

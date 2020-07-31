@@ -13,7 +13,7 @@ namespace Robotron {
 
     class Workbench {
 
-        private MachineOperator _mo;
+        public MachineOperator _mo;
 
         private enum State { Idle, WaitForDoneAtari, DoneAtari, IntroStory7, YouDrawn }
         private enum Trigger { Start, Breakpoint }
@@ -43,7 +43,7 @@ namespace Robotron {
             _labelByAddress = _asmReader.LabelByAddressDictionary();
         }
 
-        private string GetLabel( int address ) {
+        public string SafeGetLabel( int address ) {
             return _labelByAddress.ContainsKey( address ) ? _labelByAddress[address] : $"${address:X4}";
         }
 
@@ -69,7 +69,7 @@ namespace Robotron {
         private void mo_OnPause( MachineOperator mo, PausedEventArgs e ) {
             _logOutput.Flush();
 
-            _mo.MainPage.StateText = GetLabel( e.BreakpointRCP );
+            _mo.MainPage.StateText = SafeGetLabel( e.BreakpointRCP );
 
             switch (e.PausedReason) {
                 case PausedReason.Breakpoint:
@@ -130,7 +130,7 @@ namespace Robotron {
             _sm.Configure( State.IntroStory7 )
                 .Permit( Trigger.Breakpoint, State.YouDrawn )
                 .OnEntryFrom( _breakpointTrigger, ( PausedEventArgs e ) => {
-                    _stackTracker = new StackTracker( _mo );
+                    _stackTracker = new StackTracker( this );
                     _mo.Machine.Cpu.OnJSR += ( Cpu cpu ) => AddCall( "JSR", cpu );
                     _mo.Machine.Cpu.OnRTS += ( Cpu cpu ) => AddCall( "RTS", cpu );
                     _mo.SetBreakpoint( GetAddress( "BP_YouDrawn" ) );
@@ -156,7 +156,7 @@ namespace Robotron {
 
                 switch (opcode) {
                     case "JSR":
-                        WriteLog( $"{GetLabel(opcodeRPC)}: JSR {GetLabel(rpc)}" );
+                        WriteLog( $"{SafeGetLabel(opcodeRPC)}: JSR {SafeGetLabel(rpc)}" );
                         IndentLog();
 
                         counts[rpc] = (counts.ContainsKey( rpc ) ? counts[rpc] : 0) + 1;
@@ -172,6 +172,9 @@ namespace Robotron {
                 Trace.WriteLine( $"${pair.Key:X04}: {pair.Value}" );
             }
             _calls.Clear();
+
+            _stackTracker.DumpStack();
+            _stackTracker.DumpInfoList();
         }
     }
 }
