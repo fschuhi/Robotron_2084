@@ -12,6 +12,7 @@ using Jellyfish.Virtu.Services;
 using Microsoft.Win32;
 using AspectInjector.Broker;
 using System.Windows.Threading;
+using System.Windows;
 
 namespace Robotron {
 
@@ -113,6 +114,8 @@ namespace Robotron {
 
         private BackgroundWorker _bw;
 
+        private Window1 _win;
+
         public MachineOperator() {
 
             ConfigureWPF();
@@ -139,6 +142,10 @@ namespace Robotron {
             // we can supply an own key handler which interfaces with our MachineOperator
             VirtuRoCWpfKeyboardService keyboardService = new VirtuRoCWpfKeyboardService( this, Machine, MainPage );
             MainPage.Init( keyboardService );
+
+            // 2. then run the form embedded in WPF Window
+            // https://www.c-sharpcorner.com/article/adding-winforms-in-wpf/
+            _win = new Window1();
         }
 
         private void ConfigureStatemachine() {
@@ -209,9 +216,24 @@ namespace Robotron {
         }
 
 
+        public static void DoEvents() {
+            // https://stackoverflow.com/questions/4502037/where-is-the-application-doevents-in-wpf
+            Application.Current.Dispatcher.Invoke( DispatcherPriority.Background,
+                                                  new Action( delegate { } ) );
+        }
+
         public void ShowDialog() {
+            // needed to not have a big empty window (i.e. no controls on it) shown at startup
+            // "hide it behind its page"
+            //MainPage.Width = 600;
+            //MainPage.Height = 450;
+            MainWindow.Width = 616;
+            MainWindow.Height = 450;
+
             // start message pumping
             MainWindow.ShowActivated = true;
+            // DoEvents();
+            //MessageBox.Show( "before ShowDialog" );
             MainWindow.ShowDialog();
             WriteMessage( "ShowDialog exited, shutting down" );
         }
@@ -245,15 +267,19 @@ namespace Robotron {
         #region MainWindow / MainPage events
         private void MainPage_Loaded( object sender, System.Windows.RoutedEventArgs e ) {
 
+            //MessageBox.Show( "MainPage_Loaded" );
             // We now have a WPF message pump in place.
 
             // make sure we wait until MainPage and its Machine have been created
-            WriteMessage( "MainPage loaded, waiting for paused" );
+            WriteMessage( "MainPage loaded, waiting for paused" );            
 
             mo_Start();
             Debug.Assert( _sm.IsInState( State.Paused ) );
 
             OnLoaded?.Invoke( this );
+
+            _win.Show();
+            MainPage.Focus();
 
             mo_Unpause();
         }

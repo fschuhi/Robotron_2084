@@ -3,15 +3,25 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:wf="clr-namespace:System.Windows.Forms;assembly=System.Windows.Forms"
+        xmlns:fctb="clr-namespace:FastColoredTextBoxNS;assembly=FastColoredTextBox"
         xmlns:local="clr-namespace:Robotron"
         mc:Ignorable="d"
-        Title="Window1" Height="450" Width="800">
+        Title="Window1" Height="450" Width="500">
     <Grid>
         <ListBox x:Name="MyFirstListBox" HorizontalAlignment="Left" Height="246" Margin="64,84,0,0" VerticalAlignment="Top" Width="276" SelectionChanged="MyFirstListBox_SelectionChanged">
             <ListBoxItem>ListBox Item #1</ListBoxItem>
             <ListBoxItem>ListBox Item #2</ListBoxItem>
             <ListBoxItem>ListBox Item #3</ListBoxItem>
         </ListBox>
+        <Grid Name="grid1" Margin="381,51,0,0" Background="Yellow">
+            <!--WindowsFormsHost -->
+            <!-- wf:MaskedTextBox x:Name="mtbDate" Mask="00/00/0000" /-->
+            <!--/-->
+            <WindowsFormsHost Name="wfh1" Background="Red" >
+                <local:Form1 x:Name="form1" TopLevel="False" />
+            </WindowsFormsHost>
+        </Grid>
 
     </Grid>
 </Window>

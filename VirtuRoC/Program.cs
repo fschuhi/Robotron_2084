@@ -2,7 +2,7 @@
 using System.Diagnostics;
 using CommandLine;
 using Jellyfish.Virtu;
-using VirtuRoC;
+using System.Threading;
 
 namespace Robotron {
 
@@ -24,7 +24,11 @@ namespace Robotron {
 
         [STAThread]
         static void Main( string[] args ) {
-            //TestWindow2();
+
+            // 1. test the form in a standalone fashion
+            //Form1 frm = new Form1();
+            //frm.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedToolWindow;
+            //frm.ShowDialog();
 
             Parser.Default.ParseArguments<Options>( args )
                 .WithParsed<Options>( o => {
@@ -119,15 +123,5 @@ namespace Robotron {
             //Trace.WriteLine( $"A={A}, X={X} => A={cpu.RA} X={cpu.RX}" );
         }
 
-
-        static void TestWindow1() {
-            Window1 win = new Window1();
-            win.ShowDialog();
-        }
-        
-        static void TestWindow2() {
-            Window2 win = new Window2();
-            win.ShowDialog();
-        }
     }
 }

@@ -1,7 +1,4 @@
-﻿using System.Drawing;
-using System.Windows.Forms;
-
-namespace VirtuRoC {
+﻿namespace Robotron {
     partial class Form1 {
         /// <summary>
         /// Required designer variable.
@@ -26,99 +23,70 @@ namespace VirtuRoC {
         /// the contents of this method with the code editor.
         /// </summary>
         private void InitializeComponent() {
-            this.listBox1 = new System.Windows.Forms.ListBox();
+            this.components = new System.ComponentModel.Container();
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Form1));
+            this.fastColoredTextBox1 = new FastColoredTextBoxNS.FastColoredTextBox();
+            this.groupBox1 = new System.Windows.Forms.GroupBox();
+            ((System.ComponentModel.ISupportInitialize)(this.fastColoredTextBox1)).BeginInit();
             this.SuspendLayout();
             // 
-            // listBox1
+            // fastColoredTextBox1
             // 
-            this.listBox1.Font = new System.Drawing.Font("Consolas", 11F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.listBox1.FormattingEnabled = true;
-            this.listBox1.HorizontalScrollbar = true;
-            this.listBox1.ItemHeight = 18;
-            this.listBox1.Location = new System.Drawing.Point(50, 37);
-            this.listBox1.Name = "listBox1";
-            this.listBox1.RightToLeft = System.Windows.Forms.RightToLeft.No;
-            this.listBox1.Size = new System.Drawing.Size(193, 94);
-            this.listBox1.TabIndex = 0;
+            this.fastColoredTextBox1.AutoCompleteBracketsList = new char[] {
+        '(',
+        ')',
+        '{',
+        '}',
+        '[',
+        ']',
+        '\"',
+        '\"',
+        '\'',
+        '\''};
+            this.fastColoredTextBox1.AutoScrollMinSize = new System.Drawing.Size(179, 14);
+            this.fastColoredTextBox1.BackBrush = null;
+            this.fastColoredTextBox1.CharHeight = 14;
+            this.fastColoredTextBox1.CharWidth = 8;
+            this.fastColoredTextBox1.Cursor = System.Windows.Forms.Cursors.IBeam;
+            this.fastColoredTextBox1.DisabledColor = System.Drawing.Color.FromArgb(((int)(((byte)(100)))), ((int)(((byte)(180)))), ((int)(((byte)(180)))), ((int)(((byte)(180)))));
+            this.fastColoredTextBox1.Font = new System.Drawing.Font("Courier New", 9.75F);
+            this.fastColoredTextBox1.IsReplaceMode = false;
+            this.fastColoredTextBox1.Location = new System.Drawing.Point(27, 21);
+            this.fastColoredTextBox1.Name = "fastColoredTextBox1";
+            this.fastColoredTextBox1.Paddings = new System.Windows.Forms.Padding(0);
+            this.fastColoredTextBox1.SelectionColor = System.Drawing.Color.FromArgb(((int)(((byte)(60)))), ((int)(((byte)(0)))), ((int)(((byte)(0)))), ((int)(((byte)(255)))));
+            this.fastColoredTextBox1.ServiceColors = ((FastColoredTextBoxNS.ServiceColors)(resources.GetObject("fastColoredTextBox1.ServiceColors")));
+            this.fastColoredTextBox1.Size = new System.Drawing.Size(386, 243);
+            this.fastColoredTextBox1.TabIndex = 0;
+            this.fastColoredTextBox1.Text = "fastColoredTextBox1";
+            this.fastColoredTextBox1.Zoom = 100;
+            // 
+            // groupBox1
+            // 
+            this.groupBox1.Location = new System.Drawing.Point(44, 270);
+            this.groupBox1.Name = "groupBox1";
+            this.groupBox1.Size = new System.Drawing.Size(291, 106);
+            this.groupBox1.TabIndex = 1;
+            this.groupBox1.TabStop = false;
+            this.groupBox1.Text = "groupBox1";
             // 
             // Form1
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
-            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(1298, 450);
-            this.Controls.Add(this.listBox1);
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
+            this.ClientSize = new System.Drawing.Size(476, 388);
+            this.Controls.Add(this.groupBox1);
+            this.Controls.Add(this.fastColoredTextBox1);
+            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.None;
             this.Name = "Form1";
             this.Text = "Form1";
+            ((System.ComponentModel.ISupportInitialize)(this.fastColoredTextBox1)).EndInit();
             this.ResumeLayout(false);
 
         }
 
         #endregion
 
-        private System.Windows.Forms.ListBox listBox1;
-
-        public void Populate( ) {
-            listBox1.DrawMode = DrawMode.OwnerDrawVariable;
-            listBox1.DrawItem += new DrawItemEventHandler( DrawItem );
-            listBox1.MeasureItem += new MeasureItemEventHandler( MeasureItem );
-
-            // Make sure no items are displayed partially.
-            listBox1.IntegralHeight = true;
-
-            // Display a horizontal scroll bar.
-            listBox1.HorizontalScrollbar = true;
-
-            listBox1.Items.Add( "asdf  2h22h" );
-            listBox1.Items.Add( "asdf wert2182 wqj  qw 2222222222" );
-            listBox1.Items.Add( "asdf 3j3j  4 4 4" );
-            listBox1.SelectedIndex = 0;
-        }
-
-        private void DrawItem( object sender, DrawItemEventArgs e ) {
-            if (e.Index < 0) return;
-            //if the item state is selected them change the back color 
-            if ((e.State & DrawItemState.Selected) == DrawItemState.Selected)
-                e = new DrawItemEventArgs( e.Graphics,
-                                          e.Font,
-                                          e.Bounds,
-                                          e.Index,
-                                          e.State ^ DrawItemState.Selected,
-                                          e.ForeColor,
-                                          Color.Yellow );//Choose the color
-
-
-            // Draw the background of the ListBox control for each item.
-            e.DrawBackground();
-            // Draw the current item text
-
-            e.Graphics.DrawString( listBox1.Items[e.Index].ToString(), e.Font, Brushes.Black, e.Bounds, StringFormat.GenericDefault );
-            // If the ListBox has focus, draw a focus rectangle around the selected item.
-            e.DrawFocusRectangle();
-            
-            //e.DrawBackground();
-            //e.DrawFocusRectangle();
-
-            // You'll change the font size here. Notice the 20
-            // data[e.Index]
-
-            //SolidBrush scb = new SolidBrush( Color.MediumBlue );
-            //e.Graphics.DrawString( "wertwert", new Font( FontFamily.GenericSansSerif, 8, FontStyle.Regular ), scb, e.Bounds );
-        }
-
-        private void MeasureItem( object sender, MeasureItemEventArgs e ) {
-            // You may need to experiment with the ItemHeight here..
-            e.ItemHeight = 17;
-
-            /*
-            // Create a Graphics object to use when determining the size of the largest item in the ListBox.
-            Graphics g = listBox1.CreateGraphics();
-
-            // Determine the size for HorizontalExtent using the MeasureString method using the last item in the list.
-            //int hzSize = (int)g.MeasureString( listBox1.Items[listBox1.Items.Count - 1].ToString(), listBox1.Font ).Width;
-            int hzSize = (int)g.MeasureString( listBox1.Items[e.Index].ToString(), listBox1.Font ).Width;
-            // Set the HorizontalExtent property.
-            listBox1.HorizontalExtent = hzSize;
-            */
-        }
+        private FastColoredTextBoxNS.FastColoredTextBox fastColoredTextBox1;
+        private System.Windows.Forms.GroupBox groupBox1;
     }
 }

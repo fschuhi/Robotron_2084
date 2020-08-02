@@ -6,6 +6,12 @@ https://github.com/informedcitizenry/6502.Net
 https://github.com/jacobslusser/ScintillaNET
 https://github.com/robinrodricks/ScintillaNET.Demo
 
+https://github.com/aalhour/C-Sharp-Algorithms
+https://github.com/davidwest/TreeCollections
+
+https://marian42.de/article/wfc/
+https://github.com/PavelTorgashov/wavefunctioncollapse
+
 ## Workbench continuous refactoring
 
 * Program.cs -> workbench

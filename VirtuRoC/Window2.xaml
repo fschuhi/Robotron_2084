@@ -16,13 +16,13 @@
             </ListBoxItem>
             <ListBoxItem Width="750">
                 <StackPanel Orientation="Horizontal">
-                    <Image Source="/WpfTutorialSamples;component/Images/bullet_green.png" />
+                    <!--Image Source="/WpfTutorialSamples;component/Images/bullet_green.png" /-->
                     <TextBlock>ListBox Item #2</TextBlock>
                 </StackPanel>
             </ListBoxItem>
             <ListBoxItem Width="750">
                 <StackPanel Orientation="Horizontal">
-                    <Image Source="/WpfTutorialSamples;component/Images/bullet_red.png" />
+                    <!--Image Source="/WpfTutorialSamples;component/Images/bullet_red.png" /-->
                     <TextBlock>ListBox Item #3</TextBlock>
                 </StackPanel>
             </ListBoxItem>

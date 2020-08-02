@@ -1,6 +1,7 @@
 ﻿using Robotron;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -25,10 +26,13 @@ namespace Robotron {
             InitializeComponent();
             MyFirstListBox.Focus();
             MyFirstListBox.SelectedIndex = 0;
+
+            //fctb.Text = File.ReadAllText( @"s:\source\repos\Robotron_2084\Disassemblies\Robotron (Apple).asm" );
         }
 
         private void MyFirstListBox_SelectionChanged( object sender, SelectionChangedEventArgs e ) {
 
         }
+
     }
 }

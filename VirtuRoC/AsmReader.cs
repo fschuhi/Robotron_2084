@@ -466,7 +466,7 @@ namespace Robotron {
                     MatchedOperandType = type;
                     RegexHelpers.Transfer( this, match, values );
                     if (rest.StartsWith( "kbdMovementDir,y" )) {
-                        Trace.WriteLine( "yes" );
+                        //Trace.WriteLine( "yes" );
                     }
                     rest = rest.Substring( match.Length ).Trim();
                     return;
