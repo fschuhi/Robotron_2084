@@ -113,8 +113,6 @@ namespace Robotron {
         public WrapperEvent OnPL;
         public WrapperEvent OnTXS;
 
-        public List<JsrInfo> JsrInfoList = new List<JsrInfo>();
-
         public StackWrapper( MachineOperator mo ) {
             _cpu = mo.Machine.Cpu;
 
@@ -155,8 +153,6 @@ namespace Robotron {
 
             jsrReturnAddrH.NotifyNewJsrInfo( info, AddressPart.High, cpu.Cycles );
             jsrReturnAddrL.NotifyNewJsrInfo( info, AddressPart.Low, cpu.Cycles );
-
-            JsrInfoList.Add( info );
 
             OnJSR?.Invoke( info );
         }

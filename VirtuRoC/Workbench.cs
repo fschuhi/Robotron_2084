@@ -20,37 +20,18 @@ namespace Robotron {
         private StateMachine<State, Trigger>.TriggerWithParameters<PausedEventArgs> _breakpointTrigger;
         private StateMachine<State, Trigger> _sm;
 
-        private Options _options;
-        private int _logIndent = 0;
-        private StreamWriter _logOutput;
+        public AsmService AsmService { get; private set; }
+        Options _options;
+        int _logIndent = 0;
+        StreamWriter _logOutput;
 
         public Workbench( MachineOperator mo, Options options ) {
             _mo = mo;
             _mo.OnLoaded += mo_OnLoaded;
             _mo.OnClosing += mo_OnClosing;
             _options = options;
-            ReadAsm();
+            AsmService = new AsmService();
         }
-
-        #region AsmReader
-        AsmReader _asmReader;
-        Dictionary<string, int> _addressByLabel;
-        Dictionary<int, string> _labelByAddress;
-
-        private void ReadAsm() {
-            _asmReader = new AsmReader( @"s:\source\repos\Robotron_2084\Disassemblies\Robotron (Apple).asm" );
-            _addressByLabel = _asmReader.AddressByLabelDictionary();
-            _labelByAddress = _asmReader.LabelByAddressDictionary();
-        }
-
-        public string SafeGetLabel( int address ) {
-            return _labelByAddress.ContainsKey( address ) ? _labelByAddress[address] : $"${address:X4}";
-        }
-
-        public int GetAddress( string label ) {
-            return _addressByLabel[label];
-        }
-        #endregion
 
         private void mo_OnLoaded( MachineOperator mo ) {
             MachineOperator.WriteMessage( "Workbench: mo_OnLoaded" );
@@ -69,7 +50,7 @@ namespace Robotron {
         private void mo_OnPause( MachineOperator mo, PausedEventArgs e ) {
             _logOutput.Flush();
 
-            _mo.MainPage.StateText = SafeGetLabel( e.BreakpointRCP );
+            _mo.MainPage.StateText = AsmService.SafeGetLabel( e.BreakpointRCP );
 
             switch (e.PausedReason) {
                 case PausedReason.Breakpoint:
@@ -110,7 +91,7 @@ namespace Robotron {
             _sm.Configure( State.WaitForDoneAtari )
                 .Permit( Trigger.Breakpoint, State.DoneAtari )
                 .OnEntry( () => {
-                    _mo.SetBreakpoint( GetAddress( "doneAtari" ) );
+                    _mo.SetBreakpoint( AsmService.GetAddress( "doneAtari" ) );
                     _mo.Machine.Cpu.IsThrottled = ! _options.Fast;
                 } );
 
@@ -121,7 +102,7 @@ namespace Robotron {
                     if (_options.CloseOnFirstBreakpoint) {
                         _sim.Keyboard.ModifiedKeyStroke( VirtualKeyCode.LMENU, VirtualKeyCode.F4 );
                     } else {
-                        _mo.SetBreakpoint( GetAddress( "introStory7" ) );
+                        _mo.SetBreakpoint( AsmService.GetAddress( "introStory7" ) );
                         _sim.Keyboard.KeyPress( VirtualKeyCode.ESCAPE );
                         _mo.mo_Unpause();
                     }
@@ -133,7 +114,7 @@ namespace Robotron {
                     _stackTracker = new StackTracker( this );
                     _mo.Machine.Cpu.OnJSR += ( Cpu cpu ) => AddCall( "JSR", cpu );
                     _mo.Machine.Cpu.OnRTS += ( Cpu cpu ) => AddCall( "RTS", cpu );
-                    _mo.SetBreakpoint( GetAddress( "BP_YouDrawn" ) );
+                    _mo.SetBreakpoint( AsmService.GetAddress( "BP_YouDrawn" ) );
                     _mo.mo_Unpause();
                 } );
  
@@ -156,7 +137,7 @@ namespace Robotron {
 
                 switch (opcode) {
                     case "JSR":
-                        WriteLog( $"{SafeGetLabel(opcodeRPC)}: JSR {SafeGetLabel(rpc)}" );
+                        WriteLog( $"{AsmService.SafeGetLabel(opcodeRPC)}: JSR {AsmService.SafeGetLabel(rpc)}" );
                         IndentLog();
 
                         counts[rpc] = (counts.ContainsKey( rpc ) ? counts[rpc] : 0) + 1;
@@ -169,12 +150,13 @@ namespace Robotron {
             }
 
             foreach (KeyValuePair<int, int> pair in counts) {
-                Trace.WriteLine( $"${pair.Key:X04}: {pair.Value}" );
+                string addr = AsmService.SafeGetLabel( pair.Key );
+                Trace.WriteLine( $"{addr}: {pair.Value}" );
             }
             _calls.Clear();
 
             _stackTracker.DumpStack();
-            _stackTracker.DumpInfoList();
+            _stackTracker.DumpJsrInfoList();
         }
     }
 }

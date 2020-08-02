@@ -1,16 +1,13 @@
 see also [README](README.md)
 
-https://github.com/Dwedit/DW1NsfInjector/blob/master/Assembler.cs
-https://github.com/informedcitizenry/6502.Net
+## next
 
-https://github.com/jacobslusser/ScintillaNET
-https://github.com/robinrodricks/ScintillaNET.Demo
-
-https://github.com/aalhour/C-Sharp-Algorithms
-https://github.com/davidwest/TreeCollections
-
-https://marian42.de/article/wfc/
-https://github.com/PavelTorgashov/wavefunctioncollapse
+* Workbench
+	* ich glaube wir brauchen _logOutput w/ associated methods nicht mehr - - alles lieber im main trace machen
+	* new WorkbenchScript, was die _sm enthält
+* make everything a RobotronObject
+* review logging approaches
+* https://www.codeproject.com/Articles/161871/Fast-Colored-TextBox-for-syntax-highlighting-2
 
 ## Workbench continuous refactoring
 
@@ -109,9 +106,9 @@ https://github.com/PavelTorgashov/wavefunctioncollapse
 
 ## misc
 
-* understand assembler in MemoryDebug
+* understand disassembler in MemoryDebug
 * fake result from random number generator ($4C36)
-* grid view for selected memory locations
+* grid view for selected memory locations => now w/ FastColoredTextBox
 * ListBox w/ code
 * multiples code ListBoxes which spring into action on PC in certain range
 * constrain code ListBox for PC range
@@ -120,3 +117,19 @@ https://github.com/PavelTorgashov/wavefunctioncollapse
 * Serilog
 	* https://serilog.net/
 	* https://github.com/serilog/serilog/wiki/Configuration-Basics
+
+
+## misc links
+
+https://github.com/Dwedit/DW1NsfInjector/blob/master/Assembler.cs
+https://github.com/informedcitizenry/6502.Net
+
+https://github.com/jacobslusser/ScintillaNET
+https://github.com/robinrodricks/ScintillaNET.Demo
+
+https://github.com/aalhour/C-Sharp-Algorithms
+https://github.com/davidwest/TreeCollections
+
+https://marian42.de/article/wfc/
+https://github.com/PavelTorgashov/wavefunctioncollapse
+

@@ -74,14 +74,14 @@ namespace Robotron {
 
             string saveStateFile = @"s:\source\repos\Robotron_2084\VirtuRoC\tmp\save_state.bin";
 
-            if (e.BreakpointRCP == _workbench.GetAddress( "doneAtari")) {
+            if (e.BreakpointRCP == _workbench.AsmService.GetAddress( "doneAtari")) {
                 _machineOperator.Machine.SaveStateToFile( saveStateFile );
                 try {
 
                     Cpu cpu = _machineOperator.Machine.Cpu;
 
-                    int divideAX = _workbench.GetAddress( "divideAX" );
-                    int rts = _workbench.GetAddress( "divideAX_RTS" );
+                    int divideAX = _workbench.AsmService.GetAddress( "divideAX" );
+                    int rts = _workbench.AsmService.GetAddress( "divideAX_RTS" );
 
                     long min = 10000;
                     long max = 0;

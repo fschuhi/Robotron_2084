@@ -1,20 +1,9 @@
-﻿using Jellyfish.Library;
-using Jellyfish.Virtu;
+﻿using Jellyfish.Virtu;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Runtime.CompilerServices;
 using System.Text;
-using System.Threading.Tasks;
-using System.Windows;
-using System.Windows.Documents;
 
 namespace Robotron {
-
-    class StackNode {
-
-    }
 
     class StackTracker : RobotronObject {
 
@@ -22,6 +11,7 @@ namespace Robotron {
         Cpu _cpu;
         Memory _memory;
         StackWrapper _stackWrapper;
+        List<JsrInfo> _jsrInfoList = new List<JsrInfo>();
 
         public StackTracker( Workbench workbench ) {
             _workbench = workbench;
@@ -33,39 +23,15 @@ namespace Robotron {
             _stackWrapper.OnRTS += wrapper_OnRts;
             _stackWrapper.OnPH += wrapper_OnPH;
             _stackWrapper.OnPL += wrapper_OnPL;
+            _stackWrapper.OnTXS += wrapper_OnTXS;
         }
 
-        public void wrapper_OnJsr( JsrInfo info ) {
-            TraceLine( "JSR", info.JsrOpcodeAddr.ToHex() );
-            // 0x20 address - JsrOpcodeAddr
-            // wir wollen auch target info sehen
-            // beides als labels
+        public void wrapper_OnJsr( JsrInfo info ) { _jsrInfoList.Add( info ); }
+        public void wrapper_OnRts( JsrInfo info ) { return; }
+        public void wrapper_OnPH( JsrInfo info ) { return; }
+        public void wrapper_OnPL( JsrInfo info ) { return; }
+        public void wrapper_OnTXS( JsrInfo info ) { return; }
 
-            Trace.Indent();
-        }
-
-        public void wrapper_OnRts( JsrInfo info ) {
-            // RTS has already been executed, so we might as well unindent here
-            Trace.Unindent();
-
-            int CallDepth = _stackWrapper.CallDepth;
-            string returnAddr = (_cpu.RPC - 3).ToHex();
-            string JsrOpcodeAddr = info.JsrOpcodeAddr.ToHex();
-            if (info.Retired) {
-                TraceLine( $"<- {(info.Ignored ? "ignored " : "")} RTS /{CallDepth}, {returnAddr} (retired {JsrOpcodeAddr})" );
-
-            } else {
-                TraceLine( $"<- {(info.Ignored ? "ignored " : "")} RTS /{CallDepth}, {JsrOpcodeAddr}" );
-            }
-        }
-
-        public void wrapper_OnPH( JsrInfo info ) {
-            TraceLine( "PH!!" );
-        }
-
-        public void wrapper_OnPL( JsrInfo info ) {
-            TraceLine( "PL!!" );
-        }
 
         public void DumpStack() {
             StringBuilder sb = new StringBuilder();
@@ -83,16 +49,16 @@ namespace Robotron {
             TraceLine( sb.ToString() );
         }
 
-        public void DumpInfoList() {
+        public void DumpJsrInfoList() {
             // see log.log
             StringBuilder sb = new StringBuilder();
-            foreach ( JsrInfo info in _stackWrapper.JsrInfoList ) {
+            foreach ( JsrInfo info in _jsrInfoList ) {
 
                 sb.Append( info.JsrOpcodeAddr.ToHex() + ": " );
 
                 string indent = new String( ' ', info.CallDepthAtJsr * 4 );
-                string JsrTargetAddr = _workbench.SafeGetLabel( info.JsrTargetAddr );
-                string ReturnAddr = _workbench.SafeGetLabel( info.ReturnAddr );
+                string JsrTargetAddr = _workbench.AsmService.SafeGetLabel( info.JsrTargetAddr );
+                string ReturnAddr = _workbench.AsmService.SafeGetLabel( info.ReturnAddr );
                 string RtsOpcodeAddr = info.RtsOpcodeAddr.ToHex();
 
                 sb.Append( indent );
