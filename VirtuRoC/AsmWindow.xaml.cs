@@ -21,11 +21,11 @@ namespace Robotron {
     /// <summary>
     /// Interaction logic for Window1.xaml
     /// </summary>
-    public partial class Window1 : Window {
-        public Window1() {
+    public partial class AsmWindow : Window {
+        public AsmWindow() {
             InitializeComponent();
-            MyFirstListBox.Focus();
-            MyFirstListBox.SelectedIndex = 0;
+            //MyFirstListBox.Focus();
+            //MyFirstListBox.SelectedIndex = 0;
 
             //fctb.Text = File.ReadAllText( @"s:\source\repos\Robotron_2084\Disassemblies\Robotron (Apple).asm" );
         }
@@ -34,5 +34,12 @@ namespace Robotron {
 
         }
 
+        private void wfh1_ChildChanged( object sender, System.Windows.Forms.Integration.ChildChangedEventArgs e ) {
+            AsmForm frm = (AsmForm)wfh1.Child;
+            Top = 100;
+            Left = 800;
+            Height = frm.Height;
+            Width = frm.Width;
+        }
     }
 }

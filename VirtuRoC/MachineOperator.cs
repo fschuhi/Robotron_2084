@@ -114,7 +114,7 @@ namespace Robotron {
 
         private BackgroundWorker _bw;
 
-        private Window1 _win;
+        // private Window1 _win;
 
         public MachineOperator() {
 
@@ -145,7 +145,7 @@ namespace Robotron {
 
             // 2. then run the form embedded in WPF Window
             // https://www.c-sharpcorner.com/article/adding-winforms-in-wpf/
-            _win = new Window1();
+            //_win = new Window1();
         }
 
         private void ConfigureStatemachine() {
@@ -225,13 +225,12 @@ namespace Robotron {
         public void ShowDialog() {
             // needed to not have a big empty window (i.e. no controls on it) shown at startup
             // "hide it behind its page"
-            //MainPage.Width = 600;
-            //MainPage.Height = 450;
-            MainWindow.Width = 616;
-            MainWindow.Height = 450;
+            MainWindow.Width = 0;
+            MainWindow.Height = 0;
+            MainWindow.ShowActivated = true;
 
             // start message pumping
-            MainWindow.ShowActivated = true;
+
             // DoEvents();
             //MessageBox.Show( "before ShowDialog" );
             MainWindow.ShowDialog();
@@ -267,8 +266,12 @@ namespace Robotron {
         #region MainWindow / MainPage events
         private void MainPage_Loaded( object sender, System.Windows.RoutedEventArgs e ) {
 
-            //MessageBox.Show( "MainPage_Loaded" );
             // We now have a WPF message pump in place.
+
+            //MessageBox.Show( "MainPage_Loaded" );
+            MainWindow.Width = 650;
+            MainWindow.Height = 550;
+            //MessageBox.Show( "MainPage_Loaded after" );
 
             // make sure we wait until MainPage and its Machine have been created
             WriteMessage( "MainPage loaded, waiting for paused" );            
@@ -278,7 +281,6 @@ namespace Robotron {
 
             OnLoaded?.Invoke( this );
 
-            _win.Show();
             MainPage.Focus();
 
             mo_Unpause();
