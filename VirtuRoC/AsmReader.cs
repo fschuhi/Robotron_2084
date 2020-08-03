@@ -37,48 +37,6 @@ namespace Robotron {
             ValidateJsrCalls();
         }
 
-        public void Test1() {
-            var list2 = AsmLineByAddressDictionary();
-            var line = list2[0x4610];
-            Debug.Assert( ! line.Bytes.Contains( "+" ) );
-            var bytes = line.Bytes.Trim();
-
-            //bytes.Split( ' ' ).Select( b => b.ToDecimal() ).ToList().ForEach( c => TraceLine( c ) );
-
-            line.BytesList.ForEach( c => TraceLine( c ) );
-            TraceLine();
-
-            line = list2[0x800];
-            line.BytesList.ForEach( c => TraceLine( c ) );
-
-            var branches = _asmLines.Where( l => l.IsBranchOperation() ).Select( c => (c.DecimalAddress, c.Opcode, c.BranchTarget()) );
-            var calls = _asmLines.Where( l => l.Opcode == "jsr" ).Select( c => (c.DecimalAddress, c.Opcode, c.JsrTarget()) );
-            var returns = _asmLines.Where( l => l.Opcode == "rts" ).Select( c => (c.DecimalAddress, c.Opcode, -1) );
-            var jumps = _asmLines.Where( l => l.Opcode == "jmp" ).Select( c => (c.DecimalAddress, c.Opcode, c.JmpTarget()) );
-
-            //jumps.ToList().ForEach( c => TraceLine( c.Item1.ToHex(), c.Item2, c.Item3.ToHex() ) );
-
-            var RPCchanges = branches.Concat( calls ).Concat( returns ).Concat( jumps ).ToList();
-            TraceLine( branches.Count(), calls.Count(), returns.Count(), jumps.Count(), RPCchanges.Count() );
-            RPCchanges.Sort();
-
-            RPCchanges.ToList().ForEach( c => TraceLine( c.Item1.ToHex(), c.Item2, c.Item3.ToHex() ) );
-
-            //Test2();
-        }
-
-        public void Test2 () {
-            var targets = UniqueJsrTargets();
-            TraceNewLine( targets.Count(), string.Join( ", ", targets.ToArray() ));
-
-            var calls = JsrCalls();
-            TraceNewLine( calls.Count() );
-
-            var lookup = JsrCallersLookup();
-            var lookupResult = lookup["eraseHulk"];
-            TraceNewLine( "eraseHulk:", string.Join( ", ", lookupResult.ToArray() ) );
-        }
-
         public string CanonicalStringAddress( string address ) {
             int decimalAddress = HexToDecimal( address );
             if (_labelByAddress.ContainsKey( decimalAddress )) {
@@ -134,6 +92,49 @@ namespace Robotron {
         public void SaveToFile( string jsonfilename ) {
             string output = JsonConvert.SerializeObject( _inputLines );
             File.WriteAllText( @"s:\source\repos\Robotron_2084\VirtuRoC\tmp\asm.json", output );
+        }
+
+
+        public void Test1() {
+            var list2 = AsmLineByAddressDictionary();
+            var line = list2[0x4610];
+            Debug.Assert( !line.Bytes.Contains( "+" ) );
+            var bytes = line.Bytes.Trim();
+
+            //bytes.Split( ' ' ).Select( b => b.ToDecimal() ).ToList().ForEach( c => TraceLine( c ) );
+
+            line.BytesList.ForEach( c => TraceLine( c ) );
+            TraceLine();
+
+            line = list2[0x800];
+            line.BytesList.ForEach( c => TraceLine( c ) );
+
+            var branches = _asmLines.Where( l => l.IsBranchOperation() ).Select( c => (c.DecimalAddress, c.Opcode, c.BranchTarget()) );
+            var calls = _asmLines.Where( l => l.Opcode == "jsr" ).Select( c => (c.DecimalAddress, c.Opcode, c.JsrTarget()) );
+            var returns = _asmLines.Where( l => l.Opcode == "rts" ).Select( c => (c.DecimalAddress, c.Opcode, -1) );
+            var jumps = _asmLines.Where( l => l.Opcode == "jmp" ).Select( c => (c.DecimalAddress, c.Opcode, c.JmpTarget()) );
+
+            //jumps.ToList().ForEach( c => TraceLine( c.Item1.ToHex(), c.Item2, c.Item3.ToHex() ) );
+
+            var RPCchanges = branches.Concat( calls ).Concat( returns ).Concat( jumps ).ToList();
+            TraceLine( branches.Count(), calls.Count(), returns.Count(), jumps.Count(), RPCchanges.Count() );
+            RPCchanges.Sort();
+
+            RPCchanges.ToList().ForEach( c => TraceLine( c.Item1.ToHex(), c.Item2, c.Item3.ToHex() ) );
+
+            //Test2();
+        }
+
+        public void Test2() {
+            var targets = UniqueJsrTargets();
+            TraceNewLine( targets.Count(), string.Join( ", ", targets.ToArray() ) );
+
+            var calls = JsrCalls();
+            TraceNewLine( calls.Count() );
+
+            var lookup = JsrCallersLookup();
+            var lookupResult = lookup["eraseHulk"];
+            TraceNewLine( "eraseHulk:", string.Join( ", ", lookupResult.ToArray() ) );
         }
     }
 

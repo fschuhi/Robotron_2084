@@ -400,6 +400,7 @@ namespace Robotron {
 
         public int CurrentRPC { get; private set; }
         public int PreviousRPC { get; private set; }
+        public int OpcodeRPC { get { return Machine.Cpu.OpcodeRPC; } }
 
         private void bw_DoWork_OnRunning( object sender, DoWorkEventArgs e ) {
             do {

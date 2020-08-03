@@ -9,6 +9,7 @@ using System.IO;
 using CommandLine;
 using System.Runtime.InteropServices;
 using FastColoredTextBoxNS;
+using System.Windows.Forms;
 
 // TODO: how to use the Asm-Button on the MainPage? Probably an event...
 
@@ -41,7 +42,7 @@ namespace Robotron {
             _win = new AsmWindow();
             _win.Show();
 
-            _fctb = _win.formAsm.fastColoredTextBox1;
+            _fctb = _win.formAsm.fctb;
 
             // go top
             _fctb.Navigate( 1 );
@@ -60,11 +61,28 @@ namespace Robotron {
             _script.TearDown( mo );
         }
 
+        private int FindEditorLineIndexByAddress( int addr ) {
+            string search = AsmService.OpcodeLineKey( addr );
+            List<int> lines = _fctb.FindLines( search, System.Text.RegularExpressions.RegexOptions.IgnoreCase );
+            return (lines != null && lines.Count > 0) ? lines[0] : -1;
+        }
+
         private void mo_OnPause( MachineOperator mo, PausedEventArgs e ) {
             _script.mo_OnPause( mo, e );
-            
-            // TODO: ask AsmService to return the AsmLine for the OpcodeRPC
-            // TODO: search string = offset + address => _fctb.find, jump to start of line, then mark complete line (like in the breakpoint example)
+
+            //MessageBox.Show( AsmService.OpcodeLineKey( mo.OpcodeRPC) );            
+            int lineIndex = FindEditorLineIndexByAddress( e.BreakpointRCP );
+            if (lineIndex >= 0) {
+                _fctb.Navigate( lineIndex );
+
+                // LastVisit is too slow in the (normal) case that the breakpoints arrive faster than 1 per sek (in case of WorkbenchScript)
+                // _fctb[lineIndex].LastVisit = DateTime.Now;
+
+                _fctb.Selection.Expand();
+            }
+
+            // TODO: collect lines, to manually step from bp to bp (LastVisit is too slow)
+            // can use bookmarks for that
         }
 
     }

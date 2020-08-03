@@ -102,6 +102,9 @@ namespace Robotron {
                 .Permit( Trigger.Breakpoint, State.IntroStory7 )
                 .OnEntryFrom( _breakpointTrigger, ( PausedEventArgs e ) => {
                     _sim = new InputSimulator();
+
+                    // simulated keys must land on the MainPage
+                    _mo.MainPage.Focus();
                     if (_workbench._options.CloseOnFirstBreakpoint) {
                         _sim.Keyboard.ModifiedKeyStroke( VirtualKeyCode.LMENU, VirtualKeyCode.F4 );
                     } else {

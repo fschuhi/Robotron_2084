@@ -25,13 +25,13 @@
         private void InitializeComponent() {
             this.components = new System.ComponentModel.Container();
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(AsmForm));
-            this.fastColoredTextBox1 = new FastColoredTextBoxNS.FastColoredTextBox();
-            ((System.ComponentModel.ISupportInitialize)(this.fastColoredTextBox1)).BeginInit();
+            this.fctb = new FastColoredTextBoxNS.FastColoredTextBox();
+            ((System.ComponentModel.ISupportInitialize)(this.fctb)).BeginInit();
             this.SuspendLayout();
             // 
-            // fastColoredTextBox1
+            // fctb
             // 
-            this.fastColoredTextBox1.AutoCompleteBracketsList = new char[] {
+            this.fctb.AutoCompleteBracketsList = new char[] {
         '(',
         ')',
         '{',
@@ -42,39 +42,57 @@
         '\"',
         '\'',
         '\''};
-            this.fastColoredTextBox1.AutoScrollMinSize = new System.Drawing.Size(137, 12);
-            this.fastColoredTextBox1.BackBrush = null;
-            this.fastColoredTextBox1.CharHeight = 12;
-            this.fastColoredTextBox1.CharWidth = 6;
-            this.fastColoredTextBox1.Cursor = System.Windows.Forms.Cursors.IBeam;
-            this.fastColoredTextBox1.DisabledColor = System.Drawing.Color.FromArgb(((int)(((byte)(100)))), ((int)(((byte)(180)))), ((int)(((byte)(180)))), ((int)(((byte)(180)))));
-            this.fastColoredTextBox1.Font = new System.Drawing.Font("Consolas", 8F);
-            this.fastColoredTextBox1.IsReplaceMode = false;
-            this.fastColoredTextBox1.Location = new System.Drawing.Point(12, 21);
-            this.fastColoredTextBox1.Name = "fastColoredTextBox1";
-            this.fastColoredTextBox1.Paddings = new System.Windows.Forms.Padding(0);
-            this.fastColoredTextBox1.SelectionColor = System.Drawing.Color.FromArgb(((int)(((byte)(60)))), ((int)(((byte)(0)))), ((int)(((byte)(0)))), ((int)(((byte)(255)))));
-            this.fastColoredTextBox1.ServiceColors = ((FastColoredTextBoxNS.ServiceColors)(resources.GetObject("fastColoredTextBox1.ServiceColors")));
-            this.fastColoredTextBox1.Size = new System.Drawing.Size(1028, 825);
-            this.fastColoredTextBox1.TabIndex = 0;
-            this.fastColoredTextBox1.Text = "fastColoredTextBox1";
-            this.fastColoredTextBox1.Zoom = 100;
-            this.fastColoredTextBox1.Load += new System.EventHandler(this.fastColoredTextBox1_Load);
+            this.fctb.AutoScrollMinSize = new System.Drawing.Size(154, 12);
+            this.fctb.AutoValidate = System.Windows.Forms.AutoValidate.EnableAllowFocusChange;
+            this.fctb.BackBrush = null;
+            this.fctb.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(40)))), ((int)(((byte)(42)))), ((int)(((byte)(54)))));
+            this.fctb.BookmarkColor = System.Drawing.Color.FromArgb(((int)(((byte)(255)))), ((int)(((byte)(85)))), ((int)(((byte)(85)))));
+            this.fctb.CaretColor = System.Drawing.Color.White;
+            this.fctb.CharHeight = 12;
+            this.fctb.CharWidth = 6;
+            this.fctb.Cursor = System.Windows.Forms.Cursors.IBeam;
+            this.fctb.DelayedEventsInterval = 10;
+            this.fctb.DelayedTextChangedInterval = 10;
+            this.fctb.DisabledColor = System.Drawing.Color.FromArgb(((int)(((byte)(100)))), ((int)(((byte)(180)))), ((int)(((byte)(180)))), ((int)(((byte)(180)))));
+            this.fctb.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.fctb.FoldingIndicatorColor = System.Drawing.Color.FromArgb(((int)(((byte)(241)))), ((int)(((byte)(250)))), ((int)(((byte)(140)))));
+            this.fctb.Font = new System.Drawing.Font("Consolas", 8F);
+            this.fctb.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(248)))), ((int)(((byte)(248)))), ((int)(((byte)(242)))));
+            this.fctb.Hotkeys = resources.GetString("fctb.Hotkeys");
+            this.fctb.IndentBackColor = System.Drawing.Color.FromArgb(((int)(((byte)(40)))), ((int)(((byte)(42)))), ((int)(((byte)(54)))));
+            this.fctb.IsReplaceMode = false;
+            this.fctb.LeftPadding = 17;
+            this.fctb.LineNumberColor = System.Drawing.Color.FromArgb(((int)(((byte)(68)))), ((int)(((byte)(71)))), ((int)(((byte)(90)))));
+            this.fctb.Location = new System.Drawing.Point(0, 0);
+            this.fctb.Name = "fctb";
+            this.fctb.Paddings = new System.Windows.Forms.Padding(0);
+            this.fctb.SelectionColor = System.Drawing.Color.FromArgb(((int)(((byte)(60)))), ((int)(((byte)(139)))), ((int)(((byte)(233)))), ((int)(((byte)(253)))));
+            this.fctb.ServiceColors = ((FastColoredTextBoxNS.ServiceColors)(resources.GetObject("fctb.ServiceColors")));
+            this.fctb.ShowCaretWhenInactive = true;
+            this.fctb.ShowFoldingLines = true;
+            this.fctb.Size = new System.Drawing.Size(1052, 858);
+            this.fctb.TabIndex = 0;
+            this.fctb.Text = "fastColoredTextBox1";
+            this.fctb.Zoom = 100;
+            this.fctb.TextChanged += new System.EventHandler<FastColoredTextBoxNS.TextChangedEventArgs>(this.fctb_TextChanged);
+            this.fctb.Load += new System.EventHandler(this.fastColoredTextBox1_Load);
+            this.fctb.KeyDown += new System.Windows.Forms.KeyEventHandler(this.fastColoredTextBox1_KeyDown);
             // 
             // AsmForm
             // 
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
+            this.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(40)))), ((int)(((byte)(42)))), ((int)(((byte)(54)))));
             this.ClientSize = new System.Drawing.Size(1052, 858);
-            this.Controls.Add(this.fastColoredTextBox1);
+            this.Controls.Add(this.fctb);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.None;
             this.Name = "AsmForm";
             this.Text = "Form1";
-            ((System.ComponentModel.ISupportInitialize)(this.fastColoredTextBox1)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.fctb)).EndInit();
             this.ResumeLayout(false);
 
         }
 
         #endregion
-        public FastColoredTextBoxNS.FastColoredTextBox fastColoredTextBox1;
+        public FastColoredTextBoxNS.FastColoredTextBox fctb;
     }
 }
