@@ -74,9 +74,9 @@ namespace Robotron {
         private void OnPageKeyDown( object sender, KeyEventArgs e ) {
             //DebugService.WriteLine(string.Concat("OnPageKeyDn: Key=", e.Key));
 
-            if (e.Key != Key.System) {
-                Trace.WriteLine( string.Concat( "OnPageKeyDn: Key=", e.Key ) );
-            }
+            //if (e.Key != Key.System) {
+            //    Trace.WriteLine( string.Concat( "OnPageKeyDn: Key=", e.Key ) );
+            //}
 
             _states[(int)((e.Key == Key.System) ? e.SystemKey : e.Key)] = true;
             _updateAnyKeyDown = false;

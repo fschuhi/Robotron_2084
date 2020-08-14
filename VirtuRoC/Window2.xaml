@@ -7,11 +7,12 @@
         mc:Ignorable="d"
         Title="Window2" Height="450" Width="800">
     <Grid Margin="10">
-        <ListBox>
+        <ListBox Name="listBox1" FontFamily="Consolas" HorizontalContentAlignment="Stretch">
             <ListBoxItem Width="750">
                 <StackPanel Orientation="Horizontal">
                     <Image Source="s:\Dropbox\shared\pics\fschuhi.png" Height="50" Width="50"/>
-                    <TextBlock><Run Text="ListBox Item #1"/></TextBlock>
+                    <TextBlock MinWidth="300"><Run Text="ListBox Item #1"/></TextBlock>
+                    <TextBlock><Run Text="ListBox Item #2"/></TextBlock>
                 </StackPanel>
             </ListBoxItem>
             <ListBoxItem Width="750">
@@ -23,7 +24,9 @@
             <ListBoxItem Width="750">
                 <StackPanel Orientation="Horizontal">
                     <!--Image Source="/WpfTutorialSamples;component/Images/bullet_red.png" /-->
-                    <TextBlock>ListBox Item #3</TextBlock>
+                    <TextBlock MinWidth="200"><Run Text="ListBox Item #3.1"/></TextBlock>
+                    <TextBlock MinWidth="200"><Run Text="ListBox Item #3.2"/></TextBlock>
+                    <TextBlock MinWidth="200"><Run Text="ListBox Item #3.3"/></TextBlock>
                 </StackPanel>
             </ListBoxItem>
         </ListBox>

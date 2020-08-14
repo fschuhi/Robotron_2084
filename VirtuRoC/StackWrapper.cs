@@ -116,16 +116,26 @@ namespace Robotron {
         public StackWrapper( MachineOperator mo ) {
             _cpu = mo.Machine.Cpu;
 
+            _memory = mo.Machine.Memory;
+            for (int stackPtr = 0xff; stackPtr >= 0; stackPtr--) {
+                _stackBytes[stackPtr] = new StackByte( _memory, stackPtr );
+            }
+        }
+
+        public void StartWrapping() {
             _cpu.OnJSR += cpu_OnJSR;
             _cpu.OnRTS += cpu_OnRTS;
             _cpu.OnPH += cpu_OnPH;
             _cpu.OnPL += cpu_OnPL;
             _cpu.OnTXS += cpu_OnTXS;
+        }
 
-            _memory = mo.Machine.Memory;
-            for (int stackPtr = 0xff; stackPtr >= 0; stackPtr--) {
-                _stackBytes[stackPtr] = new StackByte( _memory, stackPtr );
-            }
+        public void StopWrapping() {
+            _cpu.OnJSR -= cpu_OnJSR;
+            _cpu.OnRTS -= cpu_OnRTS;
+            _cpu.OnPH -= cpu_OnPH;
+            _cpu.OnPL -= cpu_OnPL;
+            _cpu.OnTXS -= cpu_OnTXS;
         }
 
 

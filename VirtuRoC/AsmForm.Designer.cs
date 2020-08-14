@@ -43,7 +43,7 @@
         '\'',
         '\''};
             this.fctb.AutoScrollMinSize = new System.Drawing.Size(154, 12);
-            this.fctb.AutoValidate = System.Windows.Forms.AutoValidate.EnableAllowFocusChange;
+            this.fctb.AutoValidate = System.Windows.Forms.AutoValidate.EnablePreventFocusChange;
             this.fctb.BackBrush = null;
             this.fctb.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(40)))), ((int)(((byte)(42)))), ((int)(((byte)(54)))));
             this.fctb.BookmarkColor = System.Drawing.Color.FromArgb(((int)(((byte)(255)))), ((int)(((byte)(85)))), ((int)(((byte)(85)))));
@@ -51,8 +51,6 @@
             this.fctb.CharHeight = 12;
             this.fctb.CharWidth = 6;
             this.fctb.Cursor = System.Windows.Forms.Cursors.IBeam;
-            this.fctb.DelayedEventsInterval = 10;
-            this.fctb.DelayedTextChangedInterval = 10;
             this.fctb.DisabledColor = System.Drawing.Color.FromArgb(((int)(((byte)(100)))), ((int)(((byte)(180)))), ((int)(((byte)(180)))), ((int)(((byte)(180)))));
             this.fctb.Dock = System.Windows.Forms.DockStyle.Fill;
             this.fctb.FoldingIndicatorColor = System.Drawing.Color.FromArgb(((int)(((byte)(241)))), ((int)(((byte)(250)))), ((int)(((byte)(140)))));
@@ -70,7 +68,7 @@
             this.fctb.ServiceColors = ((FastColoredTextBoxNS.ServiceColors)(resources.GetObject("fctb.ServiceColors")));
             this.fctb.ShowCaretWhenInactive = true;
             this.fctb.ShowFoldingLines = true;
-            this.fctb.Size = new System.Drawing.Size(1052, 858);
+            this.fctb.Size = new System.Drawing.Size(1038, 858);
             this.fctb.TabIndex = 0;
             this.fctb.Text = "fastColoredTextBox1";
             this.fctb.Zoom = 100;
@@ -80,9 +78,10 @@
             // 
             // AsmForm
             // 
-            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
+            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(40)))), ((int)(((byte)(42)))), ((int)(((byte)(54)))));
-            this.ClientSize = new System.Drawing.Size(1052, 858);
+            this.ClientSize = new System.Drawing.Size(1038, 858);
             this.Controls.Add(this.fctb);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.None;
             this.Name = "AsmForm";

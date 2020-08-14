@@ -54,6 +54,7 @@ namespace Robotron {
         public WorkbenchScript1( Workbench workbench ) : base( workbench ) { 
             TraceLine( "WorkbenchScript1" );
             _mo.LoadStateFromFile( _mo.BlaBin );
+            _stackTracker = new StackTracker( _workbench );
             ConfigureStatemachine();
             _sm.Fire( Trigger.Start );
         }
@@ -94,6 +95,7 @@ namespace Robotron {
             _sm.Configure( State.WaitForDoneAtari )
                 .Permit( Trigger.Breakpoint, State.DoneAtari )
                 .OnEntry( () => {
+                    TraceLine( "doneAtari" );
                     _mo.SetBreakpoint( GetAddress( "doneAtari" ) );
                     _mo.Machine.Cpu.IsThrottled = ! _workbench._options.Fast;
                 } );
@@ -119,7 +121,7 @@ namespace Robotron {
                 .OnEntryFrom( _breakpointTrigger, ( PausedEventArgs e ) => {
                     _mo.Machine.Cpu.OnJSR += ( Cpu cpu ) => AddCall( "JSR", cpu );
                     _mo.Machine.Cpu.OnRTS += ( Cpu cpu ) => AddCall( "RTS", cpu );
-                    _stackTracker = new StackTracker( _workbench );
+                    _stackTracker.StartTracking();
                     _mo.SetBreakpoint( GetAddress( "BP_YouDrawn" ) );
                     _mo.mo_Unpause();
                 } );
@@ -136,8 +138,12 @@ namespace Robotron {
 
 
         private void sm_OnEntry_YouDrawn( PausedEventArgs e ) {
+
+            // TODO: check for correct breakpoint, if not then exit script
+
             SortedDictionary<int, int> counts = new SortedDictionary<int, int>();
 
+            
             foreach (Tuple<string, int, int> tuple in _calls) {
                 (string opcode, int opcodeRPC, int rpc) = tuple;
 
@@ -155,14 +161,17 @@ namespace Robotron {
                 }
             }
 
+            
             foreach (KeyValuePair<int, int> pair in counts) {
                 string addr = SafeGetLabel( pair.Key );
                 Trace.WriteLine( $"{addr}: {pair.Value}" );
             }
+            
             _calls.Clear();
 
             _stackTracker.DumpStack();
             _stackTracker.DumpJsrInfoList();
+            _stackTracker.StopTracking();
         }
     }
 }

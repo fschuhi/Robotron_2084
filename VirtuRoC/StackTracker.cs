@@ -19,11 +19,24 @@ namespace Robotron {
             _cpu = mo.Machine.Cpu;
             _memory = mo.Machine.Memory;
             _stackWrapper = new StackWrapper( mo );
+        }
+
+        public void StartTracking() {
             _stackWrapper.OnJSR += wrapper_OnJsr;
             _stackWrapper.OnRTS += wrapper_OnRts;
             _stackWrapper.OnPH += wrapper_OnPH;
             _stackWrapper.OnPL += wrapper_OnPL;
             _stackWrapper.OnTXS += wrapper_OnTXS;
+            _stackWrapper.StartWrapping();
+        }
+
+        public void StopTracking() {
+            _stackWrapper.StopWrapping();
+            _stackWrapper.OnJSR -= wrapper_OnJsr;
+            _stackWrapper.OnRTS -= wrapper_OnRts;
+            _stackWrapper.OnPH -= wrapper_OnPH;
+            _stackWrapper.OnPL -= wrapper_OnPL;
+            _stackWrapper.OnTXS -= wrapper_OnTXS;
         }
 
         public void wrapper_OnJsr( JsrInfo info ) { _jsrInfoList.Add( info ); }

@@ -43,6 +43,7 @@ namespace Robotron {
             _win.Show();
 
             _fctb = _win.formAsm.fctb;
+            _win.formAsm.AsmService = AsmService;
 
             // go top
             _fctb.Navigate( 1 );

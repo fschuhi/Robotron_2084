@@ -25,17 +25,33 @@ namespace Robotron {
         }
 
         public int GetAddress( string label ) {
-            return _addressByLabel[label];
+            int addr = -1;
+            _addressByLabel.TryGetValue( label, out addr );
+            return addr;
         }
 
         private AsmLine GetAsmLineByAddress( int addr ) {
-            return _asmLineByAddress[addr];
+            AsmLine line = null;
+            _asmLineByAddress.TryGetValue( addr, out line );
+            return line;
         }
 
         public string OpcodeLineKey( int addr ) {
             AsmLine line = GetAsmLineByAddress( addr );
             Debug.Assert( line.Is6502Operation() );
             return line.Offset + " " + line.Address;
+        }
+
+        public string Opcode( int addr ) {
+            AsmLine line = GetAsmLineByAddress( addr );
+            Debug.Assert( line.Is6502Operation() );
+            return line.Opcode;
+        }
+
+        public string OperandLabel( int addr ) {
+            AsmLine line = GetAsmLineByAddress( addr );
+            Debug.Assert( line.Is6502Operation() );
+            return line.OperandArgument.Label;
         }
     }
 

@@ -11,13 +11,14 @@ using System.Windows.Navigation;
 using System.Security.AccessControl;
 using System.Threading;
 using System.Runtime.CompilerServices;
+using System.Windows;
 
 namespace Robotron {
 
     class AsmReader : RobotronObject {
 
         List<string> _inputLines;
-        List<AsmLine> _asmLines = new List<AsmLine>();
+        public List<AsmLine> _asmLines = new List<AsmLine>();
 
         Dictionary<string, int> _addressByLabel;
         Dictionary<int, string> _labelByAddress;
@@ -281,7 +282,10 @@ namespace Robotron {
                             break;
                     }
 
-                    Comment = RegexHelpers.MatchValue( CommentRegex, rest, "Comment" );
+                    // We use "Comment" for both the complete comment line, as well as tailing ; comments
+                    // must not overwrite the comment line w/ an (then empty/null) tailing comment
+                    if (LineType != AsmLineType.CommentLine) 
+                        Comment = RegexHelpers.MatchValue( CommentRegex, rest, "Comment" );
                     break;
                 }
 
@@ -359,6 +363,7 @@ namespace Robotron {
     public enum MatchedDirectiveType { dd1, dd2, str, bulk, fill }
 
     class DirectiveArgument : AsmArgument {
+        public string Operand { get; set; }
         public string Number { get; set; }
         public string String { get; set; }
         public string Bytes { get; set; }
@@ -397,6 +402,7 @@ namespace Robotron {
             (MatchedDirectiveType type, Regex re, string[] values) = _regexes[operation];
             Match match = re.Match( rest );
             if (match.Success) {
+                Operand = match.Value.Trim();
                 MatchedDirectiveType = type;
                 RegexHelpers.Transfer( this, match, values );
                 rest = rest.Substring( match.Length ).Trim();
@@ -437,19 +443,19 @@ namespace Robotron {
         static string hexNumber = @"(?<Hexnum>\$[0-9a-f]+)";
         static string decimalNumber = @"(?<Decnum>[0-9]+)";
         static string label = @"(?<Label>@?_?[A-Za-z0-9_]+\??)";
-        static string address = @"(?<Address>[0-9a-f]{1,4})";
-        static string labelOraddress = $@"({label}|{address})(?<Offset>[+-][0-9$]+)";
+        static string address = @"(?<Address>\$[0-9a-f]{1,4})";
+        static string labelOraddress = $@"({label}|{address})(?<Offset>[+-][0-9$]+)?";
 
-        static string immediate = $@"(?<Immediate>#({hexNumber}|{decimalNumber}))";  // lda #$00
+        static string immediate = $@"(?<Immediate>#({hexNumber}|{decimalNumber}|{label}))";  // lda #$00
         static string indirectX = $@"(?<IndirectX>\({labelOraddress},x\))";
         static string indirectY = $@"(?<IndirectY>\({labelOraddress}\),y)";
         static string absoluteX = $@"(?<AbsoluteX>{labelOraddress},x)";
-        static string absoluteY = $@"(?<AbsoluteY>({label}|{address}),y)";
-        static string absolute = $@"(?<Absolute>{label}|{address})";
+        static string absoluteY = $@"(?<AbsoluteY>({labelOraddress}),y)";
+        static string absolute = $@"(?<Absolute>{labelOraddress})";
         static string accumulator = @"(?<Accumulator>A)";
 
         static OperandArgument() {
-            AddRegex( MatchedOperandType.Immediate, immediate, "Immediate", "Hexnum", "Decnum" );
+            AddRegex( MatchedOperandType.Immediate, immediate, "Immediate", "Hexnum", "Decnum", "Label" );
             AddRegex( MatchedOperandType.IndirectX, indirectX, "IndirectX", "Label", "Address", "Offset" );
             AddRegex( MatchedOperandType.IndirectY, indirectY, "IndirectY", "Label", "Address", "Offset" );
             AddRegex( MatchedOperandType.AbsoluteX, absoluteX, "AbsoluteX", "Label", "Address", "Offset" );
@@ -473,6 +479,7 @@ namespace Robotron {
                     return;
                 }
             }
+            if (rest != "" && !rest.StartsWith(";")) MessageBox.Show( "/" + rest + "/" );
         }
     }
 }

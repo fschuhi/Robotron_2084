@@ -1,5 +1,8 @@
 see also [README](README.md)
 
+* Cpu.Profiler[]
+* DebugExecutingOpcodeRPC vs OpcodeRPC
+
 ## next
 
 * Workbench
