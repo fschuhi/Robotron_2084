@@ -7,7 +7,8 @@
         xmlns:sys="clr-namespace:System;assembly=mscorlib"
         mc:Ignorable="d"
         Title="AsmLines" Height="623" Width="800" Left="100" Top="50">
-
+    <!-- xmlns:sys needed for string ConvertParameter -->
+    
     <Window.Resources>
         <CollectionViewSource x:Key="collectionSource" Source="{Binding Path=listBox.ItemSource}" />
         <Style x:Key="ListBoxItemStyle1" TargetType="{x:Type ListBoxItem}">
@@ -48,39 +49,38 @@
             </Style.Triggers>
         </Style>
 
-        <sys:String x:Key="Label">Label</sys:String>
-        <sys:String x:Key="Bytes">Bytes</sys:String>
-        <sys:String x:Key="Instruction">Instruction</sys:String>
+        <!-- wee need a StaticResource if we want to pass a string as ConverterParameter, see below -->
+        <!--sys:String x:Key="Address">Address</-->
 
         <local:PaddingConverter x:Key="PaddingConverter" />
+        <local:IndentConverter x:Key="IndentConverter" />
         <local:OperandConverter x:Key="OperandConverter" />
 
         <DataTemplate DataType="{x:Type local:AddressItem}">
             <StackPanel Orientation="Horizontal">
                 <!-- TextBox Text="{Binding Address}" Padding="-1" Margin="0" BorderThickness="0"/-->
-                <TextBlock Text="{Binding Address}" />
-                <TextBlock Text=" "/>
-                <TextBlock Text="{Binding Bytes, Converter={StaticResource PaddingConverter}, ConverterParameter={StaticResource Bytes}}" />
-                <TextBlock Text=" "/>
-                <TextBlock Text="{Binding Label, Converter={StaticResource PaddingConverter}, ConverterParameter={StaticResource Label}}" />
-                <TextBlock Text=" "/>
-                <TextBlock Text="{Binding Instruction, Converter={StaticResource PaddingConverter}, ConverterParameter={StaticResource Instruction}}" Foreground="{Binding InstructionColor}" />
-                <TextBlock Text=" "/>
-                <TextBlock local:Attached.FormattedText="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Converter={StaticResource OperandConverter}}" />
-                
-                <TextBlock Text=" "/>
+                <!-- see above, we don't pass strings anymore but rather the padding / indentation directly -->
+                <!--TextBlock Text="{Binding Address, Converter={StaticResource PaddingConverter}, ConverterParameter={StaticResource Address}}" /-->
+
+                <TextBlock Text="{Binding Address, Converter={StaticResource PaddingConverter}, ConverterParameter=5}" />
+                <TextBlock Text="{Binding Bytes, Converter={StaticResource PaddingConverter}, ConverterParameter=15}" />
+                <TextBlock Text="{Binding Label, Converter={StaticResource PaddingConverter}, ConverterParameter=20}" />
+                <TextBlock Text="{Binding Instruction, Converter={StaticResource PaddingConverter}, ConverterParameter=6}" Foreground="{Binding InstructionColor}" />
+                <TextBlock local:Attached.FormattedText="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Converter={StaticResource OperandConverter}, ConverterParameter=40}" />
                 <TextBlock Text="{Binding Comment}" Foreground="LightGray" />
+
             </StackPanel>
         </DataTemplate>
+
         <DataTemplate DataType="{x:Type local:CommentItem}">
             <StackPanel Orientation="Horizontal">
-                <TextBlock Text="{Binding Comment}" Foreground="Green" />
+                <TextBlock Text="{Binding CommentLine, Converter={StaticResource IndentConverter}, ConverterParameter=20}" Foreground="Green" />
             </StackPanel>
         </DataTemplate>
 
     </Window.Resources>
 
     <Grid>
-        <ListBox Name="listBox" FontFamily="Consolas" FontSize="12"  ItemContainerStyle="{DynamicResource ListBoxItemStyle1}" KeyDown="listBox_KeyDown" AlternationCount="1000000"/>
+        <ListBox Name="listBox" FontFamily="Consolas" FontSize="12"  ItemContainerStyle="{DynamicResource ListBoxItemStyle1}" KeyDown="listBox_KeyDown" />
     </Grid>
 </Window>

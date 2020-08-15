@@ -36,7 +36,7 @@ namespace Robotron {
     }
 
     public class CommentItem : AsmListBoxItem {
-        public string Comment { get; set; }
+        public string CommentLine { get; set; }
     }
 
     /// <summary>
@@ -57,17 +57,17 @@ namespace Robotron {
             InitializeComponent();
 
             AsmReader = new AsmReader( @"s:\source\repos\Robotron_2084\Disassemblies\Robotron (Apple).asm" );
+            
             PaddingConverter.Window = this;
+            IndentConverter.Window = this;
             OperandConverter.Window = this;
-
-            this.DataContext = this;
 
             foreach (AsmLine asmLine in AsmReader._asmLines) {
                 AsmListBoxItem newItem = null;
                 switch (asmLine.LineType) {
                     case AsmLineType.CommentLine:
                         newItem = new CommentItem() {
-                            Comment = asmLine.Comment
+                            CommentLine = asmLine.Comment
                         };
                         break;
 
@@ -142,48 +142,50 @@ namespace Robotron {
     }
 
 
-    public class PaddingConverter : IValueConverter {
+    #region value converters
+    public abstract class AsmListBoxItemConverter : IValueConverter {
 
         public static Window1 Window { get; set; }
-        public static AsmReader AsmReader { get { return Window.AsmReader; } }
 
-        public object Convert( object value, Type targetType, object parameter, System.Globalization.CultureInfo culture ) {
-            string str = (string)value;
-            if (str == null) str = "";
-            if (parameter != null) {
-                string strParameter = (String)parameter;
-                switch (strParameter) {
-                    case "Bytes":
-                        return str.PadRight( 15 );
-
-                    case "Label":
-                        return str.PadRight( 20 );
-
-                    case "Instruction":
-                        return str.PadRight( 5 );
-                }
-
-            }
-            return str;
+        public virtual object Convert( object value, Type targetType, object parameter, CultureInfo culture ) {
+            throw new NotImplementedException();
         }
 
-        public object ConvertBack( object value, Type targetType, object parameter, System.Globalization.CultureInfo culture ) {
+        public object ConvertBack( object value, Type targetType, object parameter, CultureInfo culture ) {
             return value;
         }
     }
 
 
-    public class OperandConverter : IValueConverter {
+    public class PaddingConverter : AsmListBoxItemConverter {
+        public override object Convert( object value, Type targetType, object parameter, CultureInfo culture ) {
+            string str = (string)value ?? "";
+            int padding;
+            return int.TryParse( parameter.ToString(), out padding ) ? str.PadRight( padding ) : str;
+        }
+    }
 
-        public static Window1 Window { get; set; }
-        public static AsmReader AsmReader { get { return Window.AsmReader; } }
 
-        public object Convert( object value, Type targetType, object parameter, System.Globalization.CultureInfo culture ) {
+    public class IndentConverter : AsmListBoxItemConverter {
+        public override object Convert( object value, Type targetType, object parameter, CultureInfo culture ) {
+            string str = (string)value ?? "";
+            int padding;
+            return int.TryParse( parameter.ToString(), out padding ) ? (new String( ' ', padding )) + str : str;
+        }
+    }
+
+
+    public class OperandConverter : AsmListBoxItemConverter {
+
+        public override object Convert( object value, Type targetType, object parameter, CultureInfo culture ) {
             var lbi = (ListBoxItem)value;
             AsmListBoxItem item = (AsmListBoxItem)lbi.Content;
 
             AddressItem addressItem = item as AddressItem;
-            string operand = (addressItem.Operand ?? "").PadRight( 40 );
+            string operand = addressItem.Operand ?? "";
+
+            int padding;
+            operand = int.TryParse( parameter.ToString(), out padding ) ? operand.PadRight( padding ) : operand;
 
             AsmLine asmLine = item.AsmLine;
             if (asmLine.HasOperandArgument()) {
@@ -197,11 +199,8 @@ namespace Robotron {
 
             return operand.Replace( "&", "&amp;" );
         }
-
-        public object ConvertBack( object value, Type targetType, object parameter, System.Globalization.CultureInfo culture ) {
-            return value;
-        }
     }
+    #endregion
 
 
     public class Attached {
@@ -223,9 +222,7 @@ namespace Robotron {
 
         private static void FormattedTextPropertyChanged( DependencyObject d, DependencyPropertyChangedEventArgs e ) {
             var textBlock = d as TextBlock;
-            if (textBlock == null) {
-                return;
-            }
+            if (textBlock == null) return;
 
             var formattedText = (string)e.NewValue ?? string.Empty;
             formattedText = string.Format( "<Span xml:space=\"preserve\" xmlns=\"http://schemas.microsoft.com/winfx/2006/xaml/presentation\">{0}</Span>", formattedText );

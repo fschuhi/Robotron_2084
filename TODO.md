@@ -1,5 +1,10 @@
 see also [README](README.md)
 
+* https://rachel53461.wordpress.com/2012/07/14/what-is-this-datacontext-you-speak-of/
+* https://blog.csainty.com/2009/12/wpf-multibinding-and.html
+* https://docs.microsoft.com/en-us/dotnet/desktop-wpf/data/data-binding-overview
+* https://docs.microsoft.com/en-us/dotnet/framework/wpf/data/data-templating-overview
+
 * Cpu.Profiler[]
 * DebugExecutingOpcodeRPC vs OpcodeRPC
 
