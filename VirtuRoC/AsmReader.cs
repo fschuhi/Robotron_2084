@@ -15,7 +15,7 @@ using System.Windows;
 
 namespace Robotron {
 
-    class AsmReader : RobotronObject {
+    public class AsmReader : RobotronObject {
 
         List<string> _inputLines;
         public List<AsmLine> _asmLines = new List<AsmLine>();
@@ -189,6 +189,7 @@ namespace Robotron {
         public bool IsGlobalLabel() { return HasLabel() && Label.StartsWith( "@" ); }
         public bool IsLocalLabel() { return HasLabel() && Label.StartsWith( "@" ); }
         public bool IsBranchOperation() { return Is6502Operation() && "beqbnebccbcsbmibpl".Contains( Opcode ); }
+        public bool IsJumpOperation() { return Is6502Operation() && "jsrjmprtsrti".Contains( Opcode ); }
 
         public DirectiveArgument DirectiveArgument { get { return HasDirectiveArgument() ? (DirectiveArgument)Argument : null; } }
         public OperandArgument OperandArgument { get { return HasOperandArgument() ? (OperandArgument)Argument : null; } }
@@ -462,6 +463,10 @@ namespace Robotron {
             AddRegex( MatchedOperandType.AbsoluteY, absoluteY, "AbsoluteY", "Label", "Address", "Offset" );
             AddRegex( MatchedOperandType.Absolute, absolute, "Absolute", "Label", "Address", "Offset" );
             AddRegex( MatchedOperandType.Accumulator, accumulator, "Accumulator" );
+        }
+
+        public bool HasLabel() {
+            return Label != null && Label != "";
         }
 
         public OperandArgument( string opcode, ref string rest ) {

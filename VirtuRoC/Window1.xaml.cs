@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -19,11 +20,11 @@ using System.Xml;
 
 namespace Robotron {
 
-    class AsmListBoxItem {
+    public class AsmListBoxItem {
         public AsmLine AsmLine { get; set; }
     }
 
-    class AddressItem : AsmListBoxItem {
+    public class AddressItem : AsmListBoxItem {
         public string Address { get; set; }
         public string Bytes { get; set; }
         public string Label { get; set; }
@@ -34,7 +35,7 @@ namespace Robotron {
         public string InstructionColor { get; set; }
     }
 
-    class CommentItem : AsmListBoxItem {
+    public class CommentItem : AsmListBoxItem {
         public string Comment { get; set; }
     }
 
@@ -43,8 +44,8 @@ namespace Robotron {
     /// </summary>
     public partial class Window1 : Window {
 
-        AsmReader _reader;
-        List<AsmListBoxItem> _items = new List<AsmListBoxItem>();
+        public AsmReader AsmReader;
+        public List<AsmListBoxItem> _items = new List<AsmListBoxItem>();
 
         string InstructionColor( AsmLine asmLine ) {
             if (asmLine.IsBranchOperation()) return "Blue";
@@ -55,9 +56,13 @@ namespace Robotron {
         public Window1() {
             InitializeComponent();
 
-            _reader = new AsmReader( @"s:\source\repos\Robotron_2084\Disassemblies\Robotron (Apple).asm" );
+            AsmReader = new AsmReader( @"s:\source\repos\Robotron_2084\Disassemblies\Robotron (Apple).asm" );
+            PaddingConverter.Window = this;
+            OperandConverter.Window = this;
 
-            foreach (AsmLine asmLine in _reader._asmLines) {
+            this.DataContext = this;
+
+            foreach (AsmLine asmLine in AsmReader._asmLines) {
                 AsmListBoxItem newItem = null;
                 switch (asmLine.LineType) {
                     case AsmLineType.CommentLine:
@@ -85,7 +90,7 @@ namespace Robotron {
                             Label = asmLine.Label,
                             Instruction = asmLine.Directive,
                             Operand = asmLine.DirectiveArgument.Operand,
-                            InstructionColor = "Gray",
+                            InstructionColor = "DarkMagenta",
                             Comment = asmLine.Comment,
                         };
                         break;
@@ -138,6 +143,10 @@ namespace Robotron {
 
 
     public class PaddingConverter : IValueConverter {
+
+        public static Window1 Window { get; set; }
+        public static AsmReader AsmReader { get { return Window.AsmReader; } }
+
         public object Convert( object value, Type targetType, object parameter, System.Globalization.CultureInfo culture ) {
             string str = (string)value;
             if (str == null) str = "";
@@ -145,30 +154,15 @@ namespace Robotron {
                 string strParameter = (String)parameter;
                 switch (strParameter) {
                     case "Bytes":
-                        str = str.PadRight( 15 );
-                        break;
+                        return str.PadRight( 15 );
 
                     case "Label":
-                        str = str.PadRight( 20 );
-                        break;
+                        return str.PadRight( 20 );
 
                     case "Instruction":
-                        str = str.PadRight( 5 );
-                        //if ("jmp jsr rts".Contains( str )) {
-                        //    str = "<Run Foreground=\"Red\">" + str.PadRight( 5 ) + "</Run>";
-                        //}
-                        break;
-
-                    case "Operand":
-                        //str = str.PadRight( 40 );
-                        if (str.Contains(",x")) {
-                            str = "<Run Foreground=\"Tomato\">" + str.PadRight( 40 ) + "</Run>";
-                        } else {
-                            str = "<Run Foreground=\"Maroon\">" + str.PadRight( 40 ) + "</Run>";
-                        }
-                        break;
-
+                        return str.PadRight( 5 );
                 }
+
             }
             return str;
         }
@@ -177,6 +171,38 @@ namespace Robotron {
             return value;
         }
     }
+
+
+    public class OperandConverter : IValueConverter {
+
+        public static Window1 Window { get; set; }
+        public static AsmReader AsmReader { get { return Window.AsmReader; } }
+
+        public object Convert( object value, Type targetType, object parameter, System.Globalization.CultureInfo culture ) {
+            var lbi = (ListBoxItem)value;
+            AsmListBoxItem item = (AsmListBoxItem)lbi.Content;
+
+            AddressItem addressItem = item as AddressItem;
+            string operand = (addressItem.Operand ?? "").PadRight( 40 );
+
+            AsmLine asmLine = item.AsmLine;
+            if (asmLine.HasOperandArgument()) {
+                if (asmLine.OperandArgument.HasLabel()) {
+                    if (!(asmLine.IsJumpOperation() || asmLine.IsBranchOperation() )) {
+                        string label = asmLine.OperandArgument.Label;
+                        operand = operand.Replace( label, "<Run Foreground=\"DarkOrange\">" + label + "</Run>" );
+                    }
+                }
+            }
+
+            return operand.Replace( "&", "&amp;" );
+        }
+
+        public object ConvertBack( object value, Type targetType, object parameter, System.Globalization.CultureInfo culture ) {
+            return value;
+        }
+    }
+
 
     public class Attached {
         // https://stackoverflow.com/questions/5582893/wpf-generate-textblock-inlines

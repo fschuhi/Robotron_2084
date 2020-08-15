@@ -9,6 +9,7 @@
         Title="AsmLines" Height="623" Width="800" Left="100" Top="50">
 
     <Window.Resources>
+        <CollectionViewSource x:Key="collectionSource" Source="{Binding Path=listBox.ItemSource}" />
         <Style x:Key="ListBoxItemStyle1" TargetType="{x:Type ListBoxItem}">
             <!-- https://social.msdn.microsoft.com/Forums/vstudio/en-US/afb4d846-4660-4936-965f-5afe25e954c4/listboxitem-got-higlighted-on-hover?forum=wpf -->
             <!-- switches off *any* focusing, also the regular line selection => see Trigger below -->
@@ -50,9 +51,9 @@
         <sys:String x:Key="Label">Label</sys:String>
         <sys:String x:Key="Bytes">Bytes</sys:String>
         <sys:String x:Key="Instruction">Instruction</sys:String>
-        <sys:String x:Key="Operand">Operand</sys:String>
 
         <local:PaddingConverter x:Key="PaddingConverter" />
+        <local:OperandConverter x:Key="OperandConverter" />
 
         <DataTemplate DataType="{x:Type local:AddressItem}">
             <StackPanel Orientation="Horizontal">
@@ -65,9 +66,10 @@
                 <TextBlock Text=" "/>
                 <TextBlock Text="{Binding Instruction, Converter={StaticResource PaddingConverter}, ConverterParameter={StaticResource Instruction}}" Foreground="{Binding InstructionColor}" />
                 <TextBlock Text=" "/>
-                <TextBlock local:Attached.FormattedText="{Binding Operand, Converter={StaticResource PaddingConverter}, ConverterParameter={StaticResource Operand}}"/>
+                <TextBlock local:Attached.FormattedText="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Converter={StaticResource OperandConverter}}" />
+                
                 <TextBlock Text=" "/>
-                <TextBlock Text="{Binding Comment}" Foreground="Green"/>
+                <TextBlock Text="{Binding Comment}" Foreground="LightGray" />
             </StackPanel>
         </DataTemplate>
         <DataTemplate DataType="{x:Type local:CommentItem}">
@@ -79,6 +81,6 @@
     </Window.Resources>
 
     <Grid>
-        <ListBox Name="listBox" FontFamily="Consolas" FontSize="12"  ItemContainerStyle="{DynamicResource ListBoxItemStyle1}" KeyDown="listBox_KeyDown" />
+        <ListBox Name="listBox" FontFamily="Consolas" FontSize="12"  ItemContainerStyle="{DynamicResource ListBoxItemStyle1}" KeyDown="listBox_KeyDown" AlternationCount="1000000"/>
     </Grid>
 </Window>
