@@ -140,15 +140,15 @@ namespace Robotron {
     }
 
 
-    enum AsmLineType { CommentLine, AssignmentLine, DirectiveLine, OpcodeLine, OrgLine };
+    public enum AsmLineType { CommentLine, AssignmentLine, DirectiveLine, OpcodeLine, OrgLine };
 
-    class AsmLineTemplate {
+    public class AsmLineTemplate {
         public AsmLineType LineType { get; set; }
         public Regex Regex { get; set; }
         public string[] Values { get; set; }
     }
 
-    class AsmLine {
+    public class AsmLine {
 
         public AsmLineType LineType { get; set; }
 
@@ -358,11 +358,11 @@ namespace Robotron {
     }
 
 
-    abstract class AsmArgument { }
+    public abstract class AsmArgument { }
 
     public enum MatchedDirectiveType { dd1, dd2, str, bulk, fill }
 
-    class DirectiveArgument : AsmArgument {
+    public class DirectiveArgument : AsmArgument {
         public string Operand { get; set; }
         public string Number { get; set; }
         public string String { get; set; }
@@ -413,7 +413,7 @@ namespace Robotron {
 
     public enum MatchedOperandType { Immediate, IndirectX, IndirectY, AbsoluteX, AbsoluteY, Absolute, Accumulator }
 
-    class OperandArgument : AsmArgument {
+    public class OperandArgument : AsmArgument {
 
         public string Operand { get; set; }
         public string Hexnum { get; set; }

@@ -6,37 +6,79 @@
         xmlns:local="clr-namespace:Robotron"
         xmlns:sys="clr-namespace:System;assembly=mscorlib"
         mc:Ignorable="d"
-        Title="Window1" Height="450" Width="800">
+        Title="AsmLines" Height="623" Width="800" Left="100" Top="50">
+
     <Window.Resources>
         <Style x:Key="ListBoxItemStyle1" TargetType="{x:Type ListBoxItem}">
+            <!-- https://social.msdn.microsoft.com/Forums/vstudio/en-US/afb4d846-4660-4936-965f-5afe25e954c4/listboxitem-got-higlighted-on-hover?forum=wpf -->
+            <!-- switches off *any* focusing, also the regular line selection => see Trigger below -->
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type ListBoxItem}">
+                        <Grid Background="{TemplateBinding Background}">
+                            <ContentPresenter 
+                                ContentTemplate="{TemplateBinding ContentTemplate}"
+                                Content="{TemplateBinding Content}"
+                                HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                Margin="{TemplateBinding Padding}">
+                            </ContentPresenter>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+    
             <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
             <Setter Property="Padding" Value="0"/>
             <Setter Property="Margin" Value="0"/>
+
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <!-- we could have a visual indicator here -->
+                    <!--Setter Property="Foreground" Value="Red"/-->
+                    <!--Setter Property="Background" Value="Yellow"/-->
+                </Trigger>
+                <Trigger Property="IsFocused" Value="True">
+                    <!-- make sure we see the selected line -->
+                    <!-- Foreground color doesn't work properly, because parts like the opcode have their own coloring which overwrites the default -->
+                    <!--Setter Property="Foreground" Value="Red"/-->
+                    <Setter Property="Background" Value="LightBlue"/>
+                    <Setter Property="FontWeight" Value="Bold" />
+                </Trigger>
+            </Style.Triggers>
         </Style>
+
         <sys:String x:Key="Label">Label</sys:String>
         <sys:String x:Key="Bytes">Bytes</sys:String>
-        <sys:String x:Key="Opcode">Opcode</sys:String>
+        <sys:String x:Key="Instruction">Instruction</sys:String>
+        <sys:String x:Key="Operand">Operand</sys:String>
+
         <local:PaddingConverter x:Key="PaddingConverter" />
+
         <DataTemplate DataType="{x:Type local:AddressItem}">
             <StackPanel Orientation="Horizontal">
-                <TextBox Text="{Binding Address}" Padding="-1" Margin="0" BorderThickness="0"/>
+                <!-- TextBox Text="{Binding Address}" Padding="-1" Margin="0" BorderThickness="0"/-->
+                <TextBlock Text="{Binding Address}" />
                 <TextBlock Text=" "/>
-                <TextBlock Text="{Binding Bytes,Converter={StaticResource PaddingConverter}, ConverterParameter={StaticResource Bytes}}" />
+                <TextBlock Text="{Binding Bytes, Converter={StaticResource PaddingConverter}, ConverterParameter={StaticResource Bytes}}" />
                 <TextBlock Text=" "/>
                 <TextBlock Text="{Binding Label, Converter={StaticResource PaddingConverter}, ConverterParameter={StaticResource Label}}" />
                 <TextBlock Text=" "/>
-                <TextBlock local:Attached.FormattedText="{Binding Opcode, Converter={StaticResource PaddingConverter}, ConverterParameter={StaticResource Opcode}}" Foreground="Blue" MouseUp="TextBlock_MouseUp"/>
+                <TextBlock Text="{Binding Instruction, Converter={StaticResource PaddingConverter}, ConverterParameter={StaticResource Instruction}}" Foreground="{Binding InstructionColor}" />
                 <TextBlock Text=" "/>
-                <TextBlock Text="{Binding Operand}" FontWeight="Bold"/>
+                <TextBlock local:Attached.FormattedText="{Binding Operand, Converter={StaticResource PaddingConverter}, ConverterParameter={StaticResource Operand}}"/>
+                <TextBlock Text=" "/>
+                <TextBlock Text="{Binding Comment}" Foreground="Green"/>
             </StackPanel>
         </DataTemplate>
         <DataTemplate DataType="{x:Type local:CommentItem}">
             <StackPanel Orientation="Horizontal">
-                <TextBlock Text="{Binding Comment}" />
+                <TextBlock Text="{Binding Comment}" Foreground="Green" />
             </StackPanel>
         </DataTemplate>
+
     </Window.Resources>
+
     <Grid>
-        <ListBox Name="listBox" FontFamily="Consolas" FontSize="12"  ItemContainerStyle="{DynamicResource ListBoxItemStyle1}"/>
+        <ListBox Name="listBox" FontFamily="Consolas" FontSize="12"  ItemContainerStyle="{DynamicResource ListBoxItemStyle1}" KeyDown="listBox_KeyDown" />
     </Grid>
 </Window>
