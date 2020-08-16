@@ -45,7 +45,10 @@ namespace Robotron {
     public partial class Window1 : Window {
 
         public AsmReader AsmReader;
-        public List<AsmListBoxItem> _items = new List<AsmListBoxItem>();
+        
+        List<AsmListBoxItem> _items = new List<AsmListBoxItem>();
+
+        Dictionary<AsmLine, AsmListBoxItem> _itemsByAsmLine = new Dictionary<AsmLine, AsmListBoxItem>();
 
         string InstructionColor( AsmLine asmLine ) {
             if (asmLine.IsBranchOperation()) return "Blue";
@@ -99,6 +102,7 @@ namespace Robotron {
                 if (newItem != null) {
                     newItem.AsmLine = asmLine;
                     _items.Add( newItem );
+                    _itemsByAsmLine.Add( asmLine, newItem );
                 }
 
                 if (asmLine.HasOperandArgument()) {                    
@@ -115,13 +119,15 @@ namespace Robotron {
         }
 
         private void ScrollToAddress( int address ) {
-
+            AsmLine asmLine = AsmReader.AsmLineByAddressDictionary()[address];
+            if (asmLine == null) return;
+            AsmListBoxItem scrollItem = _itemsByAsmLine[asmLine];
+            ScrollToItem( scrollItem );
         }
 
         private void ScrollToItem( AsmListBoxItem item ) {
-            //listBox.ScrollIntoView( scrollItem );
             listBox.ScrollToCenterOfView( item );
-            ListBoxItem lbi = (ListBoxItem)listBox.ItemContainerGenerator.ContainerFromIndex( 500 );
+            ListBoxItem lbi = (ListBoxItem)listBox.ItemContainerGenerator.ContainerFromItem( item );
             lbi.Focus();
         }
 
@@ -134,8 +140,8 @@ namespace Robotron {
                 if (item is AddressItem ) {
                     AddressItem addressItem = (AddressItem)item;
                     MessageBox.Show( addressItem.Address );
-                    AsmListBoxItem scrollItem = (AsmListBoxItem)listBox.Items.GetItemAt( 500 );
-                    ScrollToItem( scrollItem );
+                    int addr = AsmReader.AddressByLabelDictionary()["chooseControls"];
+                    ScrollToAddress( addr );
                 }
             }
         }

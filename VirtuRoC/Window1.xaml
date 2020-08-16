@@ -6,7 +6,7 @@
         xmlns:local="clr-namespace:Robotron"
         xmlns:sys="clr-namespace:System;assembly=mscorlib"
         mc:Ignorable="d"
-        Title="AsmLines" Height="623" Width="800" Left="100" Top="50">
+        Title="AsmLines" Height="700" Width="900" Left="100" Top="50">
     <!-- xmlns:sys needed for string ConvertParameter -->
     
     <Window.Resources>
