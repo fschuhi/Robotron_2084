@@ -6,7 +6,7 @@
         xmlns:local="clr-namespace:Robotron"
         xmlns:sys="clr-namespace:System;assembly=mscorlib"
         mc:Ignorable="d"
-        Title="AsmLines" Height="700" Width="900" Left="100" Top="50">
+        Name="MyWindow1" Title="AsmLines" Height="700" Width="1100" Left="100" Top="50">
     <!-- xmlns:sys needed for string ConvertParameter -->
     
     <Window.Resources>
@@ -77,10 +77,10 @@
                 <TextBlock Text="{Binding CommentLine, Converter={StaticResource IndentConverter}, ConverterParameter=20}" Foreground="Green" />
             </StackPanel>
         </DataTemplate>
-
     </Window.Resources>
 
     <Grid>
-        <ListBox Name="listBox" FontFamily="Consolas" FontSize="12"  ItemContainerStyle="{DynamicResource ListBoxItemStyle1}" KeyDown="listBox_KeyDown" />
+        <ListBox Name="listBox" FontFamily="Consolas" FontSize="12"  ItemContainerStyle="{DynamicResource ListBoxItemStyle1}" KeyDown="listBox_KeyDown" ScrollViewer.HorizontalScrollBarVisibility="Disabled"/>
+        <!-- ScrollViewer.IsDeferredScrollingEnabled="True"-->
     </Grid>
 </Window>

@@ -1,22 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Controls.Primitives;
 using System.Windows.Data;
-using System.Windows.Documents;
 using System.Windows.Input;
-using System.Windows.Markup;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Shapes;
-using System.Windows.Threading;
-using System.Xml;
+using Microsoft.VisualBasic;
 
 namespace Robotron {
 
@@ -45,26 +34,31 @@ namespace Robotron {
     public partial class Window1 : Window {
 
         public AsmReader AsmReader;
-        
-        List<AsmListBoxItem> _items = new List<AsmListBoxItem>();
-
-        Dictionary<AsmLine, AsmListBoxItem> _itemsByAsmLine = new Dictionary<AsmLine, AsmListBoxItem>();
-
-        string InstructionColor( AsmLine asmLine ) {
-            if (asmLine.IsBranchOperation()) return "Blue";
-            if ("jmp jsr rts".Contains( asmLine.Opcode )) return "Red";
-            return "Black";
-        }
 
         public Window1() {
             InitializeComponent();
 
             AsmReader = new AsmReader( @"s:\source\repos\Robotron_2084\Disassemblies\Robotron (Apple).asm" );
-            
+
             PaddingConverter.Window = this;
             IndentConverter.Window = this;
             OperandConverter.Window = this;
 
+            PopulateListbox();
+
+            listBox.ItemsSource = _items;
+            listBox.SelectedIndex = 0;
+            listBox.Focus();
+
+            CreateKeyboardShortcuts();
+        }
+
+        #region populate listbox
+        List<AsmListBoxItem> _items = new List<AsmListBoxItem>();
+
+        Dictionary<AsmLine, AsmListBoxItem> _itemsByAsmLine = new Dictionary<AsmLine, AsmListBoxItem>();
+
+        public void PopulateListbox() {
             foreach (AsmLine asmLine in AsmReader._asmLines) {
                 AsmListBoxItem newItem = null;
                 switch (asmLine.LineType) {
@@ -105,39 +99,127 @@ namespace Robotron {
                     _itemsByAsmLine.Add( asmLine, newItem );
                 }
 
-                if (asmLine.HasOperandArgument()) {                    
+                if (asmLine.HasOperandArgument()) {
                 }
             }
 
-            listBox.ItemsSource = _items;
-            listBox.SelectedIndex = 0;
-            listBox.Focus();
+
         }
 
-        private void TextBlock_MouseUp( object sender, MouseButtonEventArgs e ) {
-            MessageBox.Show( "yes" );
+        string InstructionColor( AsmLine asmLine ) {
+            if (asmLine.IsBranchOperation()) return "Blue";
+            if ("jmp jsr rts".Contains( asmLine.Opcode )) return "Red";
+            return "Black";
         }
+        #endregion
 
-        private void ScrollToAddress( int address ) {
-            AsmLine asmLine = AsmReader.AsmLineByAddressDictionary()[address];
-            if (asmLine == null) return;
+
+        #region scrolling
+        private void ScrollToAddress( int address, bool center = true ) {
+            AsmLine asmLine;
+            if (!AsmReader.AsmLineByAddressDictionary().TryGetValue( address, out asmLine )) return;
             AsmListBoxItem scrollItem = _itemsByAsmLine[asmLine];
-            ScrollToItem( scrollItem );
+            ScrollToItem( scrollItem, center );
         }
 
-        private void ScrollToItem( AsmListBoxItem item ) {
-            listBox.ScrollToCenterOfView( item );
+        private void ScrollToItem( AsmListBoxItem item, bool center = true ) {
+            if (item == null) return;
+
+            if (center) {
+                listBox.ScrollToCenterOfView( item );
+            } else {
+                listBox.ScrollIntoView( item );
+            }
+
             ListBoxItem lbi = (ListBoxItem)listBox.ItemContainerGenerator.ContainerFromItem( item );
             lbi.Focus();
+        }
+        #endregion
+
+
+        #region keyboard shortcuts
+        private void RegisterGesture( Action executeDelegate, KeyGesture gesture) {
+            InputBindings.Add( new KeyBinding( new WindowCommand( this ) { ExecuteDelegate = executeDelegate }, gesture ) );
+        }
+
+        public void CreateKeyboardShortcuts() {
+
+            //add a new key-binding, and pass in your command object instance which contains the Execute method which WPF will execute
+            RegisterGesture( GotoAddress, new KeyGesture( Key.G, ModifierKeys.Control ) );
+            RegisterGesture( FollowJump, new KeyGesture( Key.Right, ModifierKeys.Alt ) );
+            RegisterGesture( ReturnFromJump, new KeyGesture( Key.Left, ModifierKeys.Alt ) );
+            RegisterGesture( GotoNextLabel, new KeyGesture( Key.Down, ModifierKeys.Alt ) );
+            RegisterGesture( GotoPreviousLabel, new KeyGesture( Key.Up, ModifierKeys.Alt ) );
+        }
+
+        private void GotoAddress() {
+            string input = Interaction.InputBox( "Address (hex)", "Goto Address", "", 100, 100 ).Trim();
+            int address = input.ToDecimal();
+            ScrollToAddress( address );
+        }
+
+        Stack<int> _addressStack = new Stack<int>();
+
+        private void FollowJump() {
+            AsmListBoxItem item = listBox.SelectedItem as AsmListBoxItem;
+            AsmLine asmLine = item.AsmLine;
+            if (!asmLine.IsJumpOperation()) return;
+
+            _addressStack.Push( asmLine.DecimalAddress );
+            string label = asmLine.OperandArgument.Label;
+            int address;
+            if (!AsmReader.AddressByLabelDictionary().TryGetValue( label, out address )) return;
+            ScrollToAddress( address );
+        }
+
+        private void ReturnFromJump() {
+            if (_addressStack.Count == 0) return;
+            int address = _addressStack.Pop();
+            ScrollToAddress( address );
+        }
+
+        private void GotoNextLabel() {
+            AsmListBoxItem item = listBox.SelectedItem as AsmListBoxItem;
+            AsmLine asmLine = item.AsmLine;
+            int index = asmLine.Index+1;
+            while (index < AsmReader._asmLines.Count) {
+                asmLine = AsmReader._asmLines[index];
+                if (asmLine.IsMemoryMapped() && asmLine.HasLabel()) {
+                    ScrollToAddress( asmLine.DecimalAddress, false );
+                    return;
+                }
+                index++;
+            }
+        }
+
+        private void GotoPreviousLabel() {
+            AsmListBoxItem item = listBox.SelectedItem as AsmListBoxItem;
+            AsmLine asmLine = item.AsmLine;
+            int index = asmLine.Index - 1;
+            while (index >= 0) {
+                asmLine = AsmReader._asmLines[index];
+                if (asmLine.IsMemoryMapped() && asmLine.HasLabel()) {
+                    ScrollToAddress( asmLine.DecimalAddress, false );
+                    return;
+                }
+                index--;
+            }
+        }
+        #endregion
+
+
+        #region events
+        private void TextBlock_MouseUp( object sender, MouseButtonEventArgs e ) {
+            MessageBox.Show( "yes" );
         }
 
         private void listBox_KeyDown( object sender, KeyEventArgs e ) {
             bool IsShiftKey = Keyboard.Modifiers.HasFlag( ModifierKeys.Shift );
             bool IsAltKey = Keyboard.Modifiers.HasFlag( ModifierKeys.Alt );
             bool IsControlKey = Keyboard.Modifiers.HasFlag( ModifierKeys.Control );
-            if (IsShiftKey && IsAltKey && IsControlKey ) {
+            if (IsShiftKey && IsAltKey && IsControlKey) {
                 AsmListBoxItem item = (AsmListBoxItem)listBox.SelectedItem;
-                if (item is AddressItem ) {
+                if (item is AddressItem) {
                     AddressItem addressItem = (AddressItem)item;
                     MessageBox.Show( addressItem.Address );
                     int addr = AsmReader.AddressByLabelDictionary()["chooseControls"];
@@ -145,6 +227,7 @@ namespace Robotron {
                 }
             }
         }
+        #endregion
     }
 
 
@@ -167,7 +250,9 @@ namespace Robotron {
         public override object Convert( object value, Type targetType, object parameter, CultureInfo culture ) {
             string str = (string)value ?? "";
             int padding;
-            return int.TryParse( parameter.ToString(), out padding ) ? str.PadRight( padding ) : str;
+            return int.TryParse( parameter.ToString(), out padding ) 
+                ? (str.Length < padding ? str.PadRight( padding ) : str.Substring( 0, padding - 1 ) + "…")
+                : str;
         }
     }
 
@@ -176,7 +261,9 @@ namespace Robotron {
         public override object Convert( object value, Type targetType, object parameter, CultureInfo culture ) {
             string str = (string)value ?? "";
             int padding;
-            return int.TryParse( parameter.ToString(), out padding ) ? (new String( ' ', padding )) + str : str;
+            return int.TryParse( parameter.ToString(), out padding ) 
+                ? (new String( ' ', padding )) + str 
+                : str;
         }
     }
 
@@ -196,7 +283,7 @@ namespace Robotron {
             AsmLine asmLine = item.AsmLine;
             if (asmLine.HasOperandArgument()) {
                 if (asmLine.OperandArgument.HasLabel()) {
-                    if (!(asmLine.IsJumpOperation() || asmLine.IsBranchOperation() )) {
+                    if (!(asmLine.IsJumpOperation() || asmLine.IsBranchOperation() || asmLine.Opcode == "rts" )) {
                         string label = asmLine.OperandArgument.Label;
                         operand = operand.Replace( label, "<Run Foreground=\"DarkOrange\">" + label + "</Run>" );
                     }
@@ -208,102 +295,4 @@ namespace Robotron {
     }
     #endregion
 
-
-    public class Attached {
-        // https://stackoverflow.com/questions/5582893/wpf-generate-textblock-inlines
-
-        public static readonly DependencyProperty FormattedTextProperty = DependencyProperty.RegisterAttached(
-            "FormattedText",
-            typeof( string ),
-            typeof( Attached ),
-            new FrameworkPropertyMetadata( string.Empty, FrameworkPropertyMetadataOptions.AffectsMeasure, FormattedTextPropertyChanged ) );
-
-        public static void SetFormattedText( DependencyObject textBlock, string value ) {
-            textBlock.SetValue( FormattedTextProperty, value );
-        }
-
-        public static string GetFormattedText( DependencyObject textBlock ) {
-            return (string)textBlock.GetValue( FormattedTextProperty );
-        }
-
-        private static void FormattedTextPropertyChanged( DependencyObject d, DependencyPropertyChangedEventArgs e ) {
-            var textBlock = d as TextBlock;
-            if (textBlock == null) return;
-
-            var formattedText = (string)e.NewValue ?? string.Empty;
-            formattedText = string.Format( "<Span xml:space=\"preserve\" xmlns=\"http://schemas.microsoft.com/winfx/2006/xaml/presentation\">{0}</Span>", formattedText );
-
-            textBlock.Inlines.Clear();
-            using (var xmlReader = XmlReader.Create( new StringReader( formattedText ) )) {
-                var result = (Span)XamlReader.Load( xmlReader );
-                textBlock.Inlines.Add( result );
-            }
-        }
-    }
-
-
-    public static class ItemsControlExtensions {
-        // https://stackoverflow.com/questions/2946954/make-listview-scrollintoview-scroll-the-item-into-the-center-of-the-listview-c
-        public static void ScrollToCenterOfView( this ItemsControl itemsControl, object item ) {
-            // Scroll immediately if possible
-            if (!itemsControl.TryScrollToCenterOfView( item )) {
-                // Otherwise wait until everything is loaded, then scroll
-                if (itemsControl is ListBox) ((ListBox)itemsControl).ScrollIntoView( item );
-                itemsControl.Dispatcher.BeginInvoke( DispatcherPriority.Loaded, new Action( () =>
-                {
-                    itemsControl.TryScrollToCenterOfView( item );
-                } ) );
-            }
-        }
-
-        private static bool TryScrollToCenterOfView( this ItemsControl itemsControl, object item ) {
-            // Find the container
-            var container = itemsControl.ItemContainerGenerator.ContainerFromItem( item ) as UIElement;
-            if (container == null) return false;
-
-            // Find the ScrollContentPresenter
-            ScrollContentPresenter presenter = null;
-            for (Visual vis = container; vis != null && vis != itemsControl; vis = VisualTreeHelper.GetParent( vis ) as Visual)
-                if ((presenter = vis as ScrollContentPresenter) != null)
-                    break;
-            if (presenter == null) return false;
-
-            // Find the IScrollInfo
-            var scrollInfo =
-                !presenter.CanContentScroll ? presenter :
-                presenter.Content as IScrollInfo ??
-                FirstVisualChild( presenter.Content as ItemsPresenter ) as IScrollInfo ??
-                presenter;
-
-            // Compute the center point of the container relative to the scrollInfo
-            Size size = container.RenderSize;
-            Point center = container.TransformToAncestor( (Visual)scrollInfo ).Transform( new Point( size.Width / 2, size.Height / 2 ) );
-            center.Y += scrollInfo.VerticalOffset;
-            center.X += scrollInfo.HorizontalOffset;
-
-            // Adjust for logical scrolling
-            if (scrollInfo is StackPanel || scrollInfo is VirtualizingStackPanel) {
-                double logicalCenter = itemsControl.ItemContainerGenerator.IndexFromContainer( container ) + 0.5;
-                Orientation orientation = scrollInfo is StackPanel ? ((StackPanel)scrollInfo).Orientation : ((VirtualizingStackPanel)scrollInfo).Orientation;
-                if (orientation == Orientation.Horizontal)
-                    center.X = logicalCenter;
-                else
-                    center.Y = logicalCenter;
-            }
-
-            // Scroll the center of the container to the center of the viewport
-            if (scrollInfo.CanVerticallyScroll) scrollInfo.SetVerticalOffset( CenteringOffset( center.Y, scrollInfo.ViewportHeight, scrollInfo.ExtentHeight ) );
-            if (scrollInfo.CanHorizontallyScroll) scrollInfo.SetHorizontalOffset( CenteringOffset( center.X, scrollInfo.ViewportWidth, scrollInfo.ExtentWidth ) );
-            return true;
-        }
-
-        private static double CenteringOffset( double center, double viewport, double extent ) {
-            return Math.Min( extent - viewport, Math.Max( 0, center - viewport / 2 ) );
-        }
-        private static DependencyObject FirstVisualChild( Visual visual ) {
-            if (visual == null) return null;
-            if (VisualTreeHelper.GetChildrenCount( visual ) == 0) return null;
-            return VisualTreeHelper.GetChild( visual, 0 );
-        }
-    }
 }

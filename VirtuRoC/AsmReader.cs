@@ -189,7 +189,7 @@ namespace Robotron {
         public bool IsGlobalLabel() { return HasLabel() && Label.StartsWith( "@" ); }
         public bool IsLocalLabel() { return HasLabel() && Label.StartsWith( "@" ); }
         public bool IsBranchOperation() { return Is6502Operation() && "beqbnebccbcsbmibpl".Contains( Opcode ); }
-        public bool IsJumpOperation() { return Is6502Operation() && "jsrjmprtsrti".Contains( Opcode ); }
+        public bool IsJumpOperation() { return Is6502Operation() && (Opcode == "jsr" || Opcode == "jmp"); }
 
         public DirectiveArgument DirectiveArgument { get { return HasDirectiveArgument() ? (DirectiveArgument)Argument : null; } }
         public OperandArgument OperandArgument { get { return HasOperandArgument() ? (OperandArgument)Argument : null; } }
