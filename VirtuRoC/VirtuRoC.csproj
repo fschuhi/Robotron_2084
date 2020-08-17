@@ -82,6 +82,7 @@
       <DependentUpon>AsmForm.cs</DependentUpon>
       <CustomToolNamespace>Robotron</CustomToolNamespace>
     </Compile>
+    <Compile Include="ValueConverters.cs" />
     <Compile Include="Form1.cs">
       <SubType>Form</SubType>
     </Compile>

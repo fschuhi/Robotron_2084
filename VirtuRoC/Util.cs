@@ -140,7 +140,16 @@ namespace Robotron {
 
     }
 
-    public static class ItemsControlExtensions {
+    public static class UIExtensions {
+
+        public static void FocusListBoxItem( this ListBox listBox, object item ) {
+            ListBoxItem lbi = (ListBoxItem)listBox.ItemContainerGenerator.ContainerFromItem( item );
+            if (lbi == null) {
+                listBox.ScrollIntoView( item );
+                lbi = (ListBoxItem)listBox.ItemContainerGenerator.ContainerFromItem( item );
+            }
+            lbi.Focus();
+        }
 
         public static object FirstVisibleItem( this ListBox listBox ) {
             if (listBox.Items.Count == 0) return null;

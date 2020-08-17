@@ -60,17 +60,20 @@
                 <!-- TextBox Text="{Binding Address}" Padding="-1" Margin="0" BorderThickness="0"/-->
                 <!-- see above, we don't pass strings anymore but rather the padding / indentation directly -->
                 <!--TextBlock Text="{Binding Address, Converter={StaticResource PaddingConverter}, ConverterParameter={StaticResource Address}}" /-->
+                <!-- TextBlock Text="{Binding Instruction, Converter={StaticResource PaddingConverter}, ConverterParameter=6}" Foreground="{Binding InstructionColor}" /-->
 
-                <TextBlock Text="{Binding Address, Converter={StaticResource PaddingConverter}, ConverterParameter=5}" />
-                <TextBlock Text="{Binding Bytes, Converter={StaticResource PaddingConverter}, ConverterParameter=15}" />
-                <TextBlock Text="{Binding Label, Converter={StaticResource PaddingConverter}, ConverterParameter=20}" />
-                <TextBlock Text="{Binding Instruction, Converter={StaticResource PaddingConverter}, ConverterParameter=6}" Foreground="{Binding InstructionColor}" />
+                <TextBlock Text="{Binding Address}" />
+                <TextBlock Text="{Binding Bytes}" />
+                <TextBlock Text="{Binding Label}" />
+                <TextBlock Text="{Binding Instruction}" Foreground="{Binding InstructionColor}" />
+
                 <!-- TextBlock local:Attached.FormattedText="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Converter={StaticResource OperandConverter}, ConverterParameter=40}" /-->
                 <!--TextBlock Text="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Converter={StaticResource OperandConverter}, ConverterParameter=40}" /-->
                 <!-- TextBlock Text="{Binding Operand, Converter={StaticResource PaddingConverter}, ConverterParameter=40}" /-->
 
                 <TextBlock local:Attached.FormattedText="{Binding Operand}" />
-                <TextBlock Text="{Binding Comment, Converter={StaticResource PaddingConverter}, ConverterParameter=60}" Foreground="LightGray" />
+                <TextBlock Text="{Binding Comment}" Foreground="LightGray" />
+                <!-- TextBlock Text="{Binding Comment, Converter={StaticResource PaddingConverter}, ConverterParameter=60}" Foreground="LightGray" /-->
 
             </VirtualizingStackPanel>
         </DataTemplate>

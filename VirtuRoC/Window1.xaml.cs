@@ -1,13 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
 using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Threading;
 using Microsoft.VisualBasic;
 
 namespace Robotron {
@@ -44,10 +40,6 @@ namespace Robotron {
 
             AsmReader = new AsmReader( @"s:\source\repos\Robotron_2084\Disassemblies\Robotron (Apple).asm" );
 
-            PaddingConverter.Window = this;
-            IndentConverter.Window = this;
-            OperandConverter.Window = this;
-
             PopulateListbox();
 
             listBox.ItemsSource = _items;
@@ -57,16 +49,18 @@ namespace Robotron {
             CreateKeyboardShortcuts();
         }
 
+
         #region populate listbox
         List<AsmListBoxItem> _items = new List<AsmListBoxItem>();
-
         Dictionary<AsmLine, AsmListBoxItem> _itemsByAsmLine = new Dictionary<AsmLine, AsmListBoxItem>();
 
         public void PopulateListbox() {
             int itemIndex = 0;
             foreach (AsmLine asmLine in AsmReader._asmLines) {
                 AsmListBoxItem newItem = null;
+
                 switch (asmLine.LineType) {
+
                     case AsmLineType.CommentLine:
                         newItem = new CommentItem() {
                             CommentLine = asmLine.Comment
@@ -74,54 +68,49 @@ namespace Robotron {
                         break;
 
                     case AsmLineType.OpcodeLine:
+                    case AsmLineType.DirectiveLine:
                         newItem = new AddressItem() {
-                            Address = asmLine.Address,
-                            Bytes = asmLine.Bytes,
-                            Label = asmLine.Label,
-                            Instruction = asmLine.Opcode,
-                            Operand = asmLine.OperandArgument.Operand,
-                            InstructionColor = this.InstructionColor( asmLine ),
-                            Comment = asmLine.Comment,
+                            Address = Padded( asmLine.Address, 5),
+                            Bytes = Padded( asmLine.Bytes, 15 ),
+                            Label = Padded( asmLine.Label, 20 ),
+                            Comment = Padded( asmLine.Comment, 60 ),
                         };
+                        break;
+
+                    default:
+                        continue;
+                }
+                AddressItem addressItem = newItem as AddressItem;
+
+                switch (asmLine.LineType) {
+                    case AsmLineType.OpcodeLine:
+                        addressItem.Instruction = Padded( asmLine.Opcode, 6 );
+                        addressItem.Operand = Padded( asmLine.OperandArgument.Operand, 40, paddedOperand => ColorOpcodeOperand( asmLine, paddedOperand ) );
+                        addressItem.InstructionColor = InstructionColor( asmLine );
                         break;
 
                     case AsmLineType.DirectiveLine:
-                        newItem = new AddressItem() {
-                            Address = asmLine.Address,
-                            Bytes = asmLine.Bytes,
-                            Label = asmLine.Label,
-                            Instruction = asmLine.Directive,
-                            Operand = asmLine.DirectiveArgument.Operand,
-                            InstructionColor = "DarkMagenta",
-                            Comment = asmLine.Comment,
-                        };
+                        addressItem.Instruction = Padded( asmLine.Directive, 6 );
+                        addressItem.Operand = Padded( asmLine.DirectiveArgument.Operand, 40 );
+                        addressItem.InstructionColor = "DarkMagenta";
                         break;
                 }
-                if (newItem != null) {
-                    newItem.AsmLine = asmLine;
-                    _items.Add( newItem );
-                    _itemsByAsmLine.Add( asmLine, newItem );
 
-                    newItem.ItemIndex = itemIndex;
-                    itemIndex++;
+                Debug.Assert( newItem != null );
 
-                    if (asmLine.HasOperandArgument()) {
-                        AddressItem addressItem = newItem as AddressItem;
-                        Debug.Assert( asmLine.OperandArgument != null );
-                        string operand = asmLine.OperandArgument.Operand ?? "";
-                        operand = operand.PadRight( 40 );
-                        if (asmLine.OperandArgument.HasLabel()) {
-                            if (!(asmLine.IsJumpOperation() || asmLine.IsBranchOperation() || asmLine.Opcode == "rts")) {
-                                string label = asmLine.OperandArgument.Label;
-                                operand = "<Span>" + operand.Replace( label, "<Run Foreground=\"DarkOrange\">" + label + "</Run>" ).Replace( "&", "&amp;" ) + "</Span>";
-                            }
-                        }
-                        addressItem.Operand = operand;
-                    }
-                }
+                newItem.AsmLine = asmLine;
+                _items.Add( newItem );
+                _itemsByAsmLine.Add( asmLine, newItem );
+
+                newItem.ItemIndex = itemIndex;
+                itemIndex++;
             }
+        }
 
-
+        private string Padded( string padded, int padding, Func<string, string> convert = null ) {
+            padded = padded ?? "";
+            padded = (padded.Length <= padding) ? padded.PadRight( padding ) : padded.Substring( 0, padding - 1 ) + "…";
+            return (convert == null) ? padded : convert( padded );
         }
 
         string InstructionColor( AsmLine asmLine ) {
@@ -129,12 +118,22 @@ namespace Robotron {
             if ("jmp jsr rts".Contains( asmLine.Opcode )) return "Red";
             return "Black";
         }
+        
+        private string ColorOpcodeOperand( AsmLine asmLine, string paddedOperand ) {
+            if (asmLine.HasOperandArgument()) {
+                if (asmLine.OperandArgument.HasLabel()) {
+                    if (!(asmLine.IsJumpOperation() || asmLine.IsBranchOperation() || asmLine.Opcode == "rts")) {
+                        string label = asmLine.OperandArgument.Label;
+                        paddedOperand = "<Span>" + paddedOperand.Replace( label, "<Run Foreground=\"DarkOrange\">" + label + "</Run>" ).Replace( "&", "&amp;" ) + "</Span>";
+                    }
+                }
+            }
+            return paddedOperand.Replace( "&", "&amp;" );
+        }
         #endregion
 
 
         #region scrolling
-
-        bool _scrolling = false;
 
         public void ScrollToAddress( int address, bool center = true ) {
             AsmLine asmLine;
@@ -143,31 +142,9 @@ namespace Robotron {
             ScrollToItem( scrollItem, center );
         }
 
-        private void FocusItem( AsmListBoxItem item ) {
-            ListBoxItem lbi = (ListBoxItem)listBox.ItemContainerGenerator.ContainerFromItem( item );
-            if (lbi == null) {
-                listBox.ScrollIntoView( item );
-                lbi = (ListBoxItem)listBox.ItemContainerGenerator.ContainerFromItem( item );
-            }
-            lbi.Focus();
-        }
-
-        private void ScrollToItem2( AsmListBoxItem item, bool center = true ) {
-            if (item == null) return;
-
-            if (center) {
-                listBox.ScrollToCenterOfView( item );
-            } else {
-                listBox.ScrollIntoView( item );
-            }
-
-            FocusItem( item );
-        }
-
         private void ScrollToItem( AsmListBoxItem scrollItem, bool center = true ) {
-            if (_scrolling) return;
             try {
-                _scrolling = true;
+                SuspendKeyboardShortcuts();
 
                 var scrollViewer = UIHelpers.GetScrollViewer( listBox ) as ScrollViewer;
                 AsmListBoxItem firstItem = listBox.FirstVisibleItem() as AsmListBoxItem;
@@ -179,10 +156,21 @@ namespace Robotron {
                 int scrollIndex = scrollItem.ItemIndex;
                 bool alreadyVisible = scrollIndex >= firstItemIndex && scrollIndex <= lastItemIndex;
                 if (alreadyVisible) {
-                    FocusItem( scrollItem );
+                    listBox.FocusListBoxItem( scrollItem );
                 } else {
                     int offsets = scrollIndex - firstItemIndex;
-                    int originalStep = offsets > 0 ? 20 : -20;
+                    int count = Math.Abs( offsets );
+                    
+                    int originalStep;
+                    if (count < 20) originalStep = 1;
+                    else if (count < 100) originalStep = 2;
+                    else if (count < 200) originalStep = 3;
+                    else if (count < 500) originalStep = 5;
+                    else if (count < 1000) originalStep = 10;
+                    else originalStep = 20;
+
+                    originalStep = offsets > 0 ? originalStep : -originalStep;
+
                     int step = originalStep;
                     for (int offset = 0; Math.Abs( offset ) < Math.Abs( offsets ); offset += step) {
                         if (Math.Abs( step ) > 1) {
@@ -201,10 +189,10 @@ namespace Robotron {
                         scrollViewer.ScrollToVerticalOffset( scrollViewer.VerticalOffset - 1 );
                         this.DoEvents();
                     }
-                    FocusItem( scrollItem );
+                    listBox.FocusListBoxItem( scrollItem );
                 }
             } finally {
-                _scrolling = false;
+                ResumeKeyboardShortcuts();
             }
         }
         #endregion
@@ -226,8 +214,15 @@ namespace Robotron {
             RegisterGesture( GotoPreviousLabel, new KeyGesture( Key.Up, ModifierKeys.Alt ) );
         }
 
+        public void SuspendKeyboardShortcuts() {
+            InputBindings.Clear();
+        }
+
+        public void ResumeKeyboardShortcuts() {
+            CreateKeyboardShortcuts();
+        }
+
         private void GotoAddress() {
-            if (_scrolling) return;
             string input = Interaction.InputBox( "Address (hex)", "Goto Address", "", 100, 100 ).Trim();
             int address = input.ToDecimal();
             ScrollToAddress( address );
@@ -246,7 +241,6 @@ namespace Robotron {
         }
 
         private void FollowJump() {
-            if (_scrolling) return;
             AsmLine asmLine = SelectedAsmLine();
             if (!asmLine.IsJumpOperation()) return;
             _addressStack.Push( asmLine.DecimalAddress );
@@ -258,14 +252,12 @@ namespace Robotron {
         }
 
         private void ReturnFromJump() {
-            if (_scrolling) return;
             if (_addressStack.Count == 0) return;
             int address = _addressStack.Pop();
             ScrollToAddress( address );
         }
 
         private void GotoNextLabel() {
-            if (_scrolling) return;
             AsmListBoxItem item = listBox.SelectedItem as AsmListBoxItem;
             AsmLine asmLine = item.AsmLine;
             int index = asmLine.Index+1;
@@ -280,7 +272,6 @@ namespace Robotron {
         }
 
         private void GotoPreviousLabel() {
-            if (_scrolling) return;
             AsmListBoxItem item = listBox.SelectedItem as AsmListBoxItem;
             AsmLine asmLine = item.AsmLine;
             int index = asmLine.Index - 1;
@@ -317,73 +308,5 @@ namespace Robotron {
         }
         #endregion
     }
-
-
-    #region value converters
-    public abstract class AsmListBoxItemConverter : IValueConverter {
-
-        public static Window1 Window { get; set; }
-
-        public virtual object Convert( object value, Type targetType, object parameter, CultureInfo culture ) {
-            throw new NotImplementedException();
-        }
-
-        public object ConvertBack( object value, Type targetType, object parameter, CultureInfo culture ) {
-            return value;
-        }
-    }
-
-
-    public class PaddingConverter : AsmListBoxItemConverter {
-        public override object Convert( object value, Type targetType, object parameter, CultureInfo culture ) {
-            string str = (string)value ?? "";
-            int padding;
-            return int.TryParse( parameter.ToString(), out padding ) 
-                ? (str.Length < padding ? str.PadRight( padding ) : str.Substring( 0, padding - 1 ) + "…")
-                : str;
-        }
-    }
-
-
-    public class IndentConverter : AsmListBoxItemConverter {
-        public override object Convert( object value, Type targetType, object parameter, CultureInfo culture ) {
-            string str = (string)value ?? "";
-            int padding;
-            return int.TryParse( parameter.ToString(), out padding ) 
-                ? (new String( ' ', padding )) + str 
-                : str;
-        }
-    }
-
-
-    public class OperandConverter : AsmListBoxItemConverter {
-
-        public override object Convert( object value, Type targetType, object parameter, CultureInfo culture ) {
-            var lbi = (ListBoxItem)value;
-            AsmListBoxItem item = (AsmListBoxItem)lbi.Content;
-
-            AddressItem addressItem = item as AddressItem;
-            string operand = addressItem.Operand ?? "";
-
-            Console.WriteLine( operand );
-
-            int padding;
-            operand = int.TryParse( parameter.ToString(), out padding ) ? operand.PadRight( padding ) : operand;
-
-            AsmLine asmLine = item.AsmLine;
-            if (asmLine.HasOperandArgument()) {
-                if (asmLine.OperandArgument.HasLabel()) {
-                    if (!(asmLine.IsJumpOperation() || asmLine.IsBranchOperation() || asmLine.Opcode == "rts" )) {
-                        string label = asmLine.OperandArgument.Label;
-                        operand = operand.Replace( label, "<Run Foreground=\"DarkOrange\">" + label + "</Run>" );
-                    }
-                }
-            }
-            
-
-            return operand.Replace( "&", "&amp;" );
-        }
-    }
-    #endregion
 
 }
