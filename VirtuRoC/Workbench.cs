@@ -25,6 +25,8 @@ namespace Robotron {
         AsmWindow _win;
         FastColoredTextBox _fctb;
 
+        Window1 _window1;
+
         public Workbench( MachineOperator mo, Options options ) {
             _mo = mo;
             _mo.OnLoaded += mo_OnLoaded;
@@ -34,9 +36,21 @@ namespace Robotron {
             AsmService = new AsmService();
         }
 
+        private void DoAction() {
+            _window1 = new Window1();
+            _window1.Show();
+        }
+
         private void mo_OnLoaded( MachineOperator mo ) {
             TraceLine( "Workbench: mo_OnLoaded" );
 
+            _mo.MainPage.AsmAction = DoAction;
+
+            _window1 = new Window1();
+            _window1.Show();
+            _window1.ScrollToAddress( 0x4000 );
+
+            /*
             // 2. then run the form embedded in WPF Window
             // https://www.c-sharpcorner.com/article/adding-winforms-in-wpf/
             _win = new AsmWindow();
@@ -53,6 +67,7 @@ namespace Robotron {
 
             // we might want to jump back
             //fctb[100].LastVisit = DateTime.Now;
+            */
 
             _script = new WorkbenchScript1( this );
         }
@@ -70,6 +85,13 @@ namespace Robotron {
 
         private void mo_OnPause( MachineOperator mo, PausedEventArgs e ) {
             _script.mo_OnPause( mo, e );
+
+            _window1.ScrollToAddress( e.BreakpointRCP );
+
+            // TODO: Warum brauchen wir hier auch ein MainPage.Focus() ?
+            _mo.MainPage.Focus();
+
+            return;
 
             //MessageBox.Show( AsmService.OpcodeLineKey( mo.OpcodeRPC) );            
             int lineIndex = FindEditorLineIndexByAddress( e.BreakpointRCP );

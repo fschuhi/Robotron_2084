@@ -13,6 +13,8 @@ using System.Xml;
 using System.IO;
 using System.Windows.Markup;
 using System.Windows.Documents;
+using System.Runtime.CompilerServices;
+using System.Windows.Threading;
 
 namespace Robotron {
 
@@ -119,9 +121,39 @@ namespace Robotron {
             }
             return null;
         }
+
+        public static T FindVisualChild<T>( DependencyObject obj ) where T : DependencyObject {
+            for (int i = 0; i < VisualTreeHelper.GetChildrenCount( obj ); i++) {
+                DependencyObject child = VisualTreeHelper.GetChild( obj, i );
+
+                if (child is T) {
+                    return (T)child;
+                } else {
+                    child = FindVisualChild<T>( child );
+                    if (child != null) {
+                        return (T)child;
+                    }
+                }
+            }
+            return null;
+        }
+
     }
 
     public static class ItemsControlExtensions {
+
+        public static object FirstVisibleItem( this ListBox listBox ) {
+            if (listBox.Items.Count == 0) return null;
+            VirtualizingStackPanel panel = UIHelpers.FindVisualChild<VirtualizingStackPanel>( listBox );
+            if (panel == null) return null;
+            int offset = (panel.Orientation == Orientation.Horizontal) ? (int)panel.HorizontalOffset : (int)panel.VerticalOffset;
+            return listBox.Items[offset];
+        }
+
+        public static void DoEvents( this Window window ) {
+            window.Dispatcher.Invoke( DispatcherPriority.Background, new Action( delegate { } ) );
+        }
+
         // https://stackoverflow.com/questions/2946954/make-listview-scrollintoview-scroll-the-item-into-the-center-of-the-listview-c
         public static void ScrollToCenterOfView( this ItemsControl itemsControl, object item ) {
 
@@ -236,16 +268,20 @@ namespace Robotron {
         }
 
         private static void FormattedTextPropertyChanged( DependencyObject d, DependencyPropertyChangedEventArgs e ) {
-            var textBlock = d as TextBlock;
+            TextBlock textBlock = d as TextBlock;
             if (textBlock == null) return;
 
             var formattedText = (string)e.NewValue ?? string.Empty;
-            formattedText = string.Format( "<Span xml:space=\"preserve\" xmlns=\"http://schemas.microsoft.com/winfx/2006/xaml/presentation\">{0}</Span>", formattedText );
+            if (formattedText.StartsWith( "<")) {
+                formattedText = string.Format( "<Span xml:space=\"preserve\" xmlns=\"http://schemas.microsoft.com/winfx/2006/xaml/presentation\">{0}</Span>", formattedText );
 
-            textBlock.Inlines.Clear();
-            using (var xmlReader = XmlReader.Create( new StringReader( formattedText ) )) {
-                var result = (Span)XamlReader.Load( xmlReader );
-                textBlock.Inlines.Add( result );
+                textBlock.Inlines.Clear();
+                using (var xmlReader = XmlReader.Create( new StringReader( formattedText ) )) {
+                    var result = (Span)XamlReader.Load( xmlReader );
+                    textBlock.Inlines.Add( result );
+                }
+            } else {
+                textBlock.Text = formattedText;
             }
         }
     }

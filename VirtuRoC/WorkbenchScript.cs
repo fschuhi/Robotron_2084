@@ -103,10 +103,10 @@ namespace Robotron {
             _sm.Configure( State.DoneAtari )
                 .Permit( Trigger.Breakpoint, State.IntroStory7 )
                 .OnEntryFrom( _breakpointTrigger, ( PausedEventArgs e ) => {
-                    _sim = new InputSimulator();
-
                     // simulated keys must land on the MainPage
+                    // TODO: Warum langt dieses MainPage.Focus() nicht?
                     _mo.MainPage.Focus();
+                    _sim = new InputSimulator();
                     if (_workbench._options.CloseOnFirstBreakpoint) {
                         _sim.Keyboard.ModifiedKeyStroke( VirtualKeyCode.LMENU, VirtualKeyCode.F4 );
                     } else {

@@ -1,16 +1,20 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Threading;
 using Microsoft.VisualBasic;
 
 namespace Robotron {
 
     public class AsmListBoxItem {
         public AsmLine AsmLine { get; set; }
+        public int ItemIndex { get; set; }
     }
 
     public class AddressItem : AsmListBoxItem {
@@ -59,6 +63,7 @@ namespace Robotron {
         Dictionary<AsmLine, AsmListBoxItem> _itemsByAsmLine = new Dictionary<AsmLine, AsmListBoxItem>();
 
         public void PopulateListbox() {
+            int itemIndex = 0;
             foreach (AsmLine asmLine in AsmReader._asmLines) {
                 AsmListBoxItem newItem = null;
                 switch (asmLine.LineType) {
@@ -92,14 +97,27 @@ namespace Robotron {
                         };
                         break;
                 }
-
                 if (newItem != null) {
                     newItem.AsmLine = asmLine;
                     _items.Add( newItem );
                     _itemsByAsmLine.Add( asmLine, newItem );
-                }
 
-                if (asmLine.HasOperandArgument()) {
+                    newItem.ItemIndex = itemIndex;
+                    itemIndex++;
+
+                    if (asmLine.HasOperandArgument()) {
+                        AddressItem addressItem = newItem as AddressItem;
+                        Debug.Assert( asmLine.OperandArgument != null );
+                        string operand = asmLine.OperandArgument.Operand ?? "";
+                        operand = operand.PadRight( 40 );
+                        if (asmLine.OperandArgument.HasLabel()) {
+                            if (!(asmLine.IsJumpOperation() || asmLine.IsBranchOperation() || asmLine.Opcode == "rts")) {
+                                string label = asmLine.OperandArgument.Label;
+                                operand = "<Span>" + operand.Replace( label, "<Run Foreground=\"DarkOrange\">" + label + "</Run>" ).Replace( "&", "&amp;" ) + "</Span>";
+                            }
+                        }
+                        addressItem.Operand = operand;
+                    }
                 }
             }
 
@@ -115,14 +133,26 @@ namespace Robotron {
 
 
         #region scrolling
-        private void ScrollToAddress( int address, bool center = true ) {
+
+        bool _scrolling = false;
+
+        public void ScrollToAddress( int address, bool center = true ) {
             AsmLine asmLine;
             if (!AsmReader.AsmLineByAddressDictionary().TryGetValue( address, out asmLine )) return;
             AsmListBoxItem scrollItem = _itemsByAsmLine[asmLine];
             ScrollToItem( scrollItem, center );
         }
 
-        private void ScrollToItem( AsmListBoxItem item, bool center = true ) {
+        private void FocusItem( AsmListBoxItem item ) {
+            ListBoxItem lbi = (ListBoxItem)listBox.ItemContainerGenerator.ContainerFromItem( item );
+            if (lbi == null) {
+                listBox.ScrollIntoView( item );
+                lbi = (ListBoxItem)listBox.ItemContainerGenerator.ContainerFromItem( item );
+            }
+            lbi.Focus();
+        }
+
+        private void ScrollToItem2( AsmListBoxItem item, bool center = true ) {
             if (item == null) return;
 
             if (center) {
@@ -131,8 +161,51 @@ namespace Robotron {
                 listBox.ScrollIntoView( item );
             }
 
-            ListBoxItem lbi = (ListBoxItem)listBox.ItemContainerGenerator.ContainerFromItem( item );
-            lbi.Focus();
+            FocusItem( item );
+        }
+
+        private void ScrollToItem( AsmListBoxItem scrollItem, bool center = true ) {
+            if (_scrolling) return;
+            try {
+                _scrolling = true;
+
+                var scrollViewer = UIHelpers.GetScrollViewer( listBox ) as ScrollViewer;
+                AsmListBoxItem firstItem = listBox.FirstVisibleItem() as AsmListBoxItem;
+                int firstItemIndex = firstItem.ItemIndex;
+
+                int lastItemIndex = firstItemIndex + (int)scrollViewer.ViewportHeight;
+                AsmListBoxItem lastItem = _items[lastItemIndex];
+
+                int scrollIndex = scrollItem.ItemIndex;
+                bool alreadyVisible = scrollIndex >= firstItemIndex && scrollIndex <= lastItemIndex;
+                if (alreadyVisible) {
+                    FocusItem( scrollItem );
+                } else {
+                    int offsets = scrollIndex - firstItemIndex;
+                    int originalStep = offsets > 0 ? 20 : -20;
+                    int step = originalStep;
+                    for (int offset = 0; Math.Abs( offset ) < Math.Abs( offsets ); offset += step) {
+                        if (Math.Abs( step ) > 1) {
+                            double share = 1 - (double)offset / (double)offsets;
+                            step = (int)(share * originalStep);
+
+                            // make sure we always have a valid step
+                            if (step == 0) step = originalStep / Math.Abs(originalStep);
+                            //Console.WriteLine( step );
+                        }
+                        scrollViewer.ScrollToVerticalOffset( scrollViewer.VerticalOffset + step );
+                        this.DoEvents(); 
+                    }
+                    listBox.ScrollIntoView( scrollItem );
+                    for (int offset = 0; offset < 10; offset++) {
+                        scrollViewer.ScrollToVerticalOffset( scrollViewer.VerticalOffset - 1 );
+                        this.DoEvents();
+                    }
+                    FocusItem( scrollItem );
+                }
+            } finally {
+                _scrolling = false;
+            }
         }
         #endregion
 
@@ -146,6 +219,7 @@ namespace Robotron {
 
             //add a new key-binding, and pass in your command object instance which contains the Execute method which WPF will execute
             RegisterGesture( GotoAddress, new KeyGesture( Key.G, ModifierKeys.Control ) );
+            RegisterGesture( GotoMainEntryPoint, new KeyGesture( Key.E, ModifierKeys.Control ) );
             RegisterGesture( FollowJump, new KeyGesture( Key.Right, ModifierKeys.Alt ) );
             RegisterGesture( ReturnFromJump, new KeyGesture( Key.Left, ModifierKeys.Alt ) );
             RegisterGesture( GotoNextLabel, new KeyGesture( Key.Down, ModifierKeys.Alt ) );
@@ -153,19 +227,30 @@ namespace Robotron {
         }
 
         private void GotoAddress() {
+            if (_scrolling) return;
             string input = Interaction.InputBox( "Address (hex)", "Goto Address", "", 100, 100 ).Trim();
             int address = input.ToDecimal();
             ScrollToAddress( address );
         }
 
+        private void GotoMainEntryPoint() {
+            ScrollToAddress( 0x4000 );
+        }
+
+        // TODO: nicht Stack sondern List für jump navigation
         Stack<int> _addressStack = new Stack<int>();
 
-        private void FollowJump() {
+        private AsmLine SelectedAsmLine() {
             AsmListBoxItem item = listBox.SelectedItem as AsmListBoxItem;
-            AsmLine asmLine = item.AsmLine;
-            if (!asmLine.IsJumpOperation()) return;
+            return item.AsmLine;
+        }
 
+        private void FollowJump() {
+            if (_scrolling) return;
+            AsmLine asmLine = SelectedAsmLine();
+            if (!asmLine.IsJumpOperation()) return;
             _addressStack.Push( asmLine.DecimalAddress );
+
             string label = asmLine.OperandArgument.Label;
             int address;
             if (!AsmReader.AddressByLabelDictionary().TryGetValue( label, out address )) return;
@@ -173,12 +258,14 @@ namespace Robotron {
         }
 
         private void ReturnFromJump() {
+            if (_scrolling) return;
             if (_addressStack.Count == 0) return;
             int address = _addressStack.Pop();
             ScrollToAddress( address );
         }
 
         private void GotoNextLabel() {
+            if (_scrolling) return;
             AsmListBoxItem item = listBox.SelectedItem as AsmListBoxItem;
             AsmLine asmLine = item.AsmLine;
             int index = asmLine.Index+1;
@@ -193,6 +280,7 @@ namespace Robotron {
         }
 
         private void GotoPreviousLabel() {
+            if (_scrolling) return;
             AsmListBoxItem item = listBox.SelectedItem as AsmListBoxItem;
             AsmLine asmLine = item.AsmLine;
             int index = asmLine.Index - 1;
@@ -277,6 +365,8 @@ namespace Robotron {
             AddressItem addressItem = item as AddressItem;
             string operand = addressItem.Operand ?? "";
 
+            Console.WriteLine( operand );
+
             int padding;
             operand = int.TryParse( parameter.ToString(), out padding ) ? operand.PadRight( padding ) : operand;
 
@@ -289,6 +379,7 @@ namespace Robotron {
                     }
                 }
             }
+            
 
             return operand.Replace( "&", "&amp;" );
         }

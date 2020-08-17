@@ -6,11 +6,10 @@
         xmlns:local="clr-namespace:Robotron"
         xmlns:sys="clr-namespace:System;assembly=mscorlib"
         mc:Ignorable="d"
-        Name="MyWindow1" Title="AsmLines" Height="700" Width="1100" Left="100" Top="50">
-    <!-- xmlns:sys needed for string ConvertParameter -->
+        Name="MyWindow1" Title="AsmLines" Height="800" Width="1020" Left="800" Top="50">
+    <!-- xmlns:sys needed for string ConvertParameter (not used anymore, hier nur nachrichtlich drin) -->
     
     <Window.Resources>
-        <CollectionViewSource x:Key="collectionSource" Source="{Binding Path=listBox.ItemSource}" />
         <Style x:Key="ListBoxItemStyle1" TargetType="{x:Type ListBoxItem}">
             <!-- https://social.msdn.microsoft.com/Forums/vstudio/en-US/afb4d846-4660-4936-965f-5afe25e954c4/listboxitem-got-higlighted-on-hover?forum=wpf -->
             <!-- switches off *any* focusing, also the regular line selection => see Trigger below -->
@@ -57,7 +56,7 @@
         <local:OperandConverter x:Key="OperandConverter" />
 
         <DataTemplate DataType="{x:Type local:AddressItem}">
-            <StackPanel Orientation="Horizontal">
+            <VirtualizingStackPanel Orientation="Horizontal">
                 <!-- TextBox Text="{Binding Address}" Padding="-1" Margin="0" BorderThickness="0"/-->
                 <!-- see above, we don't pass strings anymore but rather the padding / indentation directly -->
                 <!--TextBlock Text="{Binding Address, Converter={StaticResource PaddingConverter}, ConverterParameter={StaticResource Address}}" /-->
@@ -66,10 +65,14 @@
                 <TextBlock Text="{Binding Bytes, Converter={StaticResource PaddingConverter}, ConverterParameter=15}" />
                 <TextBlock Text="{Binding Label, Converter={StaticResource PaddingConverter}, ConverterParameter=20}" />
                 <TextBlock Text="{Binding Instruction, Converter={StaticResource PaddingConverter}, ConverterParameter=6}" Foreground="{Binding InstructionColor}" />
-                <TextBlock local:Attached.FormattedText="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Converter={StaticResource OperandConverter}, ConverterParameter=40}" />
-                <TextBlock Text="{Binding Comment}" Foreground="LightGray" />
+                <!-- TextBlock local:Attached.FormattedText="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Converter={StaticResource OperandConverter}, ConverterParameter=40}" /-->
+                <!--TextBlock Text="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Converter={StaticResource OperandConverter}, ConverterParameter=40}" /-->
+                <!-- TextBlock Text="{Binding Operand, Converter={StaticResource PaddingConverter}, ConverterParameter=40}" /-->
 
-            </StackPanel>
+                <TextBlock local:Attached.FormattedText="{Binding Operand}" />
+                <TextBlock Text="{Binding Comment, Converter={StaticResource PaddingConverter}, ConverterParameter=60}" Foreground="LightGray" />
+
+            </VirtualizingStackPanel>
         </DataTemplate>
 
         <DataTemplate DataType="{x:Type local:CommentItem}">
@@ -80,7 +83,14 @@
     </Window.Resources>
 
     <Grid>
-        <ListBox Name="listBox" FontFamily="Consolas" FontSize="12"  ItemContainerStyle="{DynamicResource ListBoxItemStyle1}" KeyDown="listBox_KeyDown" ScrollViewer.HorizontalScrollBarVisibility="Disabled"/>
+        <ListBox Name="listBox" 
+                FontFamily="Consolas" FontSize="12" 
+                ItemContainerStyle="{DynamicResource ListBoxItemStyle1}" 
+                KeyDown="listBox_KeyDown"
+                VirtualizingStackPanel.IsVirtualizing="True" 
+                VirtualizingStackPanel.VirtualizationMode="Recycling">
+        </ListBox>
+        <!-- HorizontalScrollBarVisibility="Disabled"/-->
         <!-- ScrollViewer.IsDeferredScrollingEnabled="True"-->
     </Grid>
 </Window>
