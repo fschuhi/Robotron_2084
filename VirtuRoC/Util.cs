@@ -142,12 +142,18 @@ namespace Robotron {
 
     public static class UIExtensions {
 
+        public static void Refresh( this ListBox listBox ) {
+            listBox.Items.Refresh();
+            listBox.FocusListBoxItem( listBox.SelectedItem );
+        }
+
         public static void FocusListBoxItem( this ListBox listBox, object item ) {
             ListBoxItem lbi = (ListBoxItem)listBox.ItemContainerGenerator.ContainerFromItem( item );
             if (lbi == null) {
                 listBox.ScrollIntoView( item );
                 lbi = (ListBoxItem)listBox.ItemContainerGenerator.ContainerFromItem( item );
             }
+            listBox.SelectedItem = item;
             lbi.Focus();
         }
 

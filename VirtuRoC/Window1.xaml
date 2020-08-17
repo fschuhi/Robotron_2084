@@ -6,7 +6,7 @@
         xmlns:local="clr-namespace:Robotron"
         xmlns:sys="clr-namespace:System;assembly=mscorlib"
         mc:Ignorable="d"
-        Name="MyWindow1" Title="AsmLines" Height="800" Width="1020" Left="800" Top="50">
+        Name="MyWindow1" Title="AsmLines" Height="800" Width="1050" Left="800" Top="50">
     <!-- xmlns:sys needed for string ConvertParameter (not used anymore, hier nur nachrichtlich drin) -->
     
     <Window.Resources>
@@ -42,7 +42,7 @@
                     <!-- make sure we see the selected line -->
                     <!-- Foreground color doesn't work properly, because parts like the opcode have their own coloring which overwrites the default -->
                     <!--Setter Property="Foreground" Value="Red"/-->
-                    <Setter Property="Background" Value="LightBlue"/>
+                    <Setter Property="Background" Value="CornSilk"/>
                     <Setter Property="FontWeight" Value="Bold" />
                 </Trigger>
             </Style.Triggers>
@@ -62,6 +62,9 @@
                 <!--TextBlock Text="{Binding Address, Converter={StaticResource PaddingConverter}, ConverterParameter={StaticResource Address}}" /-->
                 <!-- TextBlock Text="{Binding Instruction, Converter={StaticResource PaddingConverter}, ConverterParameter=6}" Foreground="{Binding InstructionColor}" /-->
 
+                <TextBlock Text=" " Background="LightGray"/>
+                <TextBlock local:Attached.FormattedText="{Binding LineStatus}" Width="35" Background="LightGray"/>
+                <TextBlock Text=" "/>
                 <TextBlock Text="{Binding Address}" />
                 <TextBlock Text="{Binding Bytes}" />
                 <TextBlock Text="{Binding Label}" />
@@ -72,7 +75,20 @@
                 <!-- TextBlock Text="{Binding Operand, Converter={StaticResource PaddingConverter}, ConverterParameter=40}" /-->
 
                 <TextBlock local:Attached.FormattedText="{Binding Operand}" />
-                <TextBlock Text="{Binding Comment}" Foreground="LightGray" />
+                <TextBlock>
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Text" Value="{Binding Comment}" />
+                            <Setter Property="Foreground" Value="{Binding CommentColor}" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsEvaluated}" Value="True" >
+                                    <Setter Property="Text" Value="{Binding Evaluation}" />
+                                    <Setter Property="Foreground" Value="{Binding EvaluationColor}" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
                 <!-- TextBlock Text="{Binding Comment, Converter={StaticResource PaddingConverter}, ConverterParameter=60}" Foreground="LightGray" /-->
 
             </VirtualizingStackPanel>
@@ -80,6 +96,9 @@
 
         <DataTemplate DataType="{x:Type local:CommentItem}">
             <StackPanel Orientation="Horizontal">
+                <TextBlock Text=" " Background="LightGray"/>
+                <TextBlock local:Attached.FormattedText="{Binding LineStatus}" Width="35" Background="LightGray" />
+                <TextBlock Text=" "/>
                 <TextBlock Text="{Binding CommentLine, Converter={StaticResource IndentConverter}, ConverterParameter=20}" Foreground="Green" />
             </StackPanel>
         </DataTemplate>

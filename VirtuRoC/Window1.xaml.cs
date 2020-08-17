@@ -8,20 +8,30 @@ using Microsoft.VisualBasic;
 
 namespace Robotron {
 
+    public enum ScrollMode { Default, Smooth, ScrollToCenterOfView, ScrollIntoView }
+
     public class AsmListBoxItem {
         public AsmLine AsmLine { get; set; }
         public int ItemIndex { get; set; }
+        public string LineStatus { get; set; }
     }
 
     public class AddressItem : AsmListBoxItem {
         public string Address { get; set; }
         public string Bytes { get; set; }
         public string Label { get; set; }
-        public string Instruction { get; set; }
-        public string Operand { get; set; }
-        public string Comment { get; set; }
 
+        public string Instruction { get; set; }
         public string InstructionColor { get; set; }
+
+        public string Operand { get; set; }
+
+        public string Comment { get; set; }
+        public string CommentColor { get; set; }
+
+        public bool IsEvaluated { get; set; }
+        public string Evaluation { get; set; }
+        public string EvaluationColor { get; set; }
     }
 
     public class CommentItem : AsmListBoxItem {
@@ -34,6 +44,7 @@ namespace Robotron {
     public partial class Window1 : Window {
 
         public AsmReader AsmReader;
+        ScrollMode _defaultScrollMode = ScrollMode.ScrollToCenterOfView;
 
         public Window1() {
             InitializeComponent();
@@ -63,17 +74,19 @@ namespace Robotron {
 
                     case AsmLineType.CommentLine:
                         newItem = new CommentItem() {
-                            CommentLine = asmLine.Comment
+                            CommentLine = asmLine.Comment,
                         };
                         break;
 
                     case AsmLineType.OpcodeLine:
                     case AsmLineType.DirectiveLine:
                         newItem = new AddressItem() {
-                            Address = Padded( asmLine.Address, 5),
+                            Address = Padded( asmLine.Address, 5 ),
                             Bytes = Padded( asmLine.Bytes, 15 ),
                             Label = Padded( asmLine.Label, 20 ),
                             Comment = Padded( asmLine.Comment, 60 ),
+                            CommentColor = "Gray",
+                            EvaluationColor = "Blue",
                         };
                         break;
 
@@ -103,6 +116,11 @@ namespace Robotron {
                 _itemsByAsmLine.Add( asmLine, newItem );
 
                 newItem.ItemIndex = itemIndex;
+
+                if (itemIndex % 20 == 0 ) { 
+                    newItem.LineStatus = "<Run Foreground=\"Red\">abcd</Run>"; 
+                }
+
                 itemIndex++;
             }
         }
@@ -135,101 +153,132 @@ namespace Robotron {
 
         #region scrolling
 
-        public void ScrollToAddress( int address, bool center = true ) {
+        public void ScrollToAddress( int address, ScrollMode scrollMode = ScrollMode.Default ) {
             AsmLine asmLine;
             if (!AsmReader.AsmLineByAddressDictionary().TryGetValue( address, out asmLine )) return;
             AsmListBoxItem scrollItem = _itemsByAsmLine[asmLine];
-            ScrollToItem( scrollItem, center );
+            ScrollToItem( scrollItem, scrollMode );
         }
 
-        private void ScrollToItem( AsmListBoxItem scrollItem, bool center = true ) {
-            try {
-                SuspendKeyboardShortcuts();
+        private void ScrollToItem( AsmListBoxItem scrollItem, ScrollMode scrollMode ) {
 
-                var scrollViewer = UIHelpers.GetScrollViewer( listBox ) as ScrollViewer;
-                AsmListBoxItem firstItem = listBox.FirstVisibleItem() as AsmListBoxItem;
-                int firstItemIndex = firstItem.ItemIndex;
+            if (scrollMode == ScrollMode.Default) scrollMode = _defaultScrollMode;
 
-                int lastItemIndex = firstItemIndex + (int)scrollViewer.ViewportHeight;
-                AsmListBoxItem lastItem = _items[lastItemIndex];
-
-                int scrollIndex = scrollItem.ItemIndex;
-                bool alreadyVisible = scrollIndex >= firstItemIndex && scrollIndex <= lastItemIndex;
-                if (alreadyVisible) {
-                    listBox.FocusListBoxItem( scrollItem );
-                } else {
-                    int offsets = scrollIndex - firstItemIndex;
-                    int count = Math.Abs( offsets );
-                    
-                    int originalStep;
-                    if (count < 20) originalStep = 1;
-                    else if (count < 100) originalStep = 2;
-                    else if (count < 200) originalStep = 3;
-                    else if (count < 500) originalStep = 5;
-                    else if (count < 1000) originalStep = 10;
-                    else originalStep = 20;
-
-                    originalStep = offsets > 0 ? originalStep : -originalStep;
-
-                    int step = originalStep;
-                    for (int offset = 0; Math.Abs( offset ) < Math.Abs( offsets ); offset += step) {
-                        if (Math.Abs( step ) > 1) {
-                            double share = 1 - (double)offset / (double)offsets;
-                            step = (int)(share * originalStep);
-
-                            // make sure we always have a valid step
-                            if (step == 0) step = originalStep / Math.Abs(originalStep);
-                            //Console.WriteLine( step );
-                        }
-                        scrollViewer.ScrollToVerticalOffset( scrollViewer.VerticalOffset + step );
-                        this.DoEvents(); 
-                    }
+            switch (scrollMode) {
+                case ScrollMode.ScrollIntoView:
                     listBox.ScrollIntoView( scrollItem );
-                    for (int offset = 0; offset < 10; offset++) {
-                        scrollViewer.ScrollToVerticalOffset( scrollViewer.VerticalOffset - 1 );
-                        this.DoEvents();
+                    break;
+
+                case ScrollMode.ScrollToCenterOfView:
+                    listBox.ScrollToCenterOfView( scrollItem );
+                    break;
+
+                case ScrollMode.Smooth:
+
+                    try {
+                        SuspendKeyboardShortcuts();
+
+                        var scrollViewer = UIHelpers.GetScrollViewer( listBox ) as ScrollViewer;
+                        AsmListBoxItem firstItem = listBox.FirstVisibleItem() as AsmListBoxItem;
+                        int firstItemIndex = firstItem.ItemIndex;
+
+                        int lastItemIndex = firstItemIndex + (int)scrollViewer.ViewportHeight;
+                        AsmListBoxItem lastItem = _items[lastItemIndex];
+
+                        int scrollIndex = scrollItem.ItemIndex;
+                        bool alreadyVisible = scrollIndex >= firstItemIndex && scrollIndex <= lastItemIndex;
+                        if (!alreadyVisible) {
+                            int offsets = scrollIndex - firstItemIndex;
+                            int count = Math.Abs( offsets );
+
+                            int originalStep;
+                            if (count < 20) originalStep = 1;
+                            else if (count < 100) originalStep = 2;
+                            else if (count < 200) originalStep = 3;
+                            else if (count < 500) originalStep = 5;
+                            else if (count < 1000) originalStep = 10;
+                            else originalStep = 20;
+
+                            originalStep = offsets > 0 ? originalStep : -originalStep;
+
+                            int step = originalStep;
+                            for (int offset = 0; Math.Abs( offset ) < Math.Abs( offsets ); offset += step) {
+                                if (Math.Abs( step ) > 1) {
+                                    double share = 1 - (double)offset / (double)offsets;
+                                    step = (int)(share * originalStep);
+
+                                    // make sure we always have a valid step
+                                    if (step == 0) step = originalStep / Math.Abs( originalStep );
+                                    //Console.WriteLine( step );
+                                }
+                                scrollViewer.ScrollToVerticalOffset( scrollViewer.VerticalOffset + step );
+                                this.DoEvents();
+                            }
+                            listBox.ScrollIntoView( scrollItem );
+                            for (int offset = 0; offset < 10; offset++) {
+                                scrollViewer.ScrollToVerticalOffset( scrollViewer.VerticalOffset - 1 );
+                                this.DoEvents();
+                            }
+                        }
+                    } finally {
+                        ResumeKeyboardShortcuts();
                     }
-                    listBox.FocusListBoxItem( scrollItem );
-                }
-            } finally {
-                ResumeKeyboardShortcuts();
+                    break;
             }
+            listBox.FocusListBoxItem( scrollItem );
         }
         #endregion
 
 
         #region keyboard shortcuts
-        private void RegisterGesture( Action executeDelegate, KeyGesture gesture) {
-            InputBindings.Add( new KeyBinding( new WindowCommand( this ) { ExecuteDelegate = executeDelegate }, gesture ) );
+        private void RegisterGesture( Action executeDelegate, Key key, ModifierKeys modifiers ) {
+            InputBindings.Add( new KeyBinding( new WindowCommand( this ) { ExecuteDelegate = executeDelegate }, new KeyGesture( key, modifiers ) ) );
         }
 
         public void CreateKeyboardShortcuts() {
-
-            //add a new key-binding, and pass in your command object instance which contains the Execute method which WPF will execute
-            RegisterGesture( GotoAddress, new KeyGesture( Key.G, ModifierKeys.Control ) );
-            RegisterGesture( GotoMainEntryPoint, new KeyGesture( Key.E, ModifierKeys.Control ) );
-            RegisterGesture( FollowJump, new KeyGesture( Key.Right, ModifierKeys.Alt ) );
-            RegisterGesture( ReturnFromJump, new KeyGesture( Key.Left, ModifierKeys.Alt ) );
-            RegisterGesture( GotoNextLabel, new KeyGesture( Key.Down, ModifierKeys.Alt ) );
-            RegisterGesture( GotoPreviousLabel, new KeyGesture( Key.Up, ModifierKeys.Alt ) );
+            RegisterGesture( GotoAddress, Key.G, ModifierKeys.Control );
+            RegisterGesture( GotoMainEntryPoint, Key.E, ModifierKeys.Control );
+            RegisterGesture( FollowJump, Key.Right, ModifierKeys.Alt );
+            RegisterGesture( FollowJumpImmediate, Key.Right, ModifierKeys.Alt | ModifierKeys.Control );
+            RegisterGesture( ReturnFromJump, Key.Left, ModifierKeys.Alt );
+            RegisterGesture( ReturnFromJumpImmediate, Key.Left, ModifierKeys.Alt | ModifierKeys.Control );
+            RegisterGesture( GotoNextLabel, Key.Down, ModifierKeys.Alt );
+            RegisterGesture( GotoPreviousLabel, Key.Up, ModifierKeys.Alt );
+            RegisterGesture( TestLiveItemChange, Key.I, ModifierKeys.Alt | ModifierKeys.Control | ModifierKeys.Shift );
+            RegisterGesture( TestToggleEvaluation, Key.V, ModifierKeys.Alt );
         }
 
-        public void SuspendKeyboardShortcuts() {
-            InputBindings.Clear();
-        }
+        public void SuspendKeyboardShortcuts() { InputBindings.Clear(); }
+        public void ResumeKeyboardShortcuts() { CreateKeyboardShortcuts(); }
 
-        public void ResumeKeyboardShortcuts() {
-            CreateKeyboardShortcuts();
+        public void TestToggleEvaluation() {
+            foreach (AsmListBoxItem item in _items) {
+                AddressItem addressItem = item as AddressItem;
+                if (addressItem != null ) {
+                    if (addressItem.IsEvaluated ) {
+                        addressItem.IsEvaluated = false;
+                    } else {
+                        addressItem.IsEvaluated = true;
+                        addressItem.Evaluation = "ertwert";
+                    }
+                }
+            }
+            listBox.Refresh();
         }
 
         private void GotoAddress() {
             string input = Interaction.InputBox( "Address (hex)", "Goto Address", "", 100, 100 ).Trim();
             int address = input.ToDecimal();
-            ScrollToAddress( address );
+            ScrollToAddress( address, ScrollMode.Smooth );
+        }
+
+        private void TestLiveItemChange() {
+            ((CommentItem)_items[0]).CommentLine = "sdfasdf";
+            listBox.Refresh();
         }
 
         private void GotoMainEntryPoint() {
-            ScrollToAddress( 0x4000 );
+            ScrollToAddress( 0x4000, ScrollMode.Smooth );
         }
 
         // TODO: nicht Stack sondern List für jump navigation
@@ -248,13 +297,30 @@ namespace Robotron {
             string label = asmLine.OperandArgument.Label;
             int address;
             if (!AsmReader.AddressByLabelDictionary().TryGetValue( label, out address )) return;
-            ScrollToAddress( address );
+            ScrollToAddress( address, ScrollMode.Smooth );
+        }
+
+        private void FollowJumpImmediate() {
+            AsmLine asmLine = SelectedAsmLine();
+            if (!asmLine.IsJumpOperation()) return;
+            _addressStack.Push( asmLine.DecimalAddress );
+
+            string label = asmLine.OperandArgument.Label;
+            int address;
+            if (!AsmReader.AddressByLabelDictionary().TryGetValue( label, out address )) return;
+            ScrollToAddress( address, ScrollMode.ScrollToCenterOfView );
         }
 
         private void ReturnFromJump() {
             if (_addressStack.Count == 0) return;
             int address = _addressStack.Pop();
-            ScrollToAddress( address );
+            ScrollToAddress( address, ScrollMode.Smooth );
+        }
+
+        private void ReturnFromJumpImmediate() {
+            if (_addressStack.Count == 0) return;
+            int address = _addressStack.Pop();
+            ScrollToAddress( address, ScrollMode.ScrollToCenterOfView );
         }
 
         private void GotoNextLabel() {
@@ -264,7 +330,7 @@ namespace Robotron {
             while (index < AsmReader._asmLines.Count) {
                 asmLine = AsmReader._asmLines[index];
                 if (asmLine.IsMemoryMapped() && asmLine.HasLabel()) {
-                    ScrollToAddress( asmLine.DecimalAddress, false );
+                    ScrollToAddress( asmLine.DecimalAddress, ScrollMode.Smooth );
                     return;
                 }
                 index++;
@@ -278,7 +344,7 @@ namespace Robotron {
             while (index >= 0) {
                 asmLine = AsmReader._asmLines[index];
                 if (asmLine.IsMemoryMapped() && asmLine.HasLabel()) {
-                    ScrollToAddress( asmLine.DecimalAddress, false );
+                    ScrollToAddress( asmLine.DecimalAddress, ScrollMode.Smooth );
                     return;
                 }
                 index--;
