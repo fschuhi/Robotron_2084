@@ -215,10 +215,13 @@ namespace Robotron {
                                 this.DoEvents();
                             }
                             listBox.ScrollIntoView( scrollItem );
+                            /*
+                            // TODO: remove "flicker"
                             for (int offset = 0; offset < 10; offset++) {
                                 scrollViewer.ScrollToVerticalOffset( scrollViewer.VerticalOffset - 1 );
                                 this.DoEvents();
                             }
+                            */
                         }
                     } finally {
                         ResumeKeyboardShortcuts();
@@ -236,7 +239,10 @@ namespace Robotron {
         }
 
         public void CreateKeyboardShortcuts() {
+            RegisterGesture( NavigateLabel, Key.N, ModifierKeys.Alt );
+            RegisterGesture( TestToggleEvaluation, Key.V, ModifierKeys.Alt );
             RegisterGesture( GotoAddress, Key.G, ModifierKeys.Control );
+            RegisterGesture( TestLiveItemChange, Key.I, ModifierKeys.Alt | ModifierKeys.Control | ModifierKeys.Shift );
             RegisterGesture( GotoMainEntryPoint, Key.E, ModifierKeys.Control );
             RegisterGesture( FollowJump, Key.Right, ModifierKeys.Alt );
             RegisterGesture( FollowJumpImmediate, Key.Right, ModifierKeys.Alt | ModifierKeys.Control );
@@ -244,12 +250,32 @@ namespace Robotron {
             RegisterGesture( ReturnFromJumpImmediate, Key.Left, ModifierKeys.Alt | ModifierKeys.Control );
             RegisterGesture( GotoNextLabel, Key.Down, ModifierKeys.Alt );
             RegisterGesture( GotoPreviousLabel, Key.Up, ModifierKeys.Alt );
-            RegisterGesture( TestLiveItemChange, Key.I, ModifierKeys.Alt | ModifierKeys.Control | ModifierKeys.Shift );
-            RegisterGesture( TestToggleEvaluation, Key.V, ModifierKeys.Alt );
         }
 
         public void SuspendKeyboardShortcuts() { InputBindings.Clear(); }
         public void ResumeKeyboardShortcuts() { CreateKeyboardShortcuts(); }
+
+        AsmListBoxItem _lastItem;
+
+        private void OnPeekLabel( string label ) {
+            _lastItem = listBox.SelectedItem as AsmListBoxItem;
+            int address = AsmReader.AddressByLabelDictionary()[label];
+            // TODO: scrolling bedeutet eigentlich immer: Refresh() afterwards, oder?
+            ScrollToAddress( address, ScrollMode.ScrollToCenterOfView );
+            listBox.Refresh();
+        }
+
+        private void OnUndoPeekLabel( string label ) {
+            this.ScrollToItem( _lastItem, ScrollMode.ScrollToCenterOfView );
+        }
+
+        public void NavigateLabel() {
+            Window2 wnd2 = new Window2( OnPeekLabel, OnUndoPeekLabel );
+            List<string> labels = AsmReader.Labels();
+            wnd2.PopulateListbox( labels );
+            wnd2.ShowDialog();
+            listBox.Refresh();
+        }
 
         public void TestToggleEvaluation() {
             foreach (AsmListBoxItem item in _items) {
@@ -373,6 +399,16 @@ namespace Robotron {
             }
         }
         #endregion
+
+        private void listBox_PreviewKeyDown( object sender, KeyEventArgs e ) {
+            // weird effect on Ctrl-Up/Ctrl-Down: cursor moves (including selected-color) but also previously selected line stays colored
+            switch (e.Key) {
+                case Key.Up:
+                case Key.Down:
+                    e.Handled = Keyboard.IsKeyDown( Key.LeftCtrl );
+                    break;
+            }
+        }
     }
 
 }

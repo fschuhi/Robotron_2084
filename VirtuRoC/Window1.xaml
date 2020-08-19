@@ -6,7 +6,7 @@
         xmlns:local="clr-namespace:Robotron"
         xmlns:sys="clr-namespace:System;assembly=mscorlib"
         mc:Ignorable="d"
-        Name="MyWindow1" Title="AsmLines" Height="800" Width="1050" Left="800" Top="50">
+        Name="MyWindow1" Title="AsmLines" Height="800" Width="1300" Left="600" Top="50">
     <!-- xmlns:sys needed for string ConvertParameter (not used anymore, hier nur nachrichtlich drin) -->
     
     <Window.Resources>
@@ -38,10 +38,14 @@
                     <!--Setter Property="Foreground" Value="Red"/-->
                     <!--Setter Property="Background" Value="Yellow"/-->
                 </Trigger>
-                <Trigger Property="IsFocused" Value="True">
+                <Trigger Property="IsSelected"  Value="True">
                     <!-- make sure we see the selected line -->
                     <!-- Foreground color doesn't work properly, because parts like the opcode have their own coloring which overwrites the default -->
                     <!--Setter Property="Foreground" Value="Red"/-->
+                    <Setter Property="Background" Value="CornSilk"/>
+                    <Setter Property="FontWeight" Value="Bold" />
+                </Trigger>
+                <Trigger Property="IsFocused" Value="True">
                     <Setter Property="Background" Value="CornSilk"/>
                     <Setter Property="FontWeight" Value="Bold" />
                 </Trigger>
@@ -105,13 +109,35 @@
     </Window.Resources>
 
     <Grid>
-        <ListBox Name="listBox" 
-                FontFamily="Consolas" FontSize="12" 
-                ItemContainerStyle="{DynamicResource ListBoxItemStyle1}" 
-                KeyDown="listBox_KeyDown"
-                VirtualizingStackPanel.IsVirtualizing="True" 
-                VirtualizingStackPanel.VirtualizationMode="Recycling">
-        </ListBox>
+        <DockPanel>
+            <ToolBarTray DockPanel.Dock="Top">
+                <ToolBar>
+                    <Button Command="New" Content="New" />
+                    <Button Command="Open" Content="Open" />
+                    <Button Command="Save" Content="Save" />
+                </ToolBar>
+                <ToolBar>
+                    <Button Command="Cut" Content="Cut" />
+                    <Button Command="Copy" Content="Copy" />
+                    <Button Command="Paste" Content="Paste" />
+                </ToolBar>
+            </ToolBarTray>
+            <TextBox AcceptsReturn="True" />
+            <ListBox Name="listBox" 
+                     DockPanel.Dock="Bottom"
+                     FontFamily="Consolas" FontSize="12" 
+                     ItemContainerStyle="{DynamicResource ListBoxItemStyle1}" 
+                     KeyDown="listBox_KeyDown"
+                     PreviewKeyDown="listBox_PreviewKeyDown"
+                     VirtualizingStackPanel.IsVirtualizing="True" 
+                     VirtualizingStackPanel.VirtualizationMode="Recycling">
+            </ListBox>
+        </DockPanel>
+        <!--ListBox Name="listBox2" 
+                Grid.Column="1"
+                FontFamily="Consolas" FontSize="12" >
+            <TextBlock Text="sdfasdf" />
+        -->
         <!-- HorizontalScrollBarVisibility="Disabled"/-->
         <!-- ScrollViewer.IsDeferredScrollingEnabled="True"-->
     </Grid>

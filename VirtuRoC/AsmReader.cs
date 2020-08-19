@@ -67,6 +67,12 @@ namespace Robotron {
                     c => c.IsLocalLabel() ? c.Label + "-" + c.Address : c.Label );
         }
 
+        public List<string> Labels() {
+            return _asmLines
+                .Where( c => c.IsMemoryMapped() && c.HasLabel() )
+                .Select( c => c.Label ).ToList();
+        }
+
         public void ValidateJsrCalls() {
             IEnumerable<AsmLine> nullLines = _asmLines.Where( l => l.Opcode == "jsr" && l.OperandArgument.Label == null );
             Debug.Assert( nullLines.Count() == 0 );

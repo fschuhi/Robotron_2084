@@ -5,30 +5,98 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Robotron"
         mc:Ignorable="d"
-        Title="Window2" Height="450" Width="800">
-    <Grid Margin="10">
-        <ListBox Name="listBox1" FontFamily="Consolas" HorizontalContentAlignment="Stretch">
-            <ListBoxItem Width="750">
-                <StackPanel Orientation="Horizontal">
-                    <Image Source="s:\Dropbox\shared\pics\fschuhi.png" Height="50" Width="50"/>
-                    <TextBlock MinWidth="300"><Run Text="ListBox Item #1"/></TextBlock>
-                    <TextBlock><Run Text="ListBox Item #2"/></TextBlock>
-                </StackPanel>
-            </ListBoxItem>
-            <ListBoxItem Width="750">
-                <StackPanel Orientation="Horizontal">
-                    <!--Image Source="/WpfTutorialSamples;component/Images/bullet_green.png" /-->
-                    <TextBlock>ListBox Item #2</TextBlock>
-                </StackPanel>
-            </ListBoxItem>
-            <ListBoxItem Width="750">
-                <StackPanel Orientation="Horizontal">
-                    <!--Image Source="/WpfTutorialSamples;component/Images/bullet_red.png" /-->
-                    <TextBlock MinWidth="200"><Run Text="ListBox Item #3.1"/></TextBlock>
-                    <TextBlock MinWidth="200"><Run Text="ListBox Item #3.2"/></TextBlock>
-                    <TextBlock MinWidth="200"><Run Text="ListBox Item #3.3"/></TextBlock>
-                </StackPanel>
-            </ListBoxItem>
-        </ListBox>
+        WindowStyle="ToolWindow"
+        Topmost="True"
+        Title="Navigator" Height="450" Width="500">
+    <Window.Resources>
+        <Style x:Key="ListBoxItemStyle1" TargetType="{x:Type ListBoxItem}">
+            <!-- https://social.msdn.microsoft.com/Forums/vstudio/en-US/afb4d846-4660-4936-965f-5afe25e954c4/listboxitem-got-higlighted-on-hover?forum=wpf -->
+            <!-- switches off *any* focusing, also the regular line selection => see Trigger below -->
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type ListBoxItem}">
+                        <Grid Background="{TemplateBinding Background}">
+                            <ContentPresenter 
+                                ContentTemplate="{TemplateBinding ContentTemplate}"
+                                Content="{TemplateBinding Content}"
+                                HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                Margin="{TemplateBinding Padding}">
+                            </ContentPresenter>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Margin" Value="0"/>
+
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <!-- we could have a visual indicator here -->
+                    <!--Setter Property="Foreground" Value="Red"/-->
+                    <!--Setter Property="Background" Value="Yellow"/-->
+                </Trigger>
+                <Trigger Property="IsSelected"  Value="True">
+                    <!-- make sure we see the selected line -->
+                    <!-- Foreground color doesn't work properly, because parts like the opcode have their own coloring which overwrites the default -->
+                    <!--Setter Property="Foreground" Value="Red"/-->
+                    <Setter Property="Background" Value="CornSilk"/>
+                    <Setter Property="FontWeight" Value="Bold" />
+                </Trigger>
+                <Trigger Property="IsFocused" Value="True">
+                    <Setter Property="Background" Value="CornSilk"/>
+                    <Setter Property="FontWeight" Value="Bold" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <DataTemplate DataType="{x:Type local:NavigationTarget}">
+            <VirtualizingStackPanel>
+                <TextBlock Text="{Binding Target}" >
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding Grayed, Mode=OneWay}" Value="True" >
+                                    <Setter Property="Foreground" Value="Gray" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+            </VirtualizingStackPanel>
+        </DataTemplate>
+
+    </Window.Resources>
+    <Grid>
+        <DockPanel>
+            <StackPanel 
+                DockPanel.Dock="Top" 
+                Background="LightGray"
+                Orientation="Horizontal">
+                <TextBlock
+                    Name="tbSearch"
+                    Text="{Binding Search}"
+                    Margin="5,0,0,0" />
+                <TextBlock
+                    Name="tbFindIndicator"
+                    Text="{Binding FindIndicator}" 
+                    Margin="3,0,0,0"
+                    Foreground="Gray" />
+            </StackPanel>
+            <ListBox 
+                Name="listBox2" 
+                DockPanel.Dock="Bottom"
+                FontFamily="Consolas" FontSize="12" 
+                Margin="5,0,0,0"
+                ItemsSource="{Binding NavigationTargets}"
+                SelectionMode="Single"
+                ItemContainerStyle="{DynamicResource ListBoxItemStyle1}"                     
+                PreviewKeyDown="listBox2_PreviewKeyDown"
+                KeyDown="listBox2_KeyDown"
+                VirtualizingStackPanel.IsVirtualizing="True" 
+                VirtualizingStackPanel.VirtualizationMode="Recycling">
+            </ListBox>
+        </DockPanel>
     </Grid>
 </Window>

@@ -26,11 +26,16 @@ namespace Robotron {
         [STAThread]
         static void Main( string[] args ) {
 
+            Window1 wnd1 = new Window1();
+            wnd1.ShowDialog();
+            return;
+            
+            /*
             Window wnd1 = new Window1();
             wnd1.ShowDialog();
             return;
+            */
             /*
-
             Window wnd2 = new Window2();
             wnd2.ShowDialog();
             return;
