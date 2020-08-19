@@ -75,12 +75,10 @@
   <ItemGroup>
     <Compile Include="AsmReader.cs" />
     <Compile Include="AsmService.cs" />
-    <Compile Include="SortedList.cs" />
     <Compile Include="ValueConverters.cs" />
     <Compile Include="StackWrapper.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="StackTracker.cs" />
-    <Compile Include="RMemory.cs" />
     <Compile Include="TestFunctions.cs" />
     <Compile Include="AsmLinesWindow.xaml.cs">
       <DependentUpon>AsmLinesWindow.xaml</DependentUpon>

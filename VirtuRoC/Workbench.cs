@@ -59,6 +59,8 @@ namespace Robotron {
         private void mo_OnPause( MachineOperator mo, PausedEventArgs e ) {
             _script.mo_OnPause( mo, e );
 
+            TraceLine( "opcount", _mo.Machine.Memory.RecordedOperations.Operations.Count );
+
             _window1.ScrollToAddress( e.BreakpointRCP );
 
             // TODO: Warum brauchen wir hier auch ein MainPage.Focus() ?

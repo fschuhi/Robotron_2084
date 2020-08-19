@@ -26,9 +26,11 @@ namespace Robotron {
         [STAThread]
         static void Main( string[] args ) {
             
+            /*
             AsmLinesWindow wnd1 = new AsmLinesWindow();
             wnd1.ShowDialog();
             return;
+            */
             
             Parser.Default.ParseArguments<Options>( args )
                 .WithParsed<Options>( o => {
