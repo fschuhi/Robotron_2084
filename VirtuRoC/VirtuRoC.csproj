@@ -82,11 +82,11 @@
     <Compile Include="StackTracker.cs" />
     <Compile Include="RMemory.cs" />
     <Compile Include="TestFunctions.cs" />
-    <Compile Include="Window1.xaml.cs">
-      <DependentUpon>Window1.xaml</DependentUpon>
+    <Compile Include="AsmLinesWindow.xaml.cs">
+      <DependentUpon>AsmLinesWindow.xaml</DependentUpon>
     </Compile>
-    <Compile Include="Window2.xaml.cs">
-      <DependentUpon>Window2.xaml</DependentUpon>
+    <Compile Include="NavigationTargetsWindow.xaml.cs">
+      <DependentUpon>NavigationTargetsWindow.xaml</DependentUpon>
     </Compile>
     <Compile Include="Workbench.cs" />
     <Compile Include="MachineOperator.cs" />
@@ -111,11 +111,11 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <Page Include="Window1.xaml">
+    <Page Include="AsmLinesWindow.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
-    <Page Include="Window2.xaml">
+    <Page Include="NavigationTargetsWindow.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>

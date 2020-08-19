@@ -1,4 +1,4 @@
-﻿<Window x:Class="Robotron.Window2"
+﻿<Window x:Class="Robotron.NavigationTargetsWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -7,6 +7,7 @@
         mc:Ignorable="d"
         WindowStyle="ToolWindow"
         Topmost="True"
+        ContentRendered="Window_ContentRendered"
         Title="Navigator" Height="450" Width="500">
     <Window.Resources>
         <Style x:Key="ListBoxItemStyle1" TargetType="{x:Type ListBoxItem}">
@@ -72,7 +73,6 @@
         <DockPanel>
             <StackPanel 
                 DockPanel.Dock="Top" 
-                Background="LightGray"
                 Orientation="Horizontal">
                 <TextBlock
                     Name="tbSearch"
@@ -84,8 +84,10 @@
                     Margin="3,0,0,0"
                     Foreground="Gray" />
             </StackPanel>
+            <Separator DockPanel.Dock="Top" />
             <ListBox 
                 Name="listBox2" 
+                BorderThickness="0"
                 DockPanel.Dock="Bottom"
                 FontFamily="Consolas" FontSize="12" 
                 Margin="5,0,0,0"

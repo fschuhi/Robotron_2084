@@ -7,6 +7,8 @@ using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Input;
 using AspectInjector.Broker;
+using WindowsInput;
+using System.Windows.Threading;
 
 /*
  * have a checkbox "sorted"
@@ -23,7 +25,7 @@ namespace Robotron {
     public class OnEntry2 : Attribute {
         [Advice( Kind.Before )] // you can have also After (async-aware), and Around(Wrap/Instead) kinds
         public void LogEnter( [Argument( Source.Name )] string name ) {
-            Console.WriteLine( $"OnEntry '{name}'" );   //you can debug it	
+            //Console.WriteLine( $"OnEntry '{name}'" );   //you can debug it	
         }
     }
 
@@ -32,15 +34,15 @@ namespace Robotron {
     public class OnExit2 : Attribute {
         [Advice( Kind.Before )]
         public void LogEnter( [Argument( Source.Name )] string name ) {
-            Console.WriteLine( $"OnExit '{name}'" );   //you can debug it	
+            //Console.WriteLine( $"OnExit '{name}'" );   //you can debug it	
         }
     }
     #endregion
 
 
     public class NavigationTarget : IComparable<NavigationTarget> {
-        public string Target { get; set; }
 
+        public string Target { get; set; }
         public bool Grayed { get; set; }
 
         public int CompareTo( NavigationTarget other ) {
@@ -49,18 +51,18 @@ namespace Robotron {
     }
 
 
-    public partial class Window2 : Window {
+    public partial class NavigationTargetsWindow : Window {
 
         Action<string> _peekTarget;
         Action<string> _undoPeekTarget;
 
         public List<NavigationTarget> NavigationTargets { get; } = new List<NavigationTarget>();
-        public string Search { get; set; }
-        public string FindIndicator { get; set; }
+        public string Search { get; set; } = "";
+        public string FindIndicator { get; set; } = "";
 
         private List<NavigationTarget> _matchingTargets = new List<NavigationTarget>();
 
-        public Window2( Action<string> peekTarget, Action<string> undoPeekTarget ) {
+        public NavigationTargetsWindow( Action<string> peekTarget, Action<string> undoPeekTarget ) {
             InitializeComponent();
             this.DataContext = this;
 
@@ -69,10 +71,6 @@ namespace Robotron {
 
             ConfigureStatemachine();
             CreateKeyboardShortcuts();
-
-            Search = "";
-
-            listBox2.Focus();
         }
 
         public void PopulateListbox( List<string> targets ) {
@@ -80,7 +78,6 @@ namespace Robotron {
                 bool skip = Regex.IsMatch( target, "^(@|[LSB][0-9A-F][0-9A-F][0-9A-F][0-9A-F])" );
                 if (!skip) NavigationTargets.Add( new NavigationTarget() { Target = target } );
             }
-            SelectedTarget = NavigationTargets.First();
         }
 
         public NavigationTarget SelectedTarget {
@@ -135,17 +132,17 @@ namespace Robotron {
         }
 
         private void Reset() {
-            SelectedTarget = NavigationTargets.First();
-            _matchingTargets.Clear();
             Search = "";
             FindIndicator = "";
+            SelectedTarget = NavigationTargets.First();
+            _matchingTargets.Clear();
             Refresh();
         }
 
         private void Refresh() {
-            Console.WriteLine( "Refresh() " + listBox2.SelectedIndex.ToString() );
+            //Console.WriteLine( "Refresh() " + listBox2.SelectedIndex.ToString() );
             listBox2.Refresh();
-            listBox2.ScrollToCenterOfView( listBox2.SelectedItem );
+            //listBox2.ScrollToCenterOfView( listBox2.SelectedItem );
             tbSearch.Text = Search.ToLower();
             if (_matchingTargets.Count == 0) {
                 tbFindIndicator.Text = "";
@@ -160,28 +157,25 @@ namespace Robotron {
         private void sm_WaitingForKey_OnEntryFrom_Char( char c ) {
             // add char to search string
             // find best match
-
-            Console.WriteLine( "" );
-            Console.WriteLine( "pressed " + c );
+            //Console.WriteLine( "" );
+            //Console.WriteLine( "pressed " + c );
             _matchingTargets = NavigationTargets.FindAll( x => x.Target.ToUpper().StartsWith( Search + c ) );
             if (_matchingTargets.Count > 0) {
                 NavigationTarget found = _matchingTargets.First();
-                Console.WriteLine( "found " + found.Target );
+                //Console.WriteLine( "found " + found.Target );
                 Search += c;
                 SelectedTarget = found;
                 Refresh();
             }
-
-            Console.WriteLine( "sm_OnEntry_Char() exit: " + Search );
+            //Console.WriteLine( "sm_OnEntry_Char() exit: " + Search );
         }
 
         [OnEntry2]
         private void sm_WaitingForKey_OnEntryFrom_Backspace() {
             if (Search == "") return;
-
             // remove las char from search string
             Search = Search.Substring( 0, Search.Length - 1 );
-            Console.WriteLine( Search );
+            //Console.WriteLine( Search );
             if (Search == "") {
                 SelectedTarget = NavigationTargets.First();
                 Refresh();
@@ -202,7 +196,7 @@ namespace Robotron {
 
         [OnEntry2]
         private void sm_Peeking_OnEntry() {
-            Console.WriteLine( "navigate to " + SelectedTarget.Target );
+            //Console.WriteLine( "navigate to " + SelectedTarget.Target );
             _peekTarget?.Invoke( SelectedTarget.Target );
         }
 
@@ -210,11 +204,11 @@ namespace Robotron {
         private void sm_Peeking_OnExit( StateMachine<State, Trigger>.Transition transition ) {
             if (transition.Destination == State.WaitingForKey) {
                 // restore position in Asmlines
-                Console.WriteLine( "restore position" );
+                //Console.WriteLine( "restore position" );
                 _undoPeekTarget?.Invoke( SelectedTarget.Target );
                 // Refresh();
             } else {
-                Console.WriteLine( "end state reached" );
+                //Console.WriteLine( "end state reached" );
             }
         }
 
@@ -257,6 +251,12 @@ namespace Robotron {
             }
         }
 
+        #region events
+        private void Window_ContentRendered( object sender, EventArgs e ) {
+            // needed, otherwise we start w/ a dotted focus rectangle around the listbox
+            Reset();
+        }
+
         private void listBox2_KeyDown( object sender, KeyEventArgs e ) {
             switch (e.Key) {
                 case Key.Escape:
@@ -294,7 +294,7 @@ namespace Robotron {
                     break;
             }
         }
-
+        #endregion
     }
 
 }

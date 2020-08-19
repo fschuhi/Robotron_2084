@@ -148,13 +148,14 @@ namespace Robotron {
         }
 
         public static void FocusListBoxItem( this ListBox listBox, object item ) {
+            if (item == null) return;
+            listBox.SelectedItem = item;
             ListBoxItem lbi = (ListBoxItem)listBox.ItemContainerGenerator.ContainerFromItem( item );
             if (lbi == null) {
                 listBox.ScrollIntoView( item );
                 lbi = (ListBoxItem)listBox.ItemContainerGenerator.ContainerFromItem( item );
             }
-            listBox.SelectedItem = item;
-            lbi.Focus();
+            lbi?.Focus();
         }
 
         public static object FirstVisibleItem( this ListBox listBox ) {

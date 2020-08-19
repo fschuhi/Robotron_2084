@@ -23,7 +23,7 @@ namespace Robotron {
         public Options _options;
         WorkbenchScript1 _script;
 
-        Window1 _window1;
+        AsmLinesWindow _window1;
 
         public Workbench( MachineOperator mo, Options options ) {
             _mo = mo;
@@ -35,7 +35,7 @@ namespace Robotron {
         }
 
         private void DoAction() {
-            _window1 = new Window1();
+            _window1 = new AsmLinesWindow();
             _window1.Show();
         }
 
@@ -44,7 +44,7 @@ namespace Robotron {
 
             _mo.MainPage.AsmAction = DoAction;
 
-            _window1 = new Window1();
+            _window1 = new AsmLinesWindow();
             _window1.Show();
             _window1.ScrollToAddress( 0x4000 );
 

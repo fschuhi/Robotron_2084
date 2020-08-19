@@ -1,4 +1,4 @@
-﻿<Window x:Class="Robotron.Window1"
+﻿<Window x:Class="Robotron.AsmLinesWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -122,7 +122,23 @@
                     <Button Command="Paste" Content="Paste" />
                 </ToolBar>
             </ToolBarTray>
-            <TextBox AcceptsReturn="True" />
+            <StatusBar DockPanel.Dock="Bottom" >
+                <StatusBarItem>
+                    <TextBlock Text="asdfasdf" />
+                </StatusBarItem>
+                <StatusBarItem>
+                    <TextBlock Text="asdfasdf" />
+                </StatusBarItem>
+            </StatusBar>
+            <Separator DockPanel.Dock="Bottom"/>
+            <StatusBar DockPanel.Dock="Bottom" >
+                <StatusBarItem>
+                    <TextBlock Text="asdfasdf" />
+                </StatusBarItem>
+                <StatusBarItem>
+                    <TextBlock Text="asdfasdf" />
+                </StatusBarItem>
+            </StatusBar>
             <ListBox Name="listBox" 
                      DockPanel.Dock="Bottom"
                      FontFamily="Consolas" FontSize="12" 

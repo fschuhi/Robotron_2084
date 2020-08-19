@@ -41,12 +41,12 @@ namespace Robotron {
     /// <summary>
     /// Interaction logic for Window1.xaml
     /// </summary>
-    public partial class Window1 : Window {
+    public partial class AsmLinesWindow : Window {
 
         public AsmReader AsmReader;
         ScrollMode _defaultScrollMode = ScrollMode.ScrollToCenterOfView;
 
-        public Window1() {
+        public AsmLinesWindow() {
             InitializeComponent();
 
             AsmReader = new AsmReader( @"s:\source\repos\Robotron_2084\Disassemblies\Robotron (Apple).asm" );
@@ -270,7 +270,7 @@ namespace Robotron {
         }
 
         public void NavigateLabel() {
-            Window2 wnd2 = new Window2( OnPeekLabel, OnUndoPeekLabel );
+            NavigationTargetsWindow wnd2 = new NavigationTargetsWindow( OnPeekLabel, OnUndoPeekLabel );
             List<string> labels = AsmReader.Labels();
             wnd2.PopulateListbox( labels );
             wnd2.ShowDialog();
