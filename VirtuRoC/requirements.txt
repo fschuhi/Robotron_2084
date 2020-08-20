@@ -5,3 +5,4 @@ https://github.com/michaelnoonan/inputsimulator
 https://github.com/commandlineparser/commandline
 https://github.com/JamesNK/Newtonsoft.Json
 https://github.com/PavelTorgashov/FastColoredTextBox
+https://joshclose.github.io/CsvHelper/
