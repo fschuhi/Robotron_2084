@@ -1,0 +1,46 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30128.74
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VirtuRoX", "VirtuRoX.csproj", "{5CCF8BC1-4EF3-4085-89E5-D739A9D2B3F9}"
+	ProjectSection(ProjectDependencies) = postProject
+		{7338B109-A1AB-4335-8293-844B65FCE347} = {7338B109-A1AB-4335-8293-844B65FCE347}
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Jellyfish.Virtu.Wpf", "..\..\Virtu\Virtu\Wpf\Jellyfish.Virtu.Wpf.csproj", "{C152D47E-BBC1-4C35-8646-465180720A72}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Jellyfish.Library.Wpf", "..\..\Virtu\Library\Wpf\Jellyfish.Library.Wpf.csproj", "{93900841-7250-4D3A-837E-43EE3FD118DC}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VirtuRoC", "..\VirtuRoC\VirtuRoC.csproj", "{7338B109-A1AB-4335-8293-844B65FCE347}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{5CCF8BC1-4EF3-4085-89E5-D739A9D2B3F9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5CCF8BC1-4EF3-4085-89E5-D739A9D2B3F9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5CCF8BC1-4EF3-4085-89E5-D739A9D2B3F9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5CCF8BC1-4EF3-4085-89E5-D739A9D2B3F9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C152D47E-BBC1-4C35-8646-465180720A72}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C152D47E-BBC1-4C35-8646-465180720A72}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C152D47E-BBC1-4C35-8646-465180720A72}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C152D47E-BBC1-4C35-8646-465180720A72}.Release|Any CPU.Build.0 = Release|Any CPU
+		{93900841-7250-4D3A-837E-43EE3FD118DC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{93900841-7250-4D3A-837E-43EE3FD118DC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{93900841-7250-4D3A-837E-43EE3FD118DC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{93900841-7250-4D3A-837E-43EE3FD118DC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7338B109-A1AB-4335-8293-844B65FCE347}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7338B109-A1AB-4335-8293-844B65FCE347}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7338B109-A1AB-4335-8293-844B65FCE347}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7338B109-A1AB-4335-8293-844B65FCE347}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {43F03C4F-54DF-4E8B-9F19-CFA1D9B5AD27}
+	EndGlobalSection
+EndGlobal

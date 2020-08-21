@@ -30,7 +30,7 @@ namespace Robotron {
     }
 
     public class RecordedMemoryOperation : RecordedOperation {
-        public long Address { get; set; }
+        public int Address { get; set; }
         public int Value { get; set; }
         public int OldValue { get; set; }
     }

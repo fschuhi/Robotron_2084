@@ -1,0 +1,5 @@
+https://github.com/dotnet-state-machine/stateless
+https://github.com/pamidur/aspect-injector
+https://github.com/JamesNK/Newtonsoft.Json
+https://joshclose.github.io/CsvHelper/
+https://www.nuget.org/packages/Excel-DNA

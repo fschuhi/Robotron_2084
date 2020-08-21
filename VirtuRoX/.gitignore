@@ -1,0 +1,33 @@
+# https://stackoverflow.com/questions/39409461/git-how-to-ignore-only-one-file-without-extension
+# Ignore all
+*
+# Unignore all with extensions
+!*.*
+# Unignore all dirs
+!*/
+
+bin/
+obj/
+tmp/
+old/
+packages/
+
+# do not version testlogs
+.vs/
+
+.DS_Store
+
+# local Excel scratchpads are not uploaded
+# use Robotron_2084\docs instead
+*.xlsx
+*.xlsb
+*.xlsm
+
+# standard seetings
+*.cachefile
+*.suo
+*.user
+
+# some folders have bat scripts, strictly local
+*.bat
+
