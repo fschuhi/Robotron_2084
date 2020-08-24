@@ -8,6 +8,8 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
+using ExcelDna.Integration;
+using ExcelDna.Logging;
 
 namespace Robotron {
     public class MyAddIn : IExcelAddIn {
@@ -33,11 +35,12 @@ namespace Robotron {
             // Not sure where to find the SheetName then....
             string callingName = (string)XlCall.Excel( XlCall.xlfReftext, caller, true );
 
-            Trace.WriteLine( callingName + " Error: " + exceptionObject.ToString() );
+            LogDisplay.WriteLine( callingName + " Error: " + exceptionObject.ToString() );
 
             // return #VALUE into the cell anyway.
             return ExcelError.ExcelErrorValue;
         }
+
 
         public void AutoClose() {
             // https://groups.google.com/forum/#!topic/exceldna/uIH6x8ESEUs

@@ -44,7 +44,7 @@ namespace Robotron {
         [STAThread]
         static void Main( string[] args ) {
 
-
+            /*
             using (var reader = new StreamReader( @"s:\source\repos\Robotron_2084\VirtuRoX\tmp\MemoryOperations.csv" ))
             using (var csv = new CsvReader( reader, Thread.CurrentThread.CurrentCulture )) {
                 _records = csv.GetRecords<RecordedMemoryOperation>().ToList();
@@ -56,6 +56,7 @@ namespace Robotron {
             object[,] res = GetReadCounts( 224, 32 );
             Console.WriteLine( _dict.ToString() );
             return;
+            */
             /*
             AsmLinesWindow wnd1 = new AsmLinesWindow();
             wnd1.ShowDialog();

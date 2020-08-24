@@ -26,7 +26,7 @@ namespace Robotron {
     public class RecordedOperation {
         public long Cycles { get; set; }
         public RecordedOperationType Type { get; set; }
-        public long OpcodeRPC { get; set; }
+        public int OpcodeRPC { get; set; }
     }
 
     public class RecordedMemoryOperation : RecordedOperation {
@@ -71,7 +71,7 @@ namespace Robotron {
         }
 
         public void Write( int address, int value, int oldValue ) {
-            Store( RecordedOperationType.Write, address, oldValue );
+            Store( RecordedOperationType.Write, address, value, oldValue );
 
             // TODO: hier delegates (oder events? nochmal das GC Thema suchen), RecordedOperations -> Workbench
             // TODO: track opcodes (R..., auch OpcodeRPC und Cycles)
@@ -130,13 +130,11 @@ namespace Robotron {
             _mem = _mo.Machine.Memory;
             _cpu = _mo.Machine.Cpu;
 
-            /*
             _mem.OnRead += mem_OnRead;
             _mem.OnReadZeroPage += mem_OnRead;
             _mem.OnWrite += mem_OnWrite;
             _mem.OnWriteZeroPage += mem_OnWrite;
             _cpu.OnExecuted += cpu_OnExecuted;
-            */
         }
 
         private void DoAction() {
@@ -164,14 +162,17 @@ namespace Robotron {
         private void mo_OnPause( MachineOperator mo, PausedEventArgs e ) {
             _script.mo_OnPause( mo, e );
 
-            /*
             TraceLine( $"executed: {_executed}, reads: {_reads}, writes: {_writes}" );
-            using (var writer = new StreamWriter( @"s:\source\repos\Robotron_2084\VirtuRoC\tmp\Operations.csv" ))
+            
+            using (var writer = new StreamWriter( @"s:\source\repos\Robotron_2084\VirtuRoC\tmp\MemoryOperations.csv" ))
             using (var csv = new CsvWriter( writer, Thread.CurrentThread.CurrentCulture )) {
                 csv.WriteRecords( RecordedOperations.MemoryOperations );
-                //csv.WriteRecords( RecordedOperations.ExecutedOperations );
             }
-            */
+
+            using (var writer = new StreamWriter( @"s:\source\repos\Robotron_2084\VirtuRoC\tmp\ExecutedOperations.csv" ))
+            using (var csv = new CsvWriter( writer, Thread.CurrentThread.CurrentCulture )) {
+                csv.WriteRecords( RecordedOperations.ExecutedOperations );
+            }
 
             _window1.ScrollToAddress( e.BreakpointRCP );
 
